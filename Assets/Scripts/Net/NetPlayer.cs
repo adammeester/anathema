@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Anathema.Abilities;
+using Anathema.Abilities.PlagueSurgeon;
 using Anathema.CameraRig;
 using Anathema.Combat;
 using Anathema.Player;
@@ -21,7 +22,10 @@ namespace Anathema.Net
             Maim,
             Knockback,
             Root,
-            Bleed
+            Bleed,
+            Heal,
+            Panic,
+            Ward
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -33,6 +37,11 @@ namespace Anathema.Net
 
         readonly NetworkVariable<float> netHealth = new NetworkVariable<float>(100f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         readonly NetworkVariable<float> netRecoverable = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        readonly NetworkVariable<float> netDamageTaken = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        readonly NetworkVariable<float> netHealed = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        // Credit for the report: written by the server when a victim's machine reports who hurt/healed them.
+        readonly NetworkVariable<float> netDamageDealt = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        readonly NetworkVariable<float> netHealingDone = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         readonly NetworkVariable<Vector3> netPosition =new NetworkVariable<Vector3>(Vector3.zero, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         readonly NetworkVariable<Vector3> netAim = new NetworkVariable<Vector3>(Vector3.zero, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         readonly NetworkVariable<int> slot = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
@@ -53,6 +62,32 @@ namespace Anathema.Net
         public int Kills => kills.Value;
         public Vector3 ReplicaAimPoint => smoothedAim;
         public Health Health => health;
+        // This round's damage report numbers; readable on both machines.
+        public float RoundDamageTaken => IsOwner ? health.RoundDamageTaken : netDamageTaken.Value;
+        public float RoundHealed => IsOwner ? health.RoundHealed : netHealed.Value;
+        public float RoundDamageDealt => netDamageDealt.Value;
+        public float RoundHealingDone => netHealingDone.Value;
+
+        public void ServerResetRoundStats()
+        {
+            netDamageDealt.Value = 0f;
+            netHealingDone.Value = 0f;
+        }
+
+        // Victim's machine -> server: credit the attacker (damage) or healer (healing) in the report.
+        void ReportCredit(GameObject source, float damage, float healing)
+        {
+            if (source == null || source == gameObject || !source.TryGetComponent(out NetworkObject no) || !no.IsSpawned) return;
+            CreditServerRpc(no, damage, healing);
+        }
+
+        [ServerRpc(RequireOwnership = false)]
+        void CreditServerRpc(NetworkObjectReference credited, float damage, float healing)
+        {
+            if (!credited.TryGet(out NetworkObject no) || !no.TryGetComponent(out NetPlayer np)) return;
+            np.netDamageDealt.Value += damage;
+            np.netHealingDone.Value += healing;
+        }
 
         // Server only: which seat (0 = host, 1 = guest) this character belongs to; call before spawning.
         public void ServerSetSlot(int value) => slot.Value = value;
@@ -96,6 +131,7 @@ namespace Anathema.Net
                 netHealth.Value = health.Max;
                 netRecoverable.Value = 0f;
                 health.Died += OnOwnerDied;
+                health.DamageTaken += OnOwnerDamageTaken;
 
                 TopDownCamera cam = FindFirstObjectByType<TopDownCamera>();
                 if (cam != null) cam.SetTarget(transform);
@@ -129,7 +165,11 @@ namespace Anathema.Net
         {
             All.Remove(this);
             if (Local == this) Local = null;
-            if (health != null) health.Died -= OnOwnerDied;
+            if (health != null)
+            {
+                health.Died -= OnOwnerDied;
+                health.DamageTaken -= OnOwnerDamageTaken;
+            }
             netPosition.OnValueChanged -= OnRemotePosition;
             netAim.OnValueChanged -= OnRemoteAim;
             slot.OnValueChanged -= OnSlotChanged;
@@ -169,6 +209,8 @@ namespace Anathema.Net
                 if (!Mathf.Approximately(netHealth.Value, health.Current)) netHealth.Value = health.Current;
                 if (!Mathf.Approximately(netRecoverable.Value, health.Recoverable)) netRecoverable.Value = health.Recoverable;
                 if ((netPosition.Value - transform.position).sqrMagnitude > 0.0004f) netPosition.Value = transform.position;
+                if (!Mathf.Approximately(netDamageTaken.Value, health.RoundDamageTaken)) netDamageTaken.Value = health.RoundDamageTaken;
+                if (!Mathf.Approximately(netHealed.Value, health.RoundHealed)) netHealed.Value = health.RoundHealed;
                 if (aim == null) aim = GetComponent<MouseAim>();
                 if (aim != null && (netAim.Value - aim.AimPoint).sqrMagnitude > 0.0004f) netAim.Value = aim.AimPoint;
                 return;
@@ -191,6 +233,8 @@ namespace Anathema.Net
         }
 
         // --- Death / score ---------------------------------------------------------------------------------------
+
+        void OnOwnerDamageTaken(float dealt, GameObject source) => ReportCredit(source, dealt, 0f);
 
         void OnOwnerDied(Health _, GameObject killer)
         {
@@ -257,12 +301,14 @@ namespace Anathema.Net
                 return;
             }
 
-            if (abilityIndex < abilities.Length) abilities[abilityIndex].ReplayActivate();
+            bool ex = abilityIndex >= Ability.ExCueOffset;
+            if (ex) abilityIndex -= Ability.ExCueOffset;
+            if (abilityIndex < abilities.Length) abilities[abilityIndex].ReplayActivate(ex);
         }
 
         // --- Damage and status effects (aimed at a replica, applied on its owner) ---------------------------------
 
-        public void SendDamage(float amount, GameObject source)
+        public void SendDamage(float amount, GameObject source, bool aoe = false)
         {
             NetworkObjectReference reference = default;
             bool hasSource = false;
@@ -271,25 +317,25 @@ namespace Anathema.Net
                 reference = no;
                 hasSource = true;
             }
-            DamageServerRpc(amount, reference, hasSource);
+            DamageServerRpc(amount, reference, hasSource, aoe);
         }
 
         ClientRpcParams ToOwner => new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { OwnerClientId } } };
 
         [ServerRpc(RequireOwnership = false)]
-        void DamageServerRpc(float amount, NetworkObjectReference source, bool hasSource)
+        void DamageServerRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe)
         {
-            DamageClientRpc(amount, source, hasSource, ToOwner);
+            DamageClientRpc(amount, source, hasSource, aoe, ToOwner);
         }
 
         [ClientRpc]
-        void DamageClientRpc(float amount, NetworkObjectReference source, bool hasSource, ClientRpcParams rpcParams = default)
+        void DamageClientRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, ClientRpcParams rpcParams = default)
         {
             if (!IsOwner || NetGame.Frozen) return;
 
             GameObject attacker = null;
             if (hasSource && source.TryGet(out NetworkObject no)) attacker = no.gameObject;
-            health.ApplyDamageLocal(amount, attacker);
+            health.ApplyDamageLocal(amount, attacker, aoe);
         }
 
         public void SendStatus(StatusKind kind, float a, float b, Vector3 direction, GameObject source = null)
@@ -326,6 +372,9 @@ namespace Anathema.Net
                 case StatusKind.Knockback: Knockback.Apply(gameObject, direction, a, b); break;
                 case StatusKind.Root: Rooted.Apply(gameObject, a); break;
                 case StatusKind.Bleed: Bleeding.Apply(gameObject, attacker, a, b); break;
+                case StatusKind.Heal: ReportCredit(attacker, 0f, health.Heal(a)); break;
+                case StatusKind.Panic: Panicked.Apply(gameObject, attacker, a); break;
+                case StatusKind.Ward: PlagueWard.Apply(gameObject, attacker, a, b); break;
             }
         }
     }

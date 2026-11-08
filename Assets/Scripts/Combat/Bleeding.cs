@@ -53,7 +53,7 @@ namespace Anathema.Combat
             if (Time.time >= nextTickTime)
             {
                 nextTickTime += TickInterval;
-                if (!visualOnly) health.TakeDamage(damagePerSecond * TickInterval, source);
+                if (!visualOnly) health.TakeDamage(damagePerSecond * TickInterval, source, true);
                 if (health.IsDead) return;
             }
 

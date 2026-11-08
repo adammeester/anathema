@@ -24,13 +24,14 @@ namespace Anathema.EditorTools
         const string PrefabDir = "Assets/Resources/Net";
         const string GreyKnightPrefab = PrefabDir + "/Player_GreyKnight.prefab";
         const string BerserkerPrefab = PrefabDir + "/Player_KhorneBerserker.prefab";
+        const string PlagueSurgeonPrefab = PrefabDir + "/Player_PlagueSurgeon.prefab";
 
         static NetSceneBuilder()
         {
             EditorApplication.delayCall += () =>
             {
                 if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
-                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab);
+                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab);
                 if (missing && File.Exists("Assets/Models/GreyKnight.fbx")) BuildAll();
             };
         }
@@ -46,6 +47,7 @@ namespace Anathema.EditorTools
 
             BuildPlayerPrefab(ArenaSceneBuilder.Character.GreyKnight, GreyKnightPrefab);
             BuildPlayerPrefab(ArenaSceneBuilder.Character.KhorneBerserker, BerserkerPrefab);
+            BuildPlayerPrefab(ArenaSceneBuilder.Character.PlagueSurgeon, PlagueSurgeonPrefab);
             BuildVersusScene();
             BuildMenuScene();
 

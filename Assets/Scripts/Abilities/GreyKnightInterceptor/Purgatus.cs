@@ -42,7 +42,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         public override bool RootsMovement => channeling || expanding;
 
         // The HUD greys the slot out until the bar is full.
-        public override bool Available => energy != null && energy.Current >= energyCost && !Silenced.IsSilenced(gameObject);
+        public override bool Available => energy != null && energy.Current >= energyCost && !Silenced.IsSilenced(gameObject) && !Panicked.IsPanicked(gameObject);
 
         // Applied only when added in the editor.
         void Reset()
@@ -186,7 +186,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 away.y = 0f;
                 if (away.sqrMagnitude < 0.0001f) away = Aim.AimDirection;
 
-                if (!target.TakeDamage(damage, gameObject)) continue;
+                if (!target.TakeDamage(damage, gameObject, true)) continue;
                 GreyKnightSound.Impact();
                 if (target.IsDead) continue;
                 Knockback.Apply(target.gameObject, away, knockbackDistance, knockbackDuration);

@@ -108,7 +108,7 @@ namespace Anathema.Arena
                 if (h.IsDead) continue;
                 Vector3 offset = h.transform.position - center;
                 offset.y = 0f;
-                if (offset.magnitude > CurrentRadius) h.TakeDamage(amount, gameObject);
+                if (offset.magnitude > CurrentRadius) h.TakeDamage(amount, gameObject, true);
             }
         }
 

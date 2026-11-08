@@ -26,6 +26,10 @@ namespace Anathema.Abilities
         public virtual string DisplayName => GetType().Name;
         public virtual string KeyLabel => "";
 
+        // EX version info for the HUD's EX menu (shown while Shift is held). ExCost <= 0 means no EX version.
+        public virtual float ExCost => 0f;
+        public virtual string ExDescription => "";
+
         // False while something other than the cooldown stops this ability being used (e.g. an ultimate without a
         // full energy bar). Only affects how the HUD draws the slot.
         public virtual bool Available => true;
@@ -51,10 +55,25 @@ namespace Anathema.Abilities
 
         int abilityIndex = -1;
 
+        // Cue indices at or above this mean "ability (index - offset), EX version" (see NetPlayer.SendCue).
+        public const int ExCueOffset = 100;
+
+        // Set by an ability's Activate() when this use is the EX (energy-spending) version. On a replica it is
+        // pre-set from the owner's cue before Activate() runs, so visuals can match.
+        protected bool ExActivation { get; set; }
+
         // Called on a replica when the owner activated this ability.
-        public void ReplayActivate()
+        public void ReplayActivate(bool ex = false)
         {
+            ExActivation = ex;
             if (!Health.IsDead) Activate();
+        }
+
+        // True when the EX modifier is held and enough energy was spent. Owner only; replicas read ExActivation.
+        protected bool TrySpendEx(Energy energy, float cost)
+        {
+            if (!Input.GetKey(KeyCode.LeftShift) || energy == null) return false;
+            return energy.TrySpend(cost);
         }
 
         public void ReplayCancel()
@@ -84,17 +103,19 @@ namespace Anathema.Abilities
                 awaitRelease = false;
             }
 
-            if (Time.time < nextUseTime || !triggered || Silenced.IsSilenced(gameObject) || Stunned.IsStunned(gameObject)) return;
+            if (Time.time < nextUseTime || !triggered || Silenced.IsSilenced(gameObject) || Stunned.IsStunned(gameObject)
+                || Panicked.IsPanicked(gameObject)) return;
 
             // Wind-up abilities hold the cooldown back until their effect lands (they call StartCooldown()).
             nextUseTime = CooldownStartsOnStrike ? float.PositiveInfinity : Time.time + cooldown;
+            ExActivation = false;
             Activate();
 
             // Tell the other machines to replay this ability's visuals.
             if (Health.Net != null && Health.Net.IsSpawned)
             {
                 if (abilityIndex < 0) abilityIndex = System.Array.IndexOf(GetComponents<Ability>(), this);
-                Health.Net.SendCue(abilityIndex, Aim.AimPoint);
+                Health.Net.SendCue(abilityIndex + (ExActivation ? ExCueOffset : 0), Aim.AimPoint);
             }
         }
 

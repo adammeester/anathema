@@ -144,7 +144,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 if (to.magnitude > radius) continue;
 
                 struck.Add(target);
-                if (!target.TakeDamage(damage, gameObject)) continue;
+                if (!target.TakeDamage(damage, gameObject, true)) continue;
                 if (energy != null) energy.Gain(energyPerHit);
                 if (!target.IsDead) Rooted.Apply(target.gameObject, rootDuration);
             }

@@ -33,9 +33,18 @@ namespace Anathema.Combat
         {
             if (distance <= 0f || speed <= 0f || Stunned.IsStunned(gameObject) || Rooted.IsRooted(gameObject)) return;
 
-            // Triangle wave: constant speed with an instant turnaround at each end.
             var maimed = GetComponent<Maimed>();
             float current = speed * (maimed != null ? maimed.SpeedMultiplier : 1f);
+
+            // Panicked dummies run off; the patrol path is re-anchored where they stop so they resume from there.
+            if (Panicked.TryGetFleeDirection(gameObject, out Vector3 flee))
+            {
+                transform.position += flee * (current * Time.deltaTime);
+                origin = transform.position - direction * (distance - Mathf.Abs(travelled - distance));
+                return;
+            }
+
+            // Triangle wave: constant speed with an instant turnaround at each end.
             travelled = Mathf.Repeat(travelled + current * Time.deltaTime, distance * 2f);
             float t = distance - Mathf.Abs(travelled - distance);
             transform.position = origin + direction * t;

@@ -64,6 +64,8 @@ namespace Anathema.Player
             var maimed = GetComponent<Maimed>();
             float speed = moveSpeed * (maimed != null ? maimed.SpeedMultiplier : 1f);
             Vector3 velocity = (forward * input.y + right * input.x) * speed;
+            // Panic overrides steering: run straight away from whatever caused it (unless stunned/rooted/guarding).
+            if (!guarding && Panicked.TryGetFleeDirection(gameObject, out Vector3 flee)) velocity = flee * speed;
             velocity.y = verticalVelocity;
             controller.Move(velocity * Time.deltaTime);
         }

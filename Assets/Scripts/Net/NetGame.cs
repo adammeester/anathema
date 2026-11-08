@@ -20,7 +20,7 @@ namespace Anathema.Net
         public const string MenuScene = "Menu";
         public const string ArenaScene = "Versus"; // the online arena (the "Arena" scene is the offline training ground)
         public const ushort DefaultPort = 7777;
-        public const float RoundPause = 3f;   // how long the round result banner shows before the next round
+        public const float RoundPause = 5f;   // countdown (with the damage report) between rounds
         public const float RoundIntro = 1.8f; // how long the "ROUND N" banner shows when a round begins
 
         public enum Phase
@@ -42,17 +42,19 @@ namespace Anathema.Net
             public bool ready;
         }
 
-        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker" };
-        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker" };
+        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon" };
+        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon" };
         static readonly string[] CharacterBlurb =
         {
             "Psychic warrior-monk. Ranged and precise, with a counter that turns into a teleport.",
-            "Frenzied melee brawler. Closes the gap fast and wins by staying on top of you."
+            "Frenzied melee brawler. Closes the gap fast and wins by staying on top of you.",
+            "Support caster. Poison clouds and plague flies that hurt foes and mend allies. No counter, just wings."
         };
         static readonly string[][] CharacterKit =
         {
             new[] { "LMB  Storm bolter", "Q  Halberd sweep", "RMB  Smite (piercing lance)", "Space  Counter + riposte", "R  Purgatus (ultimate)" },
-            new[] { "LMB  Chain-axe chops", "Shift  Whirling carnage", "Q  Axe rush", "E  Maim (slow + bleed)", "Space  Blood rage counter", "R  Blood for the Blood God (ultimate)" }
+            new[] { "LMB  Chain-axe chops", "Shift  Whirling carnage", "Q  Axe rush", "E  Maim (slow + bleed)", "Space  Blood rage counter", "R  Blood for the Blood God (ultimate)" },
+            new[] { "LMB  Plague spit (stacking rot)", "E  Restorative cloud (EX: damage cloud)", "RMB  Pestilent fly (EX: bursts)", "Space  Winged escape (i-frames)", "R  Ward of Plague (ultimate)", "Hold Shift  EX version" }
         };
 
         public static NetGame Instance { get; private set; }
@@ -71,6 +73,7 @@ namespace Anathema.Net
         int winnerSeat = -1;      // winner of the match (Over) or of the round that just ended (RoundEnd)
         int bestOf = 3;           // 3 or 5; chosen by the host in the lobby
         float nextRoundTime;      // server: when the next round starts
+        float countdownEnd;       // both sides: when the between-rounds countdown reaches zero
         float introUntil;         // when the "ROUND N" banner stops showing
         bool frozen;
 
@@ -540,6 +543,7 @@ namespace Anathema.Net
             {
                 phase = Phase.RoundEnd;
                 nextRoundTime = Time.time + RoundPause;
+                countdownEnd = nextRoundTime;
                 manager.CustomMessagingManager.SendNamedMessageToAll("roundEnd", writer);
             }
         }
@@ -549,6 +553,7 @@ namespace Anathema.Net
             if (manager.IsServer) return;
             reader.ReadValueSafe(out winnerSeat);
             phase = Phase.RoundEnd;
+            countdownEnd = Time.time + RoundPause;
             frozen = true;
         }
 
@@ -601,6 +606,7 @@ namespace Anathema.Net
             phase = Phase.Playing;
             introUntil = Time.time + RoundIntro;
             if (NetPlayer.Local != null) NetPlayer.Local.ResetForRematch();
+            if (manager.IsServer) foreach (NetPlayer player in NetPlayer.All) player.ServerResetRoundStats();
             GasZone gas = FindFirstObjectByType<GasZone>();
             if (gas != null) gas.Restart();
             OrbSpawner orbs = FindFirstObjectByType<OrbSpawner>();
@@ -760,14 +766,16 @@ namespace Anathema.Net
             bool opponentHere = other >= 0 && seats[other].used;
 
             // Character cards.
-            float cardW = 560, cardH = 520, gap = 60;
-            float startX = w * 0.5f - cardW - gap * 0.5f;
+            int cardCount = CharacterNames.Length;
+            float gap = 40, cardH = 520;
+            float cardW = Mathf.Min(560f, (w - 80f - gap * (cardCount - 1)) / cardCount);
+            float startX = w * 0.5f - (cardW * cardCount + gap * (cardCount - 1)) * 0.5f;
             for (int i = 0; i < CharacterNames.Length; i++)
             {
                 var card = new Rect(startX + i * (cardW + gap), 160, cardW, cardH);
                 bool selected = myCharacter == i;
                 bool opponentPicked = opponentHere && seats[other].character == i;
-                Color accent = i == 0 ? new Color(0.45f, 0.75f, 1f) : new Color(1f, 0.32f, 0.22f);
+                Color accent = i == 0 ? new Color(0.45f, 0.75f, 1f) : i == 1 ? new Color(1f, 0.32f, 0.22f) : new Color(0.55f, 0.85f, 0.2f);
 
                 Frame(card, Panel, selected ? accent : DarkGold, selected ? 6f : 3f);
                 Rect(new Rect(card.x + 6, card.y + 6, card.width - 12, 10), new Color(accent.r, accent.g, accent.b, selected ? 0.9f : 0.35f));
@@ -894,13 +902,20 @@ namespace Anathema.Net
 
             if (phase == Phase.RoundEnd)
             {
-                // Round result banner; the next round starts by itself after RoundPause.
-                Rect(new Rect(0, h * 0.33f, w, 230), new Color(0f, 0f, 0f, 0.6f));
-                var roundResult = new GUIStyle(title) { fontSize = 100 };
+                // Round result banner + damage report; everyone is reset to their spawn when the countdown hits zero.
+                float top = h * 0.08f;
+                Rect(new Rect(0, top, w, 200), new Color(0f, 0f, 0f, 0.6f));
+                var roundResult = new GUIStyle(title) { fontSize = 90 };
                 roundResult.normal.textColor = won ? green : red;
-                GUI.Label(new Rect(0, h * 0.33f + 6, w, 130), won ? "ROUND WON" : "ROUND LOST", roundResult);
-                GUI.Label(new Rect(0, h * 0.33f + 130, w, 60), $"{myKills}  -  {theirKills}      ·      BEST OF {bestOf}", new GUIStyle(headline) { fontSize = 44 });
-                GUI.Label(new Rect(0, h * 0.33f + 188, w, 36), $"First to {RoundsToWin} rounds wins the match", subtitle);
+                GUI.Label(new Rect(0, top + 4, w, 110), won ? "ROUND WON" : "ROUND LOST", roundResult);
+                GUI.Label(new Rect(0, top + 110, w, 60), $"{myKills}  -  {theirKills}      ·      BEST OF {bestOf}", new GUIStyle(headline) { fontSize = 40 });
+                GUI.Label(new Rect(0, top + 162, w, 34), $"First to {RoundsToWin} rounds wins the match", subtitle);
+
+                DrawDamageReport(w, top + 220);
+
+                int seconds = Mathf.Max(1, Mathf.CeilToInt(countdownEnd - Time.time));
+                GUI.Label(new Rect(0, h - 190, w, 40), "NEXT ROUND IN", subtitle);
+                GUI.Label(new Rect(0, h - 150, w, 120), seconds.ToString(), new GUIStyle(title) { fontSize = 110 });
                 return;
             }
 
@@ -912,16 +927,66 @@ namespace Anathema.Net
             GUI.Label(new Rect(0, 410, w, 70), $"{myKills}  -  {theirKills}", new GUIStyle(headline) { fontSize = 60 });
             GUI.Label(new Rect(0, 480, w, 40), $"BEST OF {bestOf}", subtitle);
 
+            DrawDamageReport(w, 540);
+
             float bx = w * 0.5f - 230;
             if (manager.IsServer)
             {
-                if (GUI.Button(new Rect(bx, 540, 460, 84), "REMATCH", buttonBig)) StartRematch();
+                if (GUI.Button(new Rect(bx, 800, 460, 84), "REMATCH", buttonBig)) StartRematch();
             }
             else
             {
-                GUI.Label(new Rect(0, 560, w, 50), "Waiting for the host to start a rematch...", labelCentered);
+                GUI.Label(new Rect(0, 820, w, 50), "Waiting for the host to start a rematch...", labelCentered);
             }
-            if (GUI.Button(new Rect(bx, 650, 460, 70), "MAIN MENU", button)) LeaveToMenu("");
+            if (GUI.Button(new Rect(bx, 900, 460, 70), "MAIN MENU", button)) LeaveToMenu("");
+        }
+
+        // Post-round damage report: one row per fighter (you first, then allies, then enemies), so it scales to 2v2 / 3v3.
+        void DrawDamageReport(float w, float y)
+        {
+            NetPlayer me = NetPlayer.Local;
+            if (me == null) return;
+
+            var rows = new List<NetPlayer>(NetPlayer.All);
+            rows.RemoveAll(p => p == null);
+            int Order(NetPlayer p) => p == me ? 0 : p.Health.Team == me.Health.Team ? 1 : 2;
+            rows.Sort((a, b) => Order(a).CompareTo(Order(b)));
+
+            Color green = new Color(0.4f, 1f, 0.5f), blue = new Color(0.45f, 0.75f, 1f), red = new Color(1f, 0.4f, 0.35f);
+            const float rowH = 40f, nameW = 300f, colW = 110f;
+            string[] columns = { "DEALT", "TAKEN", "HEAL DONE", "HEAL GOT", "HP LEFT" };
+            float panelW = nameW + colW * columns.Length + 60f;
+            var panel = new Rect(w * 0.5f - panelW * 0.5f, y, panelW, 92f + rows.Count * rowH);
+            Frame(panel, Panel, DarkGold);
+
+            var head = new GUIStyle(labelCentered) { fontSize = 22, fontStyle = FontStyle.Bold };
+            head.normal.textColor = Gold;
+            GUI.Label(new Rect(panel.x, panel.y + 6, panel.width, 30), "DAMAGE REPORT", head);
+
+            var colStyle = new GUIStyle(labelCentered) { fontSize = 17, fontStyle = FontStyle.Bold };
+            colStyle.normal.textColor = new Color(0.75f, 0.7f, 0.65f);
+            for (int c = 0; c < columns.Length; c++)
+                GUI.Label(new Rect(panel.x + 30 + nameW + c * colW, panel.y + 42, colW, 26), columns[c], colStyle);
+
+            for (int i = 0; i < rows.Count; i++)
+            {
+                NetPlayer p = rows[i];
+                int group = Order(p);
+                Color tint = group == 0 ? green : group == 1 ? blue : red;
+                string who = group == 0 ? "YOU" : group == 1 ? "ALLY" : "ENEMY";
+                string character = p.name.Replace("(Clone)", "").Replace("Player_", "").Trim();
+                float ry = panel.y + 72 + i * rowH;
+
+                var nameStyle = new GUIStyle(label) { fontSize = 22, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft };
+                nameStyle.normal.textColor = tint;
+                GUI.Label(new Rect(panel.x + 30, ry, nameW, rowH), $"{who}  ·  {character}", nameStyle);
+
+                var valueStyle = new GUIStyle(labelCentered) { fontSize = 26, fontStyle = FontStyle.Bold };
+                valueStyle.normal.textColor = tint;
+                float[] values = { p.RoundDamageDealt, p.RoundDamageTaken, p.RoundHealingDone, p.RoundHealed, p.Health.Current };
+                for (int c = 0; c < values.Length; c++)
+                    GUI.Label(new Rect(panel.x + 30 + nameW + c * colW, ry, colW, rowH), Mathf.RoundToInt(values[c]).ToString(), valueStyle);
+            }
         }
 
         static string FindLocalAddresses()

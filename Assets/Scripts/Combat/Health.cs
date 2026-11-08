@@ -32,6 +32,9 @@ namespace Anathema.Combat
         public float PermanentLoss => Mathf.Max(0f, maxHealth - Current - Recoverable);
         public float Normalized => maxHealth > 0f ? Current / maxHealth : 0f;
         public int Team => team;
+        // Post-round damage report: totals since the last reset (owner/offline only; NetPlayer syncs them to the opponent).
+        public float RoundDamageTaken { get; private set; }
+        public float RoundHealed { get; private set; }
         public bool IsDead => Current <= 0f;
 
         // Online play: the owning machine is authoritative for this character. Everywhere else it is a "replica":
@@ -43,8 +46,17 @@ namespace Anathema.Combat
         // Lets an ability (e.g. a counter) rewrite or negate incoming damage. Receives (amount, source); returns the new amount.
         public Func<float, GameObject, float> DamageModifier;
 
+        // A shield: soaks up incoming damage (AoE and damage over time included, unlike DamageModifier) and returns
+        // whatever is left over to go through to health. Receives (amount, source).
+        public Func<float, GameObject, float> Absorber;
+
+        // I-frames: while set, nothing hurts this character (including AoE, gas and bleeds, which skip DamageModifier).
+        public bool Invulnerable { get; set; }
+
         public event Action<Health, float, GameObject> Damaged;
         public event Action<Health, GameObject> Died;
+        // Raised on the victim's machine with the health actually lost (after modifiers/absorbs), for damage-report credit.
+        public event Action<float, GameObject> DamageTaken;
 
         void Awake()
         {
@@ -74,7 +86,7 @@ namespace Anathema.Combat
         }
 
         // Entry point for everything that hurts a character. Online it decides where the damage is actually applied.
-        public bool TakeDamage(float amount, GameObject source)
+        public bool TakeDamage(float amount, GameObject source, bool aoe = false)
         {
             if (IsDead || amount <= 0f) return false;
 
@@ -87,24 +99,33 @@ namespace Anathema.Combat
                 {
                     // Environmental damage (gas) is applied by the victim's own machine, so ignore it here.
                     if (source != null && !source.TryGetComponent(out NetPlayer _)) return false;
-                    net.SendDamage(amount, source);
+                    net.SendDamage(amount, source, aoe);
                     return true;
                 }
             }
 
-            return ApplyDamageLocal(amount, source);
+            return ApplyDamageLocal(amount, source, aoe);
         }
 
         // Applies damage to this machine's copy (counters and other modifiers run here).
-        public bool ApplyDamageLocal(float amount, GameObject source)
+        public bool ApplyDamageLocal(float amount, GameObject source, bool aoe = false)
         {
-            if (IsDead || amount <= 0f) return false;
+            if (IsDead || Invulnerable || amount <= 0f) return false;
 
-            if (DamageModifier != null) amount = DamageModifier(amount, source);
+            if (!aoe && DamageModifier != null) amount = DamageModifier(amount, source);
             if (amount <= 0f) return false;
+
+            // A fully absorbed hit still counts as landing (the attacker gets their energy) but doesn't touch health.
+            if (Absorber != null)
+            {
+                amount = Absorber(amount, source);
+                if (amount <= 0f) return true;
+            }
 
             float dealt = Mathf.Min(amount, Current);
             Current -= dealt;
+            RoundDamageTaken += dealt;
+            DamageTaken?.Invoke(dealt, source);
             // Only so much damage can ever be healed back; anything beyond that is lost for good (orbs only).
             Recoverable = Mathf.Min(Recoverable + dealt, maxHealth - Current, maxRecoverableChunks * ChunkSize);
             lastDamageTime = Time.time;
@@ -131,6 +152,7 @@ namespace Anathema.Combat
             float healed = Mathf.Min(amount, Recoverable);
             Current += healed;
             Recoverable -= healed;
+            RoundHealed += healed;
             return healed;
         }
 
@@ -142,6 +164,7 @@ namespace Anathema.Combat
             float healed = Mathf.Min(amount, maxHealth - Current);
             float permanent = PermanentLoss;
             Current += healed;
+            RoundHealed += healed;
             // Whatever the orb healed beyond the permanent loss came out of the healable part.
             Recoverable = Mathf.Max(0f, Recoverable - Mathf.Max(0f, healed - permanent));
             return healed;
@@ -149,6 +172,8 @@ namespace Anathema.Combat
 
         public void ResetHealth()
         {
+            RoundDamageTaken = 0f;
+            RoundHealed = 0f;
             Current = maxHealth;
             Recoverable = 0f;
         }

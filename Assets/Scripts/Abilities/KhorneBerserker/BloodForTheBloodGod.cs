@@ -70,7 +70,8 @@ namespace Anathema.Abilities.KhorneBerserker
 
         // The HUD greys the slot out until the bar is full.
         public override bool Available => energy != null && energy.Current >= energyCost
-                                          && !Silenced.IsSilenced(gameObject) && !Stunned.IsStunned(gameObject);
+                                          && !Silenced.IsSilenced(gameObject) && !Stunned.IsStunned(gameObject)
+                                          && !Panicked.IsPanicked(gameObject);
 
         // Applied only when added in the editor.
         void Reset()
@@ -249,7 +250,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 Health target = c.GetComponentInParent<Health>();
                 if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
 
-                if (!target.TakeDamage(damage, gameObject) || target.IsDead) continue;
+                if (!target.TakeDamage(damage, gameObject, true) || target.IsDead) continue;
                 Stunned.Apply(target.gameObject, stunDuration);
                 Bleeding.Apply(target.gameObject, gameObject, bleedDamagePerSecond, bleedDuration);
             }

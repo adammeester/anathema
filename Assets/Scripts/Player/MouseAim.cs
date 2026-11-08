@@ -51,6 +51,13 @@ namespace Anathema.Player
             flat.y = 0f;
             if (flat.sqrMagnitude > 0.01f) AimDirection = flat.normalized;
 
+            // Panic takes over aim too: the character faces the way they are running, whatever the cursor says.
+            if (Panicked.TryGetFleeDirection(gameObject, out Vector3 flee))
+            {
+                AimDirection = flee;
+                AimPoint = transform.position + flee * 5f;
+            }
+
             if (!health.IsDead) transform.rotation = Quaternion.LookRotation(AimDirection, Vector3.up);
         }
     }

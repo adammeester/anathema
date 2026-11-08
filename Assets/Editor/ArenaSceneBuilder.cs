@@ -1,6 +1,8 @@
+using System.Linq;
 using System.IO;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Abilities.KhorneBerserker;
+using Anathema.Abilities.PlagueSurgeon;
 using Anathema.Arena;
 using Anathema.CameraRig;
 using Anathema.Combat;
@@ -21,6 +23,7 @@ namespace Anathema.EditorTools
         const string MaterialDir = "Assets/Materials";
         const string GreyKnightModelPath = "Assets/Models/GreyKnight.fbx";
         const string KhorneBerserkerModelPath = "Assets/Models/KhorneBerserker.fbx";
+        const string PlagueSurgeonModelPath = "Assets/Models/PlagueSurgeon.fbx";
         // First model that exists is used for the player.
         static readonly string[] PlayerModelPaths =
         {
@@ -39,7 +42,8 @@ namespace Anathema.EditorTools
         internal enum Character
         {
             GreyKnight,
-            KhorneBerserker
+            KhorneBerserker,
+            PlagueSurgeon
         }
 
         [MenuItem("Anathema/Rebuild Arena Scene")]
@@ -47,6 +51,9 @@ namespace Anathema.EditorTools
 
         [MenuItem("Anathema/Rebuild Arena Scene (Khorne Berserker)")]
         static void BuildBerserker() => Build(Character.KhorneBerserker);
+
+        [MenuItem("Anathema/Rebuild Arena Scene (Plague Surgeon)")]
+        static void BuildPlagueSurgeon() => Build(Character.PlagueSurgeon);
 
         static void Build(Character character)
         {
@@ -324,6 +331,15 @@ namespace Anathema.EditorTools
                 root.AddComponent<BloodForTheBloodGod>();
                 root.AddComponent<BerserkerCounter>();
             }
+            else if (character == Character.PlagueSurgeon)
+            {
+                // Support caster: poison gas and plague flies, no counter (Winged Escape takes the Space slot).
+                root.AddComponent<PlagueSpit>();
+                root.AddComponent<PlagueCloud>();
+                root.AddComponent<PestilentFly>();
+                root.AddComponent<WingedEscape>();
+                root.AddComponent<WardOfPlague>();
+            }
             else
             {
                 root.AddComponent<BasicAttack>();
@@ -340,7 +356,9 @@ namespace Anathema.EditorTools
             root.AddComponent<PlayerHud>();
 
             GameObject modelAsset = null;
-            string[] modelPaths = berserker ? new[] { KhorneBerserkerModelPath } : PlayerModelPaths;
+            string[] modelPaths = berserker ? new[] { KhorneBerserkerModelPath }
+                : character == Character.PlagueSurgeon ? new[] { PlagueSurgeonModelPath }.Concat(PlayerModelPaths).ToArray()
+                : PlayerModelPaths;
             foreach (string path in modelPaths)
             {
                 modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>(path);

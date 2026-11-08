@@ -138,8 +138,14 @@ namespace Anathema.Player
             float cd = ability.CooldownNormalized;
             bool ready = cd <= 0f && !ability.IsCasting && ability.Available; // mid wind-up: dim, but no cooldown curtain yet
 
-            DrawFrame(r, f, ready ? Gold : DarkGold);
-            DrawRect(r, new Color(0.12f, 0.14f, 0.20f, 1f));
+            // While Shift is held (EX mode) abilities without an EX version are greyed out and the EX ones are highlighted.
+            bool exMode = Input.GetKey(KeyCode.LeftShift);
+            bool hasEx = ability.ExCost > 0f;
+            bool exDim = exMode && !hasEx;
+            bool exLit = exMode && hasEx;
+
+            DrawFrame(r, f, exLit ? EnergyColor : (ready && !exDim ? Gold : DarkGold));
+            DrawRect(r, exLit ? new Color(0.10f, 0.22f, 0.36f, 1f) : new Color(0.12f, 0.14f, 0.20f, 1f));
             GUI.DrawTexture(new Rect(r.x, r.y, r.width, r.height * 0.5f), sheen);
 
             // Ability name, wrapped inside the slot.
@@ -163,6 +169,18 @@ namespace Anathema.Player
                 DrawRect(new Rect(badge.x - 2f * scale, badge.y - 2f * scale, badge.width + 4f * scale, badge.height + 4f * scale), ready ? Gold : DarkGold);
                 DrawRect(badge, new Color(0.04f, 0.05f, 0.08f, 1f));
                 DrawText(badge, ability.KeyLabel, Mathf.RoundToInt(15f * scale), FontStyle.Bold, ready ? Gold : new Color(0.7f, 0.7f, 0.7f));
+            }
+
+            if (exDim)
+            {
+                DrawRect(new Rect(r.x - f, r.y - f, r.width + 2f * f, r.height + 2f * f), new Color(0f, 0f, 0f, 0.65f));
+            }
+            else if (exLit)
+            {
+                // Energy cost at the top of the slot; dimmed when the surgeon can't afford it.
+                bool affordable = energy != null && energy.Current >= ability.ExCost;
+                DrawText(new Rect(r.x, r.y + 2f * scale, r.width, 22f * scale), $"EX {Mathf.CeilToInt(ability.ExCost)}",
+                    Mathf.RoundToInt(16f * scale), FontStyle.Bold, affordable ? EnergyColor : new Color(EnergyColor.r, EnergyColor.g, EnergyColor.b, 0.5f));
             }
         }
 
