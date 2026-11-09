@@ -60,19 +60,25 @@ namespace Anathema.Abilities.KhorneBerserker
 
         static bool NoWeapon(int mask) => (mask & ((1 << HeavyChainaxe) | (1 << Eviscerator))) == 0;
 
-        // The fixed offers, one set of three per pick (set 0 is offered after round 1, set 1 after round 2, ...). Everyone
-        // sees the same sets, so there is no luck in the pick, only in what you choose. Upgrades not listed here stay in
-        // the catalog (they can be tried from the F1 test panel) and can be slotted into a set when you want them in play.
-        //   1  Armament : the weapon decision (a weapon, or keep the dual chainaxes and sharpen them)
-        //   2  Endurance: how you survive
-        //   3  Ferocity : how you fight
-        //   4  Capstone : one of each, for a best-of-5 that goes the distance
-        public static readonly int[][] Sets =
+        // The fixed offers: Sets[pick][slot] is a list of alternatives for one card (the first that is still available is
+        // shown). Pick 0 is offered after round 1, pick 1 after round 2, and so on. Everyone sees the same sets, so the pick
+        // has no luck in it. Every set is Armament / Endurance / Ferocity, so a Berserker can always skip the weapon slot
+        // and never take a weapon at all:
+        //
+        //   after round 1   Armament: keep the dual chainaxes (Twin Axes)   Endurance: Feel No Pain        Ferocity: Berserker's Fury
+        //   after round 2   Armament: Eviscerator                           Endurance: Blood-Fuelled Regen  Ferocity: Relentless Pursuit
+        //   after round 3   Armament: Heavy Chainaxe                        Endurance: Unstoppable          Ferocity: Skulltaker
+        //   after round 4   Armament slot: no weapon left to offer, so a second Endurance card
+        //
+        // A weapon card that is blocked (you already hold the other weapon) falls back to the next alternative in its slot.
+        // Upgrades in no set (Hamstring, Skullthrone's Favour, Vengeful Blood, Defiant Roar) stay in the catalog for the
+        // F1 test panel and for future sets.
+        public static readonly int[][][] Sets =
         {
-            new[] { HeavyChainaxe, Eviscerator, TwinAxes },
-            new[] { FeelNoPain, CrimsonCommunion, Unstoppable },
-            new[] { BerserkersFury, RelentlessPursuit, Skulltaker },
-            new[] { AblativePlating, CrimsonMomentum, SkullthroneFavour },
+            new[] { new[] { TwinAxes },                             new[] { FeelNoPain },       new[] { BerserkersFury } },
+            new[] { new[] { Eviscerator, GoreRush },                new[] { CrimsonCommunion }, new[] { RelentlessPursuit } },
+            new[] { new[] { HeavyChainaxe, GorehoundVigour },       new[] { Unstoppable },      new[] { Skulltaker } },
+            new[] { new[] { AblativePlating },                      new[] { DefiantRoar },      new[] { CrimsonMomentum } },
         };
 
         public static readonly UpgradeDef[] All =

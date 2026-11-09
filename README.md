@@ -55,11 +55,18 @@ After every round except the last the match goes through the **prep phase** (Bat
 2. **Prep**: everyone is put back at their spawn at full health and may walk around inside a glowing barrier ring (`NetGame.PrepRadius`, 7m)
    but cannot leave it or fight (abilities are disabled, everyone is invulnerable, the gas and orbs wait). The **upgrade menu** opens: pick one of
    three (click a card or press 1-3). The sets are **fixed and identical for every player** (no randomness), defined per character
-   (`BerserkerUpgrade.Sets`). Berserker: after round 1 the **weapon decision** (Heavy Chainaxe / Eviscerator / keep the dual chainaxes
-   with Twin Axes), after round 2 **Endurance** (Feel No Pain / Blood-Fuelled Regeneration / Unstoppable), after round 3 **Ferocity**
-   (Berserker's Fury / Relentless Pursuit / Skulltaker), after round 4 a **capstone** (Ablative Plating / Crimson Momentum /
-   Skullthrone's Favour). Upgrades not in a set (Gorehound's Vigour, Defiant Roar, Gore Rush, Hamstring, Vengeful Blood) stay in the catalog
-   for the test panel and for future sets. A character past its last set, or with no sets, falls back to a random draw.
+   (`BerserkerUpgrade.Sets`), and each is one **Armament**, one **Endurance** and one **Ferocity** card. Berserker:
+
+   | Pick | Armament | Endurance | Ferocity |
+   | --- | --- | --- | --- |
+   | after round 1 | Keep the Dual Chainaxes (Axe Toss throws two axes) | Feel No Pain | Berserker's Fury |
+   | after round 2 | Eviscerator (Executioner) | Blood-Fuelled Regeneration | Relentless Pursuit |
+   | after round 3 | Heavy Chainaxe (Reaver) | Unstoppable | Skulltaker |
+   | after round 4 | (no weapon left: Ablative Plating) | Defiant Roar | Crimson Momentum |
+
+   The weapon is only ever one card of three, so a Berserker can ignore every weapon and still build a full kit from the other cards. If a weapon
+   is blocked (you already hold the other one) its card is replaced by a backup. Upgrades in no set (Hamstring, Skullthrone's Favour,
+   Vengeful Blood) stay in the catalog for the test panel and future sets. A character past its last set, or with no sets, falls back to a random draw.
 3. **Lock-in**: once everyone has chosen (the menu stays at least 3s) or after 20s (undecided players get a random offer), picks are locked and a
    3s countdown runs, then the barrier drops and the round begins.
 
@@ -73,7 +80,7 @@ Khorne Berserker:
 | RMB | Axe Toss | Gorecleave: wide frontal sweep, knockback + bleed | Executioner's Descent: overhead blow, up to +100% damage on low-health targets |
 | Passive | Rage: consecutive hits stack attack speed (5 stacks, 3s window) | heavy hits inflict Bleed | attacks ignore 40% of armour and shields |
 
-Weapons are optional and exclusive: they are only offered in the first set (one weapon per match, and "keep the dual chainaxes" is always an option); the random pick for idle players never gives a weapon: a Berserker who never takes one stays competitive. Other upgrades: Ablative Plating, Gorehound's Vigour,
+Weapons are optional and exclusive (the Heavy Chainaxe and Eviscerator replace each other; one weapon per match); the random pick for idle players never gives a weapon: a Berserker who never takes one stays competitive. Other upgrades: Ablative Plating, Gorehound's Vigour,
 Blood-Fuelled Regeneration, Defiant Roar, Feel No Pain, Unstoppable (Endurance); Crimson Momentum, Gore Rush, Hamstring, Twin Axes,
 Vengeful Blood, Skullthrone's Favour, Berserker's Fury, Relentless Pursuit, Skulltaker (Ferocity).
 

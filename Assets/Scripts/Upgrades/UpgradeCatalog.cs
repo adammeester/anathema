@@ -16,8 +16,8 @@ namespace Anathema.Upgrades
             { "KhorneBerserker", BerserkerUpgrade.All },
         };
 
-        // Predefined offers per character: Sets[pick] lists the upgrade bits offered at that pick (0 = after round 1).
-        static readonly Dictionary<string, int[][]> SetsByCharacter = new Dictionary<string, int[][]>
+        // Predefined offers per character: Sets[pick][slot] lists alternative upgrade bits for one card (pick 0 = after round 1).
+        static readonly Dictionary<string, int[][][]> SetsByCharacter = new Dictionary<string, int[][][]>
         {
             { "KhorneBerserker", BerserkerUpgrade.Sets },
         };
@@ -27,13 +27,19 @@ namespace Anathema.Upgrades
         public static List<UpgradeDef> OffersForRound(string character, int ownedMask, int round, int randomSeed)
         {
             UpgradeDef[] all = For(character);
-            if (all != null && SetsByCharacter.TryGetValue(character, out int[][] sets) && round >= 1 && round <= sets.Length)
+            if (all != null && SetsByCharacter.TryGetValue(character, out int[][][] sets) && round >= 1 && round <= sets.Length)
             {
                 var offers = new List<UpgradeDef>();
-                foreach (int bit in sets[round - 1])
+                foreach (int[] slot in sets[round - 1])
                 {
-                    UpgradeDef def = Array.Find(all, d => d.Bit == bit);
-                    if (def != null && IsAvailable(def, all, ownedMask)) offers.Add(def);
+                    // The first alternative still available (a blocked weapon falls back to its backup card).
+                    foreach (int bit in slot)
+                    {
+                        UpgradeDef def = Array.Find(all, d => d.Bit == bit);
+                        if (def == null || !IsAvailable(def, all, ownedMask) || offers.Contains(def)) continue;
+                        offers.Add(def);
+                        break;
+                    }
                 }
                 if (offers.Count > 0) return offers;
             }
