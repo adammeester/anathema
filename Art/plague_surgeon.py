@@ -185,13 +185,10 @@ def pauldrons():
     for s, side in ((1, "L"), (-1, "R")):
         x = 0.8 * s
         bone = f"UpperArm_{side}"
-        prim("sphere", (x, 0, 2.0), (0.82, 0.76, 0.7), "armor", bone, verts=24)
-        torus((x, 0, 1.72), 0.37, 0.03, "copper", bone, squash_y=0.9)
-        torus((x, 0, 2.28), 0.24, 0.025, "copper", bone, squash_y=0.9)
-        prim("sphere", (x + 0.12 * s, -0.04, 2.2), (0.4, 0.4, 0.3), "armor_dark", bone, verts=14)
+        c.pauldron_block(x - 0.04 * s, 2.0, s, 1.02, 0.86, 0.82, bone, mat="armor", trim="copper", tilt=14)
         rivets([(x + 0.1 * s, -0.36, 2.0), (x + 0.3 * s, -0.26, 1.95), (x + 0.32 * s, 0.24, 1.95), (x + 0.1 * s, 0.36, 2.0)],
                0.055, "copper", bone)
-        prim("cube", (x + 0.3 * s, 0, 1.9), (0.08, 0.6, 0.34), "copper_dark", bone, bevel=0.02)  # outer rim plate
+        prim("cube", (x + 0.44 * s, 0, 1.84), (0.08, 0.6, 0.34), "copper_dark", bone, bevel=0.02)  # outer rim plate
     # Left pauldron: pale skull plate and the big curved tusk sweeping up and back.
     skull((1.0, -0.2, 2.0), 0.15, "UpperArm_L")
     limb((0.6, 0.2, 2.22), (0.6, 0.3, 2.6), 0.1, 0.07, "bone", "UpperArm_L", verts=10)

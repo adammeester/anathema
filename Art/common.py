@@ -229,3 +229,41 @@ def render_previews(out_dir, focus_z=1.1, distance=1.0):
     shot("back", (-3.0 * k, 5.0 * k, focus_z + 0.8), target, 50, (640, 800))
     d = 14.0 * k  # game camera: pitch 55 deg, looking along the character's facing direction
     shot("game", (0, d * math.cos(math.radians(55)), focus_z + d * math.sin(math.radians(55))), target, 60, (800, 600))
+
+
+def clipped_ellipsoid(loc, size, zmin, zmax, material, bone, rot=(0, 0, 0), bevel=0.0):
+    """An ellipsoid (full extent `size`) sliced flat at local heights zmin and zmax (None = uncut), capped and closed."""
+    import bmesh
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5, segments=32, ring_count=16)
+    o = bpy.context.active_object
+    o.scale = Vector(size) * S
+    bpy.ops.object.select_all(action="DESELECT")
+    o.select_set(True)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    for zc, clear_inner in ((zmin, True), (zmax, False)):
+        if zc is None:
+            continue
+        geom = list(bm.verts) + list(bm.edges) + list(bm.faces)
+        res = bmesh.ops.bisect_plane(bm, geom=geom, dist=0.0001, plane_co=(0, 0, zc * S), plane_no=(0, 0, 1),
+                                     clear_inner=clear_inner, clear_outer=not clear_inner)
+        cut = [e for e in res["geom_cut"] if isinstance(e, bmesh.types.BMEdge)]
+        bmesh.ops.triangle_fill(bm, use_beauty=True, edges=cut)
+    bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
+    bm.to_mesh(o.data)
+    bm.free()
+    o.location = v(*loc)
+    o.rotation_euler = Euler([math.radians(a) for a in rot])
+    return finish(o, material, bone, bevel)
+
+
+def pauldron_block(x, z, s, w, d, h, bone, mat="armor", trim="gold", tilt=10, crest=True):
+    """Space Marine pauldron: a bulging dome (curved on every side, like the reference) whose bottom is cut off flat so
+    it is squared underneath, with a trim band round the lower edge. s is +1 (left) / -1 (right); (x, z) is the centre
+    of the plate; it tilts down toward the outside. w is across the shoulder, d front-to-back, h is the total height."""
+    rot = (0, tilt * s, 0)
+    zc = z - 0.1 * h                    # ellipsoid centre, so the plate spans z - h/2 .. z + h/2
+    cut = -0.4 * h                      # the flat bottom, relative to the ellipsoid centre
+    clipped_ellipsoid((x, 0, zc), (w, d, 1.2 * h), cut, None, mat, bone, rot=rot, bevel=0.0)
+    clipped_ellipsoid((x, 0, zc), (w * 1.04, d * 1.04, 1.2 * h * 1.04), cut * 1.04 - 0.005, cut + 0.045, trim, bone, rot=rot)

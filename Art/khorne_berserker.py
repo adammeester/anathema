@@ -103,15 +103,13 @@ def torso():
 def pauldrons():
     for s, side in ((1, "L"), (-1, "R")):
         x = 0.72 * s
-        prim("sphere", (x, 0, 1.74), (0.64, 0.58, 0.46), "armor", f"UpperArm_{side}", verts=24)
-        torus((x, 0, 1.6), 0.31, 0.025, "brass", f"UpperArm_{side}", squash_y=0.9)
-        torus((x, 0, 1.92), 0.2, 0.02, "brass", f"UpperArm_{side}", squash_y=0.9)
+        c.pauldron_block(x, 1.76, s, 0.92, 0.7, 0.62, f"UpperArm_{side}", mat="armor", trim="brass", tilt=16)
         # Bone horns crowning each shoulder.
         spike((x - 0.1 * s, 0.0, 1.92), (x - 0.04 * s, 0.0, 2.2), 0.07, f"UpperArm_{side}")
         spike((x + 0.18 * s, -0.12, 1.9), (x + 0.4 * s, -0.2, 2.12), 0.07, f"UpperArm_{side}")
         spike((x + 0.18 * s, 0.14, 1.9), (x + 0.42 * s, 0.24, 2.1), 0.07, f"UpperArm_{side}")
-        prim("sphere", (x + 0.31 * s, 0, 1.78), (0.1, 0.34, 0.26), "brass", f"UpperArm_{side}", verts=12)
-        prim("sphere", (x + 0.34 * s, 0, 1.78), (0.06, 0.2, 0.14), "rune", f"UpperArm_{side}", verts=12)
+        prim("sphere", (x + 0.37 * s, 0, 1.7), (0.1, 0.34, 0.26), "brass", f"UpperArm_{side}", verts=12)
+        prim("sphere", (x + 0.4 * s, 0, 1.7), (0.06, 0.2, 0.14), "rune", f"UpperArm_{side}", verts=12)
 
 
 ARMS = {

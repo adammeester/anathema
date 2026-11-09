@@ -73,25 +73,22 @@ def torso():
 def pauldron(s, bone):
     """Big layered shoulder dome: a rounded cap over a banded skirt with a gold ring trim."""
     x, z = 0.72 * s, 1.74
-    prim("sphere", (x, 0, z + 0.04), (0.78, 0.7, 0.62), "armor", bone, verts=28)
-    prim("cube", (x, 0, z - 0.14), (0.72, 0.64, 0.26), "armor", bone, bevel=0.1)
-    torus((x, 0, z - 0.27), 0.34, 0.025, "gold", bone, squash_y=0.92)
-    torus((x, 0, z + 0.2), 0.2, 0.02, "gold", bone, squash_y=0.92)
+    c.pauldron_block(x, z, s, 0.94, 0.78, 0.68, bone, mat="armor", trim="gold", tilt=16)
     return x, z
 
 
 def pauldrons():
     # Right (-X): red heraldic plate with the white cross. Left (+X): gold lettering and scrolls.
     x, z = pauldron(-1, "UpperArm_R")
-    prim("cube", (x - 0.34, 0, z - 0.02), (0.06, 0.46, 0.42), "red", "UpperArm_R", bevel=0.02)
-    prim("cube", (x - 0.375, 0, z - 0.04), (0.03, 0.07, 0.32), "white", "UpperArm_R")
-    prim("cube", (x - 0.375, 0, z + 0.04), (0.03, 0.26, 0.07), "white", "UpperArm_R")
+    prim("cube", (x - 0.4, 0, z - 0.08), (0.06, 0.46, 0.42), "red", "UpperArm_R", bevel=0.02)
+    prim("cube", (x - 0.435, 0, z - 0.1), (0.03, 0.07, 0.32), "white", "UpperArm_R")
+    prim("cube", (x - 0.435, 0, z - 0.02), (0.03, 0.26, 0.07), "white", "UpperArm_R")
     prim("cube", (x - 0.2, -0.34, z - 0.12), (0.22, 0.02, 0.3), "parchment", "UpperArm_R")  # hanging scroll
     prim("sphere", (x - 0.2, -0.35, z + 0.02), (0.06, 0.03, 0.06), "wax", "UpperArm_R", verts=10)
 
     x, z = pauldron(1, "UpperArm_L")
     for dz in (-0.1, 0.0, 0.1):
-        prim("cube", (x + 0.36, 0, z + dz), (0.03, 0.44, 0.05), "gold", "UpperArm_L")
+        prim("cube", (x + 0.42, 0, z - 0.06 + dz), (0.03, 0.44, 0.05), "gold", "UpperArm_L")
     prim("cube", (x + 0.1, -0.34, z - 0.14), (0.32, 0.02, 0.18), "parchment", "UpperArm_L")  # script banner
     prim("cube", (x + 0.28, 0.18, z + 0.0), (0.24, 0.02, 0.3), "parchment", "UpperArm_L")  # rear scroll
 
