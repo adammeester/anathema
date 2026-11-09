@@ -55,23 +55,48 @@ namespace Anathema.Upgrades
             character = CharacterStats.Identify(gameObject);
             if (character == "KhorneBerserker" && GetComponent<BerserkerUpgradeEffects>() == null)
                 gameObject.AddComponent<BerserkerUpgradeEffects>();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (!NetGame.Online && GetComponent<UpgradeTestPanel>() == null) gameObject.AddComponent<UpgradeTestPanel>();
+#endif
         }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
-        // Offline training ground only (there are no rounds there): F6 Heavy Chainaxe, F7 Eviscerator, F8 clear all.
+        // ---- Offline testing (the training arena has no rounds; see UpgradeTestPanel, F1) --------------------------
+
+        int debugRound;
+
         void Update()
         {
             if (NetGame.Online) return;
-            if (Input.GetKeyDown(KeyCode.F6)) Toggle(BerserkerUpgrade.HeavyChainaxe, BerserkerUpgrade.Eviscerator);
-            if (Input.GetKeyDown(KeyCode.F7)) Toggle(BerserkerUpgrade.Eviscerator, BerserkerUpgrade.HeavyChainaxe);
+            if (Input.GetKeyDown(KeyCode.F6)) DebugToggle(BerserkerUpgrade.HeavyChainaxe);
+            if (Input.GetKeyDown(KeyCode.F7)) DebugToggle(BerserkerUpgrade.Eviscerator);
             if (Input.GetKeyDown(KeyCode.F8)) ResetAll();
         }
 
-        void Toggle(int bit, int other)
+        // Turn an upgrade on or off directly. Taking a weapon drops any other weapon, like the exclusive group in a real match.
+        public void DebugToggle(int bit)
         {
-            if (character != "KhorneBerserker") return;
-            Mask = (Mask & ~(1 << other)) ^ (1 << bit);
+            UpgradeDef[] all = UpgradeCatalog.For(character);
+            if (all == null) return;
+
+            UpgradeDef def = System.Array.Find(all, d => d.Bit == bit);
+            if (def == null) return;
+
+            if (Has(bit)) Mask &= ~def.Mask;
+            else
+            {
+                if (def.Group != null)
+                    foreach (UpgradeDef other in all)
+                        if (other.Group == def.Group) Mask &= ~other.Mask;
+                Mask |= def.Mask;
+            }
             Recompute();
+        }
+
+        // Draw a real set of three offers, exactly as a round end would.
+        public void DebugRoll()
+        {
+            BeginPick(++debugRound);
         }
 #endif
 

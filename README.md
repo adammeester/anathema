@@ -78,7 +78,10 @@ Vengeful Blood, Skullthrone's Favour, Berserker's Fury, Relentless Pursuit, Skul
 - Online, the owned-upgrade mask is a `NetPlayer` network variable, so replicas show the right weapon; damage is still resolved by the owner's machine.
   `Health` gained armour, bonus max health and an armour-piercing flag on `TakeDamage`. Both machines must run the same build.
 - To add upgrades for another character: add a list like `BerserkerUpgrade.All` and register it in `UpgradeCatalog` (bit numbers are append-only).
-- Offline training ground has no rounds: in the editor / dev builds F6 / F7 equip the Heavy Chainaxe / Eviscerator and F8 clears them.
+- **Testing offline (editor / dev builds):** build the training arena with **Anathema > Rebuild Arena Scene (Khorne Berserker)**, press Play, and press
+  **F1** for the upgrade test panel: click any upgrade to toggle it, **Roll 3 offers** runs the real picker (click or 1-3), **Clear all** resets.
+  Hit the dummies to try weapons, Rage (shown above the ability bar), bleed, armour, etc. F6 / F7 equip the Heavy Chainaxe / Eviscerator, F8 clears.
+  The prep area, lock-in and network sync need a real online match (host + join `127.0.0.1`, see Online).
 
 ## Online (2-6 players)
 
