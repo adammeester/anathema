@@ -6,7 +6,7 @@ namespace Anathema.Upgrades
     // Offline testing aid (editor and development builds only; never present online). Press F1 in the training arena
     // to open it:
     //   - click any upgrade to turn it on or off (weapons replace each other, as in a real match);
-    //   - "Roll 3 offers" runs the real pick: the same three-card picker you get in the prep phase (click or 1-3);
+    //   - "Next pick" runs the real pick: the fixed set of three for the next round (after round 1, 2, 3, 4...), in the real picker (click or 1-3);
     //   - "Clear all" removes everything.
     // Fight the training dummies to try the weapons, Rage, bleed, armour and the rest. F6/F7/F8 are shortcuts for the two
     // weapons and clear. Added by UpgradeState.
@@ -95,13 +95,13 @@ namespace Anathema.Upgrades
 
             GUI.Label(new Rect(panel.x + 14, panel.y + 8, panel.width - 28, 28), "UPGRADE TEST  (F1 to close)", header);
             GUI.Label(new Rect(panel.x + 14, panel.y + 38, panel.width - 28, 54),
-                "Click to toggle an upgrade, then hit the dummies. Weapons replace each other. The cards use the real picker.", hint);
+                "Click to toggle an upgrade, then hit the dummies. Weapons replace each other. 'Next pick' steps through the fixed sets 1-4 in the real picker.", hint);
 
             float y = panel.y + 96;
             if (GUI.Button(new Rect(panel.x + 14, y, panel.width - 28, 36), "Restart round into PREP  (F2)", button))
                 Anathema.Net.OfflinePrep.Begin(gameObject);
             y += 42;
-            if (GUI.Button(new Rect(panel.x + 14, y, 222, 34), "Roll 3 offers", button)) state.DebugRoll();
+            if (GUI.Button(new Rect(panel.x + 14, y, 222, 34), "Next pick (fixed 3)", button)) state.DebugRoll();
             if (GUI.Button(new Rect(panel.x + 248, y, 208, 34), "Clear all", button)) state.ResetAll();
             y += 46;
 

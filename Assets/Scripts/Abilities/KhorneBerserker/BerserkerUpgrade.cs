@@ -60,6 +60,21 @@ namespace Anathema.Abilities.KhorneBerserker
 
         static bool NoWeapon(int mask) => (mask & ((1 << HeavyChainaxe) | (1 << Eviscerator))) == 0;
 
+        // The fixed offers, one set of three per pick (set 0 is offered after round 1, set 1 after round 2, ...). Everyone
+        // sees the same sets, so there is no luck in the pick, only in what you choose. Upgrades not listed here stay in
+        // the catalog (they can be tried from the F1 test panel) and can be slotted into a set when you want them in play.
+        //   1  Armament : the weapon decision (a weapon, or keep the dual chainaxes and sharpen them)
+        //   2  Endurance: how you survive
+        //   3  Ferocity : how you fight
+        //   4  Capstone : one of each, for a best-of-5 that goes the distance
+        public static readonly int[][] Sets =
+        {
+            new[] { HeavyChainaxe, Eviscerator, TwinAxes },
+            new[] { FeelNoPain, CrimsonCommunion, Unstoppable },
+            new[] { BerserkersFury, RelentlessPursuit, Skulltaker },
+            new[] { AblativePlating, CrimsonMomentum, SkullthroneFavour },
+        };
+
         public static readonly UpgradeDef[] All =
         {
             new UpgradeDef(HeavyChainaxe, UpgradeCategory.Armament, "Heavy Chainaxe - The Reaver",
@@ -94,8 +109,8 @@ namespace Anathema.Abilities.KhorneBerserker
                 "Your melee attacks deal 30% more damage to enemies below 40% health."),
             new UpgradeDef(Hamstring, UpgradeCategory.Ferocity, "Hamstring",
                 "Maim slows by 45% and also makes the target bleed."),
-            new UpgradeDef(TwinAxes, UpgradeCategory.Ferocity, "Twin Axes",
-                "Axe Toss hurls a second axe in a spread. Only works with the default dual chainaxes.")
+            new UpgradeDef(TwinAxes, UpgradeCategory.Armament, "Keep the Dual Chainaxes",
+                "No transformation: your chainaxes stay as they are, and Axe Toss now hurls a second axe in a spread.")
                 .Requires(NoWeapon),
             new UpgradeDef(VengefulBlood, UpgradeCategory.Ferocity, "Vengeful Blood",
                 "Counter recharges 35% faster and its retaliation hits 50% harder."),

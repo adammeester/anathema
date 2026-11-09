@@ -54,7 +54,12 @@ After every round except the last the match goes through the **prep phase** (Bat
 1. **Report** (5s, frozen): the round result and damage report.
 2. **Prep**: everyone is put back at their spawn at full health and may walk around inside a glowing barrier ring (`NetGame.PrepRadius`, 7m)
    but cannot leave it or fight (abilities are disabled, everyone is invulnerable, the gas and orbs wait). The **upgrade menu** opens: pick one of
-   three (click a card or press 1-3), one per category: **Armament** (weapon transformations), **Endurance** (defensive), **Ferocity** (ability enhancements).
+   three (click a card or press 1-3). The sets are **fixed and identical for every player** (no randomness), defined per character
+   (`BerserkerUpgrade.Sets`). Berserker: after round 1 the **weapon decision** (Heavy Chainaxe / Eviscerator / keep the dual chainaxes
+   with Twin Axes), after round 2 **Endurance** (Feel No Pain / Blood-Fuelled Regeneration / Unstoppable), after round 3 **Ferocity**
+   (Berserker's Fury / Relentless Pursuit / Skulltaker), after round 4 a **capstone** (Ablative Plating / Crimson Momentum /
+   Skullthrone's Favour). Upgrades not in a set (Gorehound's Vigour, Defiant Roar, Gore Rush, Hamstring, Vengeful Blood) stay in the catalog
+   for the test panel and for future sets. A character past its last set, or with no sets, falls back to a random draw.
 3. **Lock-in**: once everyone has chosen (the menu stays at least 3s) or after 20s (undecided players get a random offer), picks are locked and a
    3s countdown runs, then the barrier drops and the round begins.
 
@@ -68,7 +73,7 @@ Khorne Berserker:
 | RMB | Axe Toss | Gorecleave: wide frontal sweep, knockback + bleed | Executioner's Descent: overhead blow, up to +100% damage on low-health targets |
 | Passive | Rage: consecutive hits stack attack speed (5 stacks, 3s window) | heavy hits inflict Bleed | attacks ignore 40% of armour and shields |
 
-Weapons are optional and exclusive (one per match: once you hold one, no other weapon is offered; a weapon you decline keeps being offered until you take another upgrade type or a weapon, and the random pick for idle players never gives a weapon): a Berserker who never takes one stays competitive. Other upgrades: Ablative Plating, Gorehound's Vigour,
+Weapons are optional and exclusive: they are only offered in the first set (one weapon per match, and "keep the dual chainaxes" is always an option); the random pick for idle players never gives a weapon: a Berserker who never takes one stays competitive. Other upgrades: Ablative Plating, Gorehound's Vigour,
 Blood-Fuelled Regeneration, Defiant Roar, Feel No Pain, Unstoppable (Endurance); Crimson Momentum, Gore Rush, Hamstring, Twin Axes,
 Vengeful Blood, Skullthrone's Favour, Berserker's Fury, Relentless Pursuit, Skulltaker (Ferocity).
 
@@ -77,9 +82,9 @@ Vengeful Blood, Skullthrone's Favour, Berserker's Fury, Relentless Pursuit, Skul
   `AxeChop` (LMB) and `AxeToss` (RMB) so the HUD slots, network cues and prefabs are unchanged. Weapon tuning fields are also in `Resources/Stats/KhorneBerserker.json`.
 - Online, the owned-upgrade mask is a `NetPlayer` network variable, so replicas show the right weapon; damage is still resolved by the owner's machine.
   `Health` gained armour, bonus max health and an armour-piercing flag on `TakeDamage`. Both machines must run the same build.
-- To add upgrades for another character: add a list like `BerserkerUpgrade.All` and register it in `UpgradeCatalog` (bit numbers are append-only).
+- To add upgrades for another character: add a list like `BerserkerUpgrade.All` (and `Sets`) and register both in `UpgradeCatalog` (bit numbers are append-only).
 - **Testing offline (editor / dev builds):** build the training arena with **Anathema > Rebuild Arena Scene (Khorne Berserker)**, press Play, and press
-  **F1** for the upgrade test panel: click any upgrade to toggle it, **Roll 3 offers** runs the real picker (click or 1-3), **Clear all** resets.
+  **F1** for the upgrade test panel: click any upgrade to toggle it, **Next pick** runs the real picker with the next fixed set (click or 1-3), **Clear all** resets.
   Hit the dummies to try weapons, Rage (shown above the ability bar), bleed, armour, etc. F6 / F7 equip the Heavy Chainaxe / Eviscerator, F8 clears.
   **F2** (or the panel's button) restarts the "round" into the **prep phase** right in the training arena: you're put back at your spawn inside the
   barrier ring (can't leave it or fight), the three-card menu opens, and after you pick a 3s countdown drops the barrier. Upgrades picked this way persist, like in a match.

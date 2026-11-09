@@ -105,7 +105,7 @@ namespace Anathema.Upgrades
         {
             offers.Clear();
             pendingRound = round;
-            offers.AddRange(UpgradeCatalog.Roll(character, Mask, UnityEngine.Random.Range(0, int.MaxValue)));
+            offers.AddRange(UpgradeCatalog.OffersForRound(character, Mask, round, UnityEngine.Random.Range(0, int.MaxValue)));
             if (offers.Count == 0) Publish(round);
         }
 
@@ -129,7 +129,7 @@ namespace Anathema.Upgrades
 
             var safe = new List<int>();
             for (int i = 0; i < offers.Count; i++)
-                if (offers[i].Category != UpgradeCategory.Armament) safe.Add(i);
+                if (offers[i].Group == null) safe.Add(i);
 
             Choose(safe.Count > 0 ? safe[UnityEngine.Random.Range(0, safe.Count)] : UnityEngine.Random.Range(0, offers.Count));
         }

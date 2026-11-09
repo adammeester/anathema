@@ -16,6 +16,30 @@ namespace Anathema.Upgrades
             { "KhorneBerserker", BerserkerUpgrade.All },
         };
 
+        // Predefined offers per character: Sets[pick] lists the upgrade bits offered at that pick (0 = after round 1).
+        static readonly Dictionary<string, int[][]> SetsByCharacter = new Dictionary<string, int[][]>
+        {
+            { "KhorneBerserker", BerserkerUpgrade.Sets },
+        };
+
+        // The offers for the pick after round `round` (1-based). Characters with fixed sets get exactly those (minus
+        // anything already owned or blocked); past the last set, or for a character without sets, it falls back to a random draw.
+        public static List<UpgradeDef> OffersForRound(string character, int ownedMask, int round, int randomSeed)
+        {
+            UpgradeDef[] all = For(character);
+            if (all != null && SetsByCharacter.TryGetValue(character, out int[][] sets) && round >= 1 && round <= sets.Length)
+            {
+                var offers = new List<UpgradeDef>();
+                foreach (int bit in sets[round - 1])
+                {
+                    UpgradeDef def = Array.Find(all, d => d.Bit == bit);
+                    if (def != null && IsAvailable(def, all, ownedMask)) offers.Add(def);
+                }
+                if (offers.Count > 0) return offers;
+            }
+            return Roll(character, ownedMask, randomSeed);
+        }
+
         public static UpgradeDef[] For(string character)
         {
             return character != null && ByCharacter.TryGetValue(character, out UpgradeDef[] list) ? list : null;
