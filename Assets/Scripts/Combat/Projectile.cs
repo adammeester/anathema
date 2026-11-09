@@ -26,10 +26,33 @@ namespace Anathema.Combat
             radius = hitRadius;
             direction = moveDirection.normalized;
             transform.rotation = Quaternion.LookRotation(direction);
+            spawnPoint = transform.position;
+        }
+
+        Vector3 spawnPoint;
+
+        // An enemy dome turns the projectile around, back to where it was fired from. It now belongs to the dome's
+        // owner, so it can hit the original shooter (and no longer reports hits to the original shooter's ability).
+        void TryReflect()
+        {
+            foreach (ReflectDome dome in ReflectDome.All)
+            {
+                if (dome.Team == ownerTeam || !dome.Contains(transform.position)) continue;
+
+                Vector3 back = spawnPoint - transform.position;
+                direction = back.sqrMagnitude > 0.01f ? back.normalized : -direction;
+                transform.rotation = Quaternion.LookRotation(direction);
+                remainingRange = Mathf.Max(remainingRange, back.magnitude + 2f);
+                owner = dome.Owner;
+                ownerTeam = dome.Team;
+                onHit = null;
+                return;
+            }
         }
 
         void Update()
         {
+            TryReflect();
             float step = Mathf.Min(speed * Time.deltaTime, remainingRange);
 
             if (TryFindHit(step, out RaycastHit hit))

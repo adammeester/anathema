@@ -53,7 +53,7 @@ namespace Anathema.Net
         static readonly string[][] CharacterKit =
         {
             new[] { "LMB  Storm bolter", "Q  Halberd sweep", "RMB  Smite (piercing lance)", "Space  Counter + riposte", "R  Purgatus (ultimate)" },
-            new[] { "LMB  Chain-axe chops", "Shift  Whirling carnage", "Q  Axe rush", "E  Maim (slow + bleed)", "Space  Blood rage counter", "R  Blood for the Blood God (ultimate)" },
+            new[] { "LMB  Chain-axe chops", "Q  Axe rush (EX: whirling carnage)", "E  Maim (EX: Butcher's Nails rage)", "Space  Blood rage counter", "R  Blood for the Blood God (ultimate)", "Hold Shift  EX version" },
             new[] { "LMB  Plague spit (stacking rot)", "E  Restorative cloud (EX: damage cloud)", "RMB  Pestilent fly (EX: bursts)", "Space  Winged escape (i-frames)", "R  Ward of Plague (ultimate)", "Hold Shift  EX version" }
         };
 

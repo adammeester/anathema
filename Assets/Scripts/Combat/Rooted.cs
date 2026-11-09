@@ -25,6 +25,8 @@ namespace Anathema.Combat
                 return null;
             }
 
+            if (Enraged.IsEnraged(target)) return null;
+
             var rooted = target.GetComponent<Rooted>();
             if (rooted == null) rooted = target.AddComponent<Rooted>();
             rooted.endTime = Mathf.Max(rooted.endTime, Time.time + duration);

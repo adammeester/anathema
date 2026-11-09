@@ -11,15 +11,17 @@ namespace Anathema.Abilities.KhorneBerserker
     public class BerserkerCounter : Counter
     {
         [SerializeField] float retaliationDamage = 18f;
-        [SerializeField] float healAmount = 12f;
+        [SerializeField] float healFraction = 0.1f; // of max health
         [SerializeField] float energyPerHit = 10f;
         [SerializeField] float burstRadius = 2.2f;
+        [SerializeField] float enrageDuration = 4f;
         [SerializeField] Color burstColor = new Color(1f, 0.15f, 0.1f, 0.9f);
 
         protected override void OnCounterSuccess(GameObject attacker)
         {
             SlashEffect.Spawn(transform.position, Aim.AimDirection, burstRadius, 360f, 0.4f, burstColor);
-            Health.Heal(healAmount);
+            Health.Heal(Health.Max * healFraction);
+            Enraged.Apply(gameObject, enrageDuration);
 
             // Blood rage: the rush is ready again and the next axe chop hits harder.
             var rush = GetComponent<AxeRush>();

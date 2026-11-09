@@ -1,0 +1,90 @@
+{
+  "health": 120,
+  "moveSpeed": 6.5,
+  "maxEnergy": 100,
+  "abilities": {
+    "Consecrate": {
+      "cooldown": 8,
+      "damage": 10,
+      "range": 10,
+      "radius": 3,
+      "delay": 0.6,
+      "rootDuration": 0.75,
+      "energyPerHit": 8,
+      "exEnergyCost": 35,
+      "domeRadius": 4,
+      "domeDuration": 6,
+      "domeSlow": 0.5
+    },
+    "HalberdSweep": {
+      "cooldown": 0.9,
+      "damage": 20,
+      "range": 2.5,
+      "arcDegrees": 120,
+      "windupDuration": 0.3,
+      "swingDuration": 0.2,
+      "recoverDuration": 0.15,
+      "energyPerHit": 8,
+      "torsoTwistShare": 0.75,
+      "chestCross": 35,
+      "windupLean": 26,
+      "followThroughLean": 20,
+      "windupOverrotate": 30,
+      "followThroughOverrotate": 25,
+      "windupPitch": 65,
+      "swingPitch": -8,
+      "gripSpacing": 0.42,
+      "gripForward": 0.4,
+      "gripDrop": 0.22,
+      "empoweredDamageMultiplier": 1.75,
+      "empoweredRangeBonus": 0.5,
+      "empoweredArcBonus": 30
+    },
+    "InterceptorCounter": {
+      "cooldown": 4,
+      "duration": 1.2,
+      "guardRadius": 1.6,
+      "leanBackDegrees": 14,
+      "poseBlendTime": 0.1,
+      "glowScale": 1.06,
+      "riposteDamage": 15,
+      "riposteRadius": 1.6,
+      "energyPerHit": 10,
+      "teleportWindow": 2.5,
+      "teleportRange": 9,
+      "empowerDuration": 3
+    },
+    "Purgatus": {
+      "cooldown": 1,
+      "energyCost": 100,
+      "channelDuration": 1,
+      "radius": 7,
+      "expandDuration": 0.45,
+      "damage": 38,
+      "knockbackDistance": 4,
+      "knockbackDuration": 0.25,
+      "silenceDuration": 1.5
+    },
+    "Smite": {
+      "cooldown": 4,
+      "damage": 30,
+      "range": 16,
+      "beamRadius": 0.35,
+      "chargeDuration": 0.35,
+      "energyPerHit": 10,
+      "originHeight": 1.2
+    },
+    "BasicAttack": {
+      "cooldown": 0.85,
+      "damage": 8,
+      "range": 14,
+      "projectileSpeed": 26,
+      "projectileRadius": 0.25,
+      "muzzleHeight": 1.2,
+      "muzzleForward": 0.7,
+      "meleeRange": 2.5,
+      "meleeArcDegrees": 120,
+      "energyPerHit": 8
+    }
+  }
+}

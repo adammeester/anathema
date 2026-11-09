@@ -26,6 +26,9 @@ namespace Anathema.Player
             controller = GetComponent<CharacterController>();
             health = GetComponent<Health>();
 
+            // Tuning values (health, speed, ability numbers) come from Resources/Stats/<Character>.json.
+            CharacterStats.EnsureOn(gameObject);
+
             // Scenes built before the walk cycle existed don't have it on the model; add it so they still animate.
             Transform model = transform.Find("Model");
             if (model != null && model.GetComponent<ProceduralWalk>() == null) model.gameObject.AddComponent<ProceduralWalk>();
@@ -62,7 +65,8 @@ namespace Anathema.Player
             verticalVelocity = controller.isGrounded ? -1f : verticalVelocity + gravity * Time.deltaTime;
 
             var maimed = GetComponent<Maimed>();
-            float speed = moveSpeed * (maimed != null ? maimed.SpeedMultiplier : 1f);
+            float speed = moveSpeed * (maimed != null ? maimed.SpeedMultiplier : 1f) * Enraged.MoveSpeedMultiplier(gameObject)
+                * ReflectDome.SlowMultiplier(gameObject);
             Vector3 velocity = (forward * input.y + right * input.x) * speed;
             // Panic overrides steering: run straight away from whatever caused it (unless stunned/rooted/guarding).
             if (!guarding && Panicked.TryGetFleeDirection(gameObject, out Vector3 flee)) velocity = flee * speed;

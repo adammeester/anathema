@@ -26,6 +26,8 @@ namespace Anathema.Combat
                 return null;
             }
 
+            if (Enraged.IsEnraged(target)) return null;
+
             var maimed = target.GetComponent<Maimed>();
             if (maimed == null) maimed = target.AddComponent<Maimed>();
             maimed.endTime = Time.time + duration;

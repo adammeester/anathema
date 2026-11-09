@@ -18,6 +18,13 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         [SerializeField] Color telegraphColor = new Color(1f, 1f, 1f, 0.15f);
         [SerializeField] Color fillColor = new Color(1f, 1f, 1f, 0.3f);
 
+        [Header("EX: Sanctum")]
+        [SerializeField] float exEnergyCost = 35f;
+        [SerializeField] float domeRadius = 3.5f;
+        [SerializeField] float domeDuration = 6f;
+        [SerializeField] float domeSlow = 0.5f;
+        [SerializeField] Color domeColor = new Color(0.4f, 0.7f, 1f);
+
         const float GroundOffset = 0.05f;
 
         Energy energy;
@@ -33,6 +40,8 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         public override string DisplayName => "Consecrate";
         public override string KeyLabel => "E";
+        public override float ExCost => exEnergyCost;
+        public override string ExDescription => "Sanctum";
 
         // Applied only when added in the editor.
         void Reset()
@@ -96,6 +105,16 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             to.y = 0f;
             if (to.magnitude > range) to = to.normalized * range;
             center = new Vector3(origin.x + to.x, origin.y, origin.z + to.z);
+
+            if (!IsReplica) ExActivation = TrySpendEx(energy, exEnergyCost);
+            if (ExActivation)
+            {
+                // Sanctum: no detonation, the dome goes up at once and the cooldown starts now.
+                ReflectDome.Spawn(gameObject, center, domeRadius, domeDuration, domeSlow, domeColor);
+                GreyKnightSound.ConsecrateBoom();
+                if (!IsReplica) StartCooldown();
+                return;
+            }
 
             pending = true;
             detonateTime = Time.time + delay;

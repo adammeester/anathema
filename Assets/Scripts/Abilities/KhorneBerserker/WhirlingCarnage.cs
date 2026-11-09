@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.KhorneBerserker
 {
-    // Hold Shift to spin on the spot with both chain axes out, shredding everything around you. The body turns a full
+    // EX only (Shift+Q, costs energy): spin on the spot with both chain axes out, shredding everything around you. The body turns a full
     // circle and damage ticks three times during the spin (each target is hit once per tick). Pressing C ends it early.
     [DefaultExecutionOrder(50)] // after ProceduralWalk, which also writes the arms every LateUpdate
     public class WhirlingCarnage : Ability
@@ -16,6 +16,7 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float spinDuration = 0.7f;
         [SerializeField] float recoverDuration = 0.15f;
         [SerializeField] float energyPerHit = 6f;
+        [SerializeField] float exEnergyCost = 35f;
         [SerializeField] Color slashColor = new Color(1f, 0.2f, 0.1f, 0.8f);
 
         [Header("Pose")]
@@ -34,7 +35,9 @@ namespace Anathema.Abilities.KhorneBerserker
         readonly HashSet<Health> struck = new HashSet<Health>();
 
         public override string DisplayName => "Whirl";
-        public override string KeyLabel => "Shift";
+        public override string KeyLabel => "Q";
+        public override float ExCost => exEnergyCost;
+        public override string ExDescription => "Whirling carnage";
 
         // Applied only when added in the editor.
         void Reset()
@@ -106,11 +109,19 @@ namespace Anathema.Abilities.KhorneBerserker
 
         protected override bool IsTriggered()
         {
-            return Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+            return shift && Input.GetKeyDown(KeyCode.Q) && energy != null && energy.Current >= exEnergyCost;
         }
 
         protected override void Activate()
         {
+            if (!IsReplica && (energy == null || !energy.TrySpend(exEnergyCost)))
+            {
+                RefundCooldown();
+                return;
+            }
+
+            ExActivation = true;
             spinning = true;
             startTime = Time.time;
             ticksDone = 0;
@@ -139,7 +150,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 Health target = c.GetComponentInParent<Health>();
                 if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
 
-                if (target.TakeDamage(damagePerTick, gameObject) && energy != null) energy.Gain(energyPerHit);
+                if (target.TakeDamage(damagePerTick, gameObject, true) && energy != null) energy.Gain(energyPerHit);
             }
         }
     }

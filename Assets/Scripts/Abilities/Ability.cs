@@ -107,7 +107,8 @@ namespace Anathema.Abilities
                 || Panicked.IsPanicked(gameObject)) return;
 
             // Wind-up abilities hold the cooldown back until their effect lands (they call StartCooldown()).
-            nextUseTime = CooldownStartsOnStrike ? float.PositiveInfinity : Time.time + cooldown;
+            float cooldownScale = ScalesWithAttackSpeed ? Enraged.AttackSpeedMultiplier(gameObject) : 1f;
+            nextUseTime = CooldownStartsOnStrike ? float.PositiveInfinity : Time.time + cooldown / cooldownScale;
             ExActivation = false;
             Activate();
 
@@ -118,6 +119,9 @@ namespace Anathema.Abilities
                 Health.Net.SendCue(abilityIndex + (ExActivation ? ExCueOffset : 0), Aim.AimPoint);
             }
         }
+
+        // True for basic attacks: their cooldown (and swing timings) speed up with attack speed bonuses such as Enraged.
+        protected virtual bool ScalesWithAttackSpeed => false;
 
         // True for abilities with a wind-up: the cooldown only begins when the ability calls StartCooldown().
         protected virtual bool CooldownStartsOnStrike => false;

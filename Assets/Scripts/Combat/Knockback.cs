@@ -21,6 +21,8 @@ namespace Anathema.Combat
                 return;
             }
 
+            if (Enraged.IsEnraged(target)) return;
+
             var knockback = target.GetComponent<Knockback>();
             if (knockback == null) knockback = target.AddComponent<Knockback>();
             knockback.velocity = direction.normalized * (distance / duration);

@@ -36,47 +36,63 @@ mat("psy", (0.15, 0.4, 1.0), emit=(0.2, 0.5, 1.0), emit_strength=1.5)
 def legs():
     for s, side in ((1, "L"), (-1, "R")):
         x = 0.2 * s
-        prim("cube", (x, -0.08, 0.11), (0.32, 0.52, 0.22), "armor", f"Foot_{side}", bevel=0.07)
-        prim("cube", (x, -0.08, 0.02), (0.34, 0.54, 0.05), "armor_dark", f"Foot_{side}", bevel=0.01)
-        limb((x, 0, 0.2), (x, 0, 0.6), 0.2, 0.17, "armor", f"Shin_{side}")
+        prim("cube", (x, -0.1, 0.12), (0.38, 0.6, 0.24), "armor", f"Foot_{side}", bevel=0.08)
+        prim("cube", (x, -0.1, 0.02), (0.4, 0.62, 0.05), "armor_dark", f"Foot_{side}", bevel=0.01)
+        limb((x, 0, 0.2), (x, 0, 0.6), 0.25, 0.21, "armor", f"Shin_{side}")
         # Greave: gold-trimmed plate, purity seal and wax.
-        prim("cube", (x, -0.2, 0.4), (0.3, 0.04, 0.38), "gold", f"Shin_{side}", bevel=0.01)
-        prim("cube", (x, -0.215, 0.4), (0.25, 0.05, 0.32), "armor_dark", f"Shin_{side}", bevel=0.02)
-        prim("cube", (x, -0.25, 0.34), (0.1, 0.015, 0.24), "parchment", f"Shin_{side}")
-        prim("sphere", (x, -0.26, 0.45), (0.06, 0.04, 0.06), "wax", f"Shin_{side}", verts=10)
-        prim("sphere", (x, -0.1, 0.62), (0.32, 0.28, 0.28), "armor", f"Shin_{side}")  # knee
-        limb((x, 0, 0.62), (x, 0, 1.02), 0.17, 0.19, "armor", f"Thigh_{side}")
+        prim("cube", (x, -0.23, 0.4), (0.36, 0.04, 0.42), "gold", f"Shin_{side}", bevel=0.01)
+        prim("cube", (x, -0.245, 0.4), (0.3, 0.05, 0.36), "armor_dark", f"Shin_{side}", bevel=0.02)
+        prim("cube", (x, -0.28, 0.34), (0.1, 0.015, 0.24), "parchment", f"Shin_{side}")
+        prim("sphere", (x, -0.29, 0.45), (0.06, 0.04, 0.06), "wax", f"Shin_{side}", verts=10)
+        prim("sphere", (x, -0.1, 0.62), (0.38, 0.34, 0.34), "armor", f"Shin_{side}")  # knee
+        prim("sphere", (x, -0.27, 0.63), (0.15, 0.1, 0.17), "gold", f"Shin_{side}", verts=12)  # knee skull
+        limb((x, 0, 0.62), (x, 0, 1.02), 0.21, 0.24, "armor", f"Thigh_{side}")
 
 
 def torso():
-    prim("cube", (0, 0, 1.08), (0.68, 0.42, 0.3), "armor", "Hips", bevel=0.09)
-    prim("cyl", (0, 0, 1.22), (0.72, 0.48, 0.08), "armor_dark", "Hips", bevel=0.01, verts=24)
-    prim("cube", (0, -0.245, 1.22), (0.14, 0.03, 0.12), "gold", "Hips", bevel=0.01)
-    prim("cube", (0, -0.235, 0.93), (0.26, 0.02, 0.5), "parchment", "Hips")  # tabard
-    prim("cube", (0, -0.24, 0.69), (0.28, 0.03, 0.04), "gold", "Hips")
-    prim("sphere", (0, -0.255, 1.08), (0.07, 0.04, 0.07), "wax", "Hips", verts=10)
+    prim("cube", (0, 0, 1.08), (0.78, 0.46, 0.3), "armor", "Hips", bevel=0.09)
+    prim("cyl", (0, 0, 1.22), (0.82, 0.54, 0.08), "armor_dark", "Hips", bevel=0.01, verts=24)
+    prim("cube", (0, -0.275, 1.22), (0.14, 0.03, 0.12), "gold", "Hips", bevel=0.01)
+    prim("cube", (0, -0.265, 0.93), (0.3, 0.02, 0.5), "parchment", "Hips")  # tabard
+    prim("cube", (0, -0.27, 0.69), (0.32, 0.03, 0.04), "gold", "Hips")
+    prim("sphere", (0, -0.285, 1.08), (0.07, 0.04, 0.07), "wax", "Hips", verts=10)
 
-    prim("cube", (0, 0, 1.52), (0.8, 0.5, 0.62), "armor", "Spine", bevel=0.13)
-    prim("cube", (0, 0, 1.24), (0.82, 0.52, 0.05), "armor_dark", "Spine", bevel=0.01)
-    prim("cube", (0, -0.268, 1.56), (0.17, 0.03, 0.17), "gold", "Spine", rot=(0, 45, 0), bevel=0.01)  # chest badge
-    prim("sphere", (0, -0.285, 1.56), (0.07, 0.04, 0.07), "red", "Spine", verts=10)
-    for x in (-0.22, 0.22):  # purity seals
-        prim("cube", (x, -0.272, 1.36), (0.07, 0.015, 0.22), "parchment", "Spine")
-        prim("sphere", (x, -0.282, 1.47), (0.05, 0.03, 0.05), "wax", "Spine", verts=10)
-    prim("cyl", (0, 0, 1.86), (0.46, 0.4, 0.14), "armor", "Spine", bevel=0.01)  # gorget
+    prim("cube", (0, 0, 1.52), (0.95, 0.56, 0.62), "armor", "Spine", bevel=0.14)
+    prim("cube", (0, 0, 1.24), (0.97, 0.58, 0.05), "armor_dark", "Spine", bevel=0.01)
+    prim("cube", (0, -0.298, 1.56), (0.17, 0.03, 0.17), "gold", "Spine", rot=(0, 45, 0), bevel=0.01)  # chest badge
+    prim("sphere", (0, -0.315, 1.56), (0.07, 0.04, 0.07), "red", "Spine", verts=10)
+    for x in (-0.26, 0.26):  # purity seals
+        prim("cube", (x, -0.302, 1.36), (0.07, 0.015, 0.22), "parchment", "Spine")
+        prim("sphere", (x, -0.312, 1.47), (0.05, 0.03, 0.05), "wax", "Spine", verts=10)
+    # High gorget collar the head sits down inside, like the reference.
+    prim("cyl", (0, 0, 1.9), (0.62, 0.54, 0.22), "armor", "Spine", bevel=0.02)
+    prim("cyl", (0, 0, 2.0), (0.64, 0.56, 0.04), "gold", "Spine", bevel=0.005)
+
+
+def pauldron(s, bone):
+    """Big layered shoulder dome: a rounded cap over a banded skirt with a gold ring trim."""
+    x, z = 0.7 * s, 1.72
+    prim("sphere", (x, 0, z + 0.04), (0.78, 0.7, 0.62), "armor", bone, verts=28)
+    prim("cube", (x, 0, z - 0.14), (0.72, 0.64, 0.26), "armor", bone, bevel=0.1)
+    torus((x, 0, z - 0.27), 0.34, 0.025, "gold", bone, squash_y=0.92)
+    torus((x, 0, z + 0.2), 0.2, 0.02, "gold", bone, squash_y=0.92)
+    return x, z
 
 
 def pauldrons():
-    # Right: heraldry plate. Left: gold lettering.
-    prim("sphere", (-0.62, 0, 1.74), (0.58, 0.52, 0.44), "armor", "UpperArm_R", verts=24)
-    torus((-0.62, 0, 1.6), 0.27, 0.02, "gold", "UpperArm_R", squash_y=0.92)
-    prim("sphere", (-0.86, 0, 1.74), (0.1, 0.38, 0.28), "white", "UpperArm_R", verts=14)
-    prim("sphere", (-0.885, 0, 1.8), (0.06, 0.38, 0.12), "red", "UpperArm_R", verts=14)
+    # Right (-X): red heraldic plate with the white cross. Left (+X): gold lettering and scrolls.
+    x, z = pauldron(-1, "UpperArm_R")
+    prim("cube", (x - 0.34, 0, z - 0.02), (0.06, 0.46, 0.42), "red", "UpperArm_R", bevel=0.02)
+    prim("cube", (x - 0.375, 0, z - 0.04), (0.03, 0.07, 0.32), "white", "UpperArm_R")
+    prim("cube", (x - 0.375, 0, z + 0.04), (0.03, 0.26, 0.07), "white", "UpperArm_R")
+    prim("cube", (x - 0.2, -0.34, z - 0.12), (0.22, 0.02, 0.3), "parchment", "UpperArm_R")  # hanging scroll
+    prim("sphere", (x - 0.2, -0.35, z + 0.02), (0.06, 0.03, 0.06), "wax", "UpperArm_R", verts=10)
 
-    prim("sphere", (0.62, 0, 1.74), (0.58, 0.52, 0.44), "armor", "UpperArm_L", verts=24)
-    torus((0.62, 0, 1.6), 0.27, 0.02, "gold", "UpperArm_L", squash_y=0.92)
-    for z in (1.66, 1.74, 1.82):
-        prim("cube", (0.86, 0, z), (0.03, 0.3, 0.04), "gold", "UpperArm_L")
+    x, z = pauldron(1, "UpperArm_L")
+    for dz in (-0.1, 0.0, 0.1):
+        prim("cube", (x + 0.36, 0, z + dz), (0.03, 0.44, 0.05), "gold", "UpperArm_L")
+    prim("cube", (x + 0.1, -0.34, z - 0.14), (0.32, 0.02, 0.18), "parchment", "UpperArm_L")  # script banner
+    prim("cube", (x + 0.28, 0.18, z + 0.0), (0.24, 0.02, 0.3), "parchment", "UpperArm_L")  # rear scroll
 
 
 def arms():
@@ -86,20 +102,20 @@ def arms():
     }
     from mathutils import Vector
     for side, a in arms_def.items():
-        limb(a["sh"], a["el"], 0.15, 0.13, "armor", f"UpperArm_{side}")
-        prim("sphere", a["el"], (0.26, 0.26, 0.26), "armor", f"UpperArm_{side}")
-        limb(a["el"], a["wr"], 0.14, 0.15, "armor", f"Forearm_{side}")
+        limb(a["sh"], a["el"], 0.19, 0.17, "armor", f"UpperArm_{side}")
+        prim("sphere", a["el"], (0.34, 0.34, 0.34), "armor", f"UpperArm_{side}")
+        limb(a["el"], a["wr"], 0.18, 0.2, "armor", f"Forearm_{side}")
         prim("sphere", tuple(Vector(a["wr"]) + (Vector(a["wr"]) - Vector(a["el"])).normalized() * 0.05),
-             (0.27, 0.27, 0.27), "armor_dark", f"Hand_{side}")
+             (0.32, 0.32, 0.32), "armor_dark", f"Hand_{side}")
 
 
 def head_and_pack():
-    prim("sphere", (0, -0.02, 2.02), (0.42, 0.44, 0.44), "armor", "Head", verts=24)
-    prim("cube", (0, -0.225, 2.03), (0.36, 0.05, 0.12), "armor_dark", "Head", bevel=0.02)  # visor
+    prim("sphere", (0, -0.02, 2.04), (0.36, 0.38, 0.4), "armor", "Head", verts=24)
+    prim("cube", (0, -0.195, 2.05), (0.3, 0.05, 0.1), "armor_dark", "Head", bevel=0.02)  # visor
     for x in (-0.07, 0.07):
-        prim("sphere", (x, -0.25, 2.03), (0.075, 0.03, 0.05), "cyan", "Head", verts=10)
-    prim("cyl", (0, -0.2, 1.9), (0.12, 0.08, 0.12), "steel", "Head", rot=(90, 0, 0), verts=12)  # vox grille
-    prim("cube", (0, 0, 2.25), (0.04, 0.36, 0.08), "gold", "Head", bevel=0.01)  # crest
+        prim("sphere", (x, -0.22, 2.05), (0.07, 0.03, 0.05), "cyan", "Head", verts=10)
+    prim("cyl", (0, -0.2, 1.93), (0.12, 0.08, 0.12), "steel", "Head", rot=(90, 0, 0), verts=12)  # vox grille
+    prim("cube", (0, 0, 2.26), (0.04, 0.3, 0.07), "gold", "Head", bevel=0.01)  # crest
 
     # Backpack with side vents, glowing core and the two cyan-tipped rods.
     prim("cube", (0, 0.3, 1.5), (0.56, 0.34, 0.56), "armor", "Backpack", bevel=0.07)

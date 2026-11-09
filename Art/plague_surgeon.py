@@ -204,8 +204,8 @@ def pauldrons():
 
 
 ARMS = {
-    "L": dict(sh=(0.74, 0, 1.85), el=(0.8, -0.06, 1.3), wr=(0.78, -0.2, 0.98)),
-    "R": dict(sh=(-0.74, 0, 1.85), el=(-0.8, -0.06, 1.3), wr=(-0.78, -0.2, 0.98)),
+    "L": dict(sh=(0.74, 0, 1.85), el=(0.8, -0.06, 1.45), wr=(0.78, -0.2, 1.2)),
+    "R": dict(sh=(-0.74, 0, 1.85), el=(-0.8, -0.06, 1.45), wr=(-0.78, -0.2, 1.2)),
 }
 
 
@@ -221,11 +221,11 @@ def arms():
         d = (Vector(a["wr"]) - Vector(a["el"])).normalized()
         prim("sphere", tuple(Vector(a["wr"]) + d * 0.05), (0.3, 0.3, 0.3), "iron", f"Hand_{side}")
     # Left forearm: a bound surgical tool-case with vials.
-    prim("cube", (0.92, -0.04, 1.18), (0.12, 0.2, 0.24), "rust", "Forearm_L", bevel=0.02)
-    vial(0.92, -0.04, 1.4, "Forearm_L", "glass", h=0.14)
+    prim("cube", (0.92, -0.04, 1.3), (0.12, 0.2, 0.24), "rust", "Forearm_L", bevel=0.02)
+    vial(0.92, -0.04, 1.5, "Forearm_L", "glass", h=0.14)
     # Right forearm: drill motor housing and hoses.
-    prim("cyl", (-0.8, -0.12, 1.14), (0.22, 0.22, 0.32), "copper_dark", "Forearm_R", rot=(-20, 0, 0), verts=14)
-    limb((-0.6, 0.12, 1.5), (-0.8, -0.04, 1.3), 0.03, 0.03, "iron", "Forearm_R", verts=8)
+    prim("cyl", (-0.8, -0.12, 1.26), (0.22, 0.22, 0.32), "copper_dark", "Forearm_R", rot=(-20, 0, 0), verts=14)
+    limb((-0.6, 0.12, 1.6), (-0.8, -0.04, 1.45), 0.03, 0.03, "iron", "Forearm_R", verts=8)
 
 
 def drill():

@@ -16,6 +16,8 @@ namespace Anathema.Combat
                 return null;
             }
 
+            if (Enraged.IsEnraged(target)) return null;
+
             var silenced = target.GetComponent<Silenced>();
             if (silenced == null) silenced = target.AddComponent<Silenced>();
             silenced.endTime = Mathf.Max(silenced.endTime, Time.time + duration);

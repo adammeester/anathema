@@ -51,6 +51,10 @@ namespace Anathema.Abilities.KhorneBerserker
         float lastArm;
         readonly HashSet<Health> struck = new HashSet<Health>();
 
+        float chopSpeed = 1f;   // attack speed multiplier the current chop started with
+
+        protected override bool ScalesWithAttackSpeed => true;
+
         public override string DisplayName => "Chop";
         public override string KeyLabel => "LMB";
 
@@ -126,9 +130,11 @@ namespace Anathema.Abilities.KhorneBerserker
             aura.SetActive(false);
             strikePending = true;
             active = true;
-            windupEndTime = Time.time + windupDuration;
-            swingEndTime = windupEndTime + swingDuration;
-            recoverEndTime = swingEndTime + recoverDuration;
+            // Enraged swings faster: every phase of the chop shrinks with attack speed.
+            chopSpeed = Enraged.AttackSpeedMultiplier(gameObject);
+            windupEndTime = Time.time + windupDuration / chopSpeed;
+            swingEndTime = windupEndTime + swingDuration / chopSpeed;
+            recoverEndTime = swingEndTime + recoverDuration / chopSpeed;
             recoverFromTwist = SwingTwist();
             recoverFromArm = armFollowThrough;
         }
@@ -145,6 +151,7 @@ namespace Anathema.Abilities.KhorneBerserker
             strikePending = false;
             recoverFromTwist = lastTwist;
             recoverFromArm = lastArm;
+            chopSpeed = 1f;
             recoverEndTime = Time.time + recoverDuration;
         }
 
@@ -185,13 +192,13 @@ namespace Anathema.Abilities.KhorneBerserker
 
             if (active && now < windupEndTime)
             {
-                float t = Mathf.SmoothStep(0f, 1f, 1f - (windupEndTime - now) / windupDuration);
+                float t = Mathf.SmoothStep(0f, 1f, 1f - (windupEndTime - now) * chopSpeed / windupDuration);
                 twist = Mathf.Lerp(0f, -SwingTwist(), t);
                 arm = Mathf.Lerp(0f, -armRaise, t);
             }
             else if (active && now < swingEndTime)
             {
-                float t = 1f - (swingEndTime - now) / swingDuration;
+                float t = 1f - (swingEndTime - now) * chopSpeed / swingDuration;
                 t = 1f - (1f - t) * (1f - t);
                 twist = Mathf.Lerp(-SwingTwist(), SwingTwist(), t);
                 arm = Mathf.Lerp(-armRaise, armFollowThrough, t);
@@ -199,7 +206,7 @@ namespace Anathema.Abilities.KhorneBerserker
             else if (now < recoverEndTime)
             {
                 active = false;
-                float t = Mathf.SmoothStep(0f, 1f, 1f - (recoverEndTime - now) / recoverDuration);
+                float t = Mathf.SmoothStep(0f, 1f, 1f - (recoverEndTime - now) * chopSpeed / recoverDuration);
                 twist = Mathf.Lerp(recoverFromTwist, 0f, t);
                 arm = Mathf.Lerp(recoverFromArm, 0f, t);
             }

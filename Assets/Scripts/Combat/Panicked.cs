@@ -27,6 +27,8 @@ namespace Anathema.Combat
                 return null;
             }
 
+            if (Enraged.IsEnraged(target)) return null;
+
             var panicked = target.GetComponent<Panicked>();
             if (panicked == null) panicked = target.AddComponent<Panicked>();
             panicked.endTime = Mathf.Max(panicked.endTime, Time.time + duration);

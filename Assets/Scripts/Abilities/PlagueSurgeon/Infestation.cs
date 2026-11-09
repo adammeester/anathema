@@ -43,6 +43,7 @@ namespace Anathema.Abilities.PlagueSurgeon
             inf.healPerTick = allyHps * TickInterval;
             inf.energyPerTick = energyGain;
             inf.BuildFly();
+            PlagueSurgeonSound.FlyBuzz();
             return inf;
         }
 

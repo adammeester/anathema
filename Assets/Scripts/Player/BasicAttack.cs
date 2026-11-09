@@ -53,6 +53,7 @@ namespace Anathema.Player
 
         void OnHit(Health _)
         {
+            HitMarkerSound.Play();
             if (energy != null) energy.Gain(energyPerHit);
         }
 

@@ -91,7 +91,8 @@ namespace Anathema.Abilities.KhorneBerserker
 
         protected override bool IsTriggered()
         {
-            return Input.GetKeyDown(KeyCode.Q);
+            // Shift+Q is the EX Whirling Carnage instead.
+            return Input.GetKeyDown(KeyCode.Q) && !Input.GetKey(KeyCode.LeftShift) && !Input.GetKey(KeyCode.RightShift);
         }
 
         protected override void Activate()

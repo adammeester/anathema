@@ -21,6 +21,8 @@ namespace Anathema.Abilities.PlagueSurgeon
         float nextTick;
         Material material;
 
+        public const int MaxStacks = 3;
+
         public int Stacks => expiries.Count;
 
         // `stacks` > 1 lays several stacks at once (the ward's death-cloud uses this for a heavier rot).
@@ -36,7 +38,16 @@ namespace Anathema.Abilities.PlagueSurgeon
             festering.source = damageSource;
             festering.sourceEnergy = sourceEnergy;
             festering.damagePerStackPerSecond = damagePerSecond;
-            for (int i = 0; i < stacks; i++) festering.expiries.Add(Time.time + duration);
+            for (int i = 0; i < stacks; i++)
+            {
+                // At the cap, a new hit resets every stack's duration instead of adding another.
+                if (festering.expiries.Count >= MaxStacks)
+                {
+                    for (int j = 0; j < festering.expiries.Count; j++)
+                        festering.expiries[j] = Time.time + duration;
+                }
+                else festering.expiries.Add(Time.time + duration);
+            }
             return festering;
         }
 

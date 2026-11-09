@@ -7,6 +7,8 @@ namespace Anathema.Abilities.KhorneBerserker
 {
     // Press E for a low, crippling chop in front of you. Anything hit takes a little damage and is Maimed: 30% slower
     // for 2.5 seconds, bleeding a trail as it goes. The damage lands when the wind-up ends, so C cancels it before then.
+    // EX (Shift+E, costs energy): The Butcher's Nails instead of the chop. The Berserker becomes Enraged: immune to
+    // crowd control, 20% faster attacks and 10% faster movement.
     [DefaultExecutionOrder(50)] // after ProceduralWalk, which also writes Spine and the arms every LateUpdate
     public class Maim : Ability
     {
@@ -19,6 +21,10 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float swingDuration = 0.1f;
         [SerializeField] float recoverDuration = 0.15f;
         [SerializeField] float energyPerHit = 8f;
+
+        [Header("EX: The Butcher's Nails")]
+        [SerializeField] float exEnergyCost = 35f;
+        [SerializeField] float nailsDuration = 6f;
         [SerializeField] Color slashColor = new Color(0.6f, 0.02f, 0.02f, 0.9f);
 
         [Header("Pose")]
@@ -43,6 +49,8 @@ namespace Anathema.Abilities.KhorneBerserker
 
         public override string DisplayName => "Maim";
         public override string KeyLabel => "E";
+        public override float ExCost => exEnergyCost;
+        public override string ExDescription => "The Butcher's Nails";
 
         // Applied only when added in the editor.
         void Reset()
@@ -81,6 +89,15 @@ namespace Anathema.Abilities.KhorneBerserker
 
         protected override void Activate()
         {
+            if (!IsReplica) ExActivation = TrySpendEx(energy, exEnergyCost);
+            if (ExActivation)
+            {
+                // The Butcher's Nails: no chop, the Berserker drives the nails in and goes into a rage.
+                Enraged.Apply(gameObject, nailsDuration);
+                SlashEffect.Spawn(transform.position, Aim.AimDirection, 2.2f, 360f, 0.4f, new Color(1f, 0.1f, 0.05f, 0.9f));
+                return;
+            }
+
             active = true;
             strikePending = true;
             windupEndTime = Time.time + windupDuration;

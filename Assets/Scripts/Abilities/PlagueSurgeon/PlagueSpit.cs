@@ -10,6 +10,8 @@ namespace Anathema.Abilities.PlagueSurgeon
     {
         // How many attack intervals one stack of rot lasts.
         const float StackIntervals = 2.5f;
+        // Flat extra seconds added to each stack's duration.
+        const float RotBonusSeconds = 1f;
 
         [SerializeField] float damage = 5f;
         [SerializeField] float rotDamagePerSecond = 1.5f;
@@ -22,7 +24,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         [SerializeField] Color globColor = new Color(0.45f, 0.75f, 0.1f);
 
         // How long one stack of rot lasts: follows the attack rate, so changing the cooldown rescales it.
-        public float RotDuration => cooldown * StackIntervals;
+        public float RotDuration => cooldown * StackIntervals + RotBonusSeconds;
 
         Energy energy;
         Material globMaterial;
@@ -100,6 +102,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         // The projectile only reports hits that actually dealt damage; a replica's visual glob never gets here.
         void OnHit(Health target)
         {
+            HitMarkerSound.Play();
             if (energy != null) energy.Gain(energyPerHit);
             if (!target.IsDead)
                 Festering.Apply(target.gameObject, gameObject, energy, RotDuration, rotDamagePerSecond);

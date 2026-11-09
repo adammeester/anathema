@@ -1,0 +1,59 @@
+{
+  "health": 120,
+  "moveSpeed": 6.5,
+  "maxEnergy": 100,
+  "abilities": {
+    "PestilentFly": {
+      "cooldown": 6,
+      "projectileSpeed": 18,
+      "range": 13,
+      "projectileRadius": 0.45,
+      "muzzleHeight": 1.1,
+      "attachDuration": 4,
+      "enemyDamagePerSecond": 6,
+      "allyHealPerSecond": 7,
+      "exEnergyCost": 40,
+      "burstRadius": 3.5,
+      "burstDamage": 28,
+      "burstHeal": 28,
+      "burstPanic": 1.25,
+      "energyPerTick": 2
+    },
+    "PlagueCloud": {
+      "cooldown": 7,
+      "range": 10,
+      "radius": 3,
+      "lifetime": 5,
+      "damagePerSecond": 9,
+      "healCloudDamageMultiplier": 0.5,
+      "healPerSecond": 10,
+      "exEnergyCost": 35,
+      "energyPerTick": 2
+    },
+    "PlagueSpit": {
+      "cooldown": 0.7,
+      "damage": 5,
+      "rotDamagePerSecond": 1.5,
+      "range": 13,
+      "projectileSpeed": 22,
+      "projectileRadius": 0.3,
+      "muzzleHeight": 1.3,
+      "muzzleForward": 0.7,
+      "energyPerHit": 6
+    },
+    "WardOfPlague": {
+      "cooldown": 1,
+      "energyCost": 100,
+      "range": 14,
+      "pickRadius": 3,
+      "wardStrength": 60,
+      "wardDuration": 8
+    },
+    "WingedEscape": {
+      "cooldown": 8,
+      "range": 9,
+      "flightDuration": 0.4,
+      "wingSpan": 2.6
+    }
+  }
+}
