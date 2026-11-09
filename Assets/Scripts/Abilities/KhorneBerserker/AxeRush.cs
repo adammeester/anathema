@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Combat;
+using Anathema.Upgrades;
 using UnityEngine;
 
 namespace Anathema.Abilities.KhorneBerserker
@@ -139,9 +140,14 @@ namespace Anathema.Abilities.KhorneBerserker
                 to.y = 0f;
                 if (to.sqrMagnitude > 0.0001f && Vector3.Angle(dashDirection, to) > arcDegrees * 0.5f) continue;
 
-                if (!target.TakeDamage(damage, gameObject)) continue;
+                float dealt = damage * BerserkerUpgradeEffects.DamageScale(gameObject, target);
+                if (!target.TakeDamage(dealt, gameObject)) continue;
                 if (energy != null) energy.Gain(energyPerHit);
+                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
                 BloodImpact.Play(target.transform.position + Vector3.up, dashDirection);
+                // Gore Rush: the sweep leaves targets bleeding.
+                if (!target.IsDead && UpgradeState.Has(gameObject, BerserkerUpgrade.GoreRush))
+                    Bleeding.Apply(target.gameObject, gameObject, 3f, 4f);
             }
         }
 

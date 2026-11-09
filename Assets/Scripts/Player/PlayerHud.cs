@@ -1,5 +1,6 @@
 using Anathema.Abilities;
 using Anathema.Combat;
+using Anathema.Upgrades;
 using UnityEngine;
 
 namespace Anathema.Player
@@ -28,6 +29,8 @@ namespace Anathema.Player
         Health health;
         Energy energy;
         Ability[] abilities;
+        Rage rage;
+        UpgradeState upgrades;
         Texture2D pixel;
         Texture2D sheen;        // white, alpha fading top (bright) to bottom (clear)
         float scale = 1f;
@@ -82,6 +85,39 @@ namespace Anathema.Player
             {
                 DrawSlot(new Rect(x, slotY, slot, slot), ability);
                 x += slot + gap;
+            }
+
+            DrawPassives(centerX, slotY, abilityWidth);
+        }
+
+        // ---------- Passives and upgrades ----------
+
+        // The Rage passive's stacks above the ability bar, and the upgrades taken this match at the bottom-left.
+        void DrawPassives(float centerX, float slotY, float abilityWidth)
+        {
+            if (rage == null) rage = GetComponent<Rage>();
+            if (rage != null && rage.Stacks > 0)
+            {
+                float bonus = Rage.AttackSpeedMultiplier(gameObject) - 1f;
+                var r = new Rect(centerX - abilityWidth * 0.5f, slotY - 54f * scale, abilityWidth, 34f * scale);
+                DrawText(r, $"RAGE  {new string('|', rage.Stacks)}   +{Mathf.RoundToInt(bonus * 100f)}% attack speed",
+                    Mathf.RoundToInt(22f * scale), FontStyle.Bold, new Color(1f, 0.35f, 0.25f));
+            }
+
+            if (upgrades == null) upgrades = GetComponent<UpgradeState>();
+            if (upgrades == null || upgrades.Mask == 0) return;
+
+            UpgradeDef[] all = UpgradeCatalog.For(upgrades.Character);
+            if (all == null) return;
+
+            float lineH = 26f * scale;
+            float y = Screen.height - 30f * scale - lineH;
+            for (int i = all.Length - 1; i >= 0; i--)
+            {
+                if (!upgrades.Has(all[i].Bit)) continue;
+                DrawText(new Rect(24f * scale, y, 360f * scale, lineH), all[i].Name, Mathf.RoundToInt(18f * scale),
+                    FontStyle.Bold, UpgradeDef.CategoryColor(all[i].Category));
+                y -= lineH;
             }
         }
 

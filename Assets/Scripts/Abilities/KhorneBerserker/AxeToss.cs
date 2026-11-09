@@ -1,11 +1,17 @@
 using Anathema.Combat;
+using Anathema.Abilities.GreyKnightInterceptor;
+using Anathema.Upgrades;
 using UnityEngine;
 
 namespace Anathema.Abilities.KhorneBerserker
 {
-    // Press right mouse to hurl a spinning chain axe along the aim direction. The first enemy it hits takes damage
-    // and starts Bleeding: damage over time for a few seconds. Walls stop the axe. The throw leaves the hand when the
-    // wind-up ends, so C cancels it before then.
+    // The Berserker's secondary (right mouse). Which attack it is depends on the weapon (Armament upgrade):
+    //   Dual chainaxes  - Axe Toss: hurl a spinning chain axe along the aim direction. The first enemy it hits takes
+    //                     damage and starts Bleeding. Walls stop the axe. (Twin Axes upgrade: a second axe in a spread.)
+    //   Heavy Chainaxe  - Gorecleave: a wide frontal sweep that hits everything in reach, knocks it back and causes Bleed.
+    //   Eviscerator     - Executioner's Descent: an overhead strike with a long wind-up; bonus damage to low-health
+    //                     targets, and it partly ignores armour and shields.
+    // The strike leaves the hands when the wind-up ends, so C cancels it before then.
     [DefaultExecutionOrder(50)] // after ProceduralWalk, which also writes the arms every LateUpdate
     public class AxeToss : Ability
     {
@@ -21,12 +27,44 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float throwDuration = 0.08f;
         [SerializeField] float recoverDuration = 0.25f;
 
+        [Header("Twin Axes upgrade")]
+        [SerializeField] float twinSpreadDegrees = 9f;
+
+        [Header("Gorecleave (Heavy Chainaxe)")]
+        [SerializeField] float cleaveDamage = 20f;
+        [SerializeField] float cleaveRange = 4.2f;
+        [SerializeField] float cleaveArcDegrees = 200f;
+        [SerializeField] float cleaveWindupDuration = 0.3f;
+        [SerializeField] float cleaveSwingDuration = 0.14f;
+        [SerializeField] float cleaveRecoverDuration = 0.35f;
+        [SerializeField] float cleaveCooldown = 7f;
+        [SerializeField] float cleaveKnockbackDistance = 3.5f;
+        [SerializeField] float cleaveKnockbackDuration = 0.25f;
+        [SerializeField] float cleaveBleedDamagePerSecond = 4f;
+        [SerializeField] float cleaveBleedDuration = 4f;
+
+        [Header("Executioner's Descent (Eviscerator)")]
+        [SerializeField] float descentDamage = 26f;
+        [SerializeField] float descentRange = 3.2f;
+        [SerializeField] float descentArcDegrees = 80f;
+        [SerializeField] float descentWindupDuration = 0.55f;
+        [SerializeField] float descentSwingDuration = 0.1f;
+        [SerializeField] float descentRecoverDuration = 0.5f;
+        [SerializeField] float descentCooldown = 6.5f;
+        [SerializeField] float descentExecuteThreshold = 0.5f;     // bonus starts below this share of max health
+        [SerializeField] float descentMaxBonus = 1f;               // +100% damage against a target on the brink
+        [SerializeField] float descentArmorPierce = 0.4f;
+
         [Header("Pose")]
         [SerializeField] float armRaise = 85f;
         [SerializeField] float armFollowThrough = 40f;
 
-        static readonly string[] BoneNames = { "UpperArm_R" };
+        static readonly string[] ArmBones = { "UpperArm_R" };
+        static readonly string[] FullBones = { "Spine", "UpperArm_L", "UpperArm_R" };
 
+        // The dual-axe toss only drives the right arm (so it can overlap a chop); the heavy weapons drive the spine and both arms.
+        LimbPose armPose;
+        LimbPose fullPose;
         LimbPose pose;
         Energy energy;
         Material metalMaterial;
@@ -34,12 +72,29 @@ namespace Anathema.Abilities.KhorneBerserker
         bool active;
         bool posed;
         bool throwPending;
+        BerserkerWeapon weapon;      // the weapon this use started with
+        float curWindup, curSwing, curRecover, curRaise, curFollow, curTwist;
+        bool bothArms;
+        float tossCooldown;          // the prefab/JSON cooldown, used by the dual-chainaxe toss
         float startTime;
         float lastArm;
+        float lastTwist;
+        float recoverFromTwist;
         float recoverFromArm;
         float recoverEndTime;
 
-        public override string DisplayName => "Toss";
+        public override string DisplayName
+        {
+            get
+            {
+                switch (BerserkerWeapons.Of(gameObject))
+                {
+                    case BerserkerWeapon.HeavyChainaxe: return "Cleave";
+                    case BerserkerWeapon.Eviscerator: return "Descent";
+                    default: return "Toss";
+                }
+            }
+        }
         public override string KeyLabel => "RMB";
 
         // Applied only when added in the editor.
@@ -52,19 +107,40 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             base.Awake();
             energy = GetComponent<Energy>();
-            pose = new LimbPose(transform.Find("Model"), BoneNames);
+            armPose = new LimbPose(transform.Find("Model"), ArmBones);
+            fullPose = new LimbPose(transform.Find("Model"), FullBones);
+            pose = armPose;
+        }
+
+        void Start()
+        {
+            tossCooldown = cooldown; // after CharacterStats has applied its JSON
         }
 
         protected override void Update()
         {
+            if (tossCooldown > 0f)
+            {
+                switch (BerserkerWeapons.Of(gameObject))
+                {
+                    case BerserkerWeapon.HeavyChainaxe: cooldown = cleaveCooldown; break;
+                    case BerserkerWeapon.Eviscerator: cooldown = descentCooldown; break;
+                    default: cooldown = tossCooldown; break;
+                }
+            }
             base.Update();
 
             if (throwPending && !IsReplica && IsDisabled) InterruptSelf();
 
-            if (throwPending && Time.time >= startTime + windupDuration)
+            if (throwPending && Time.time >= startTime + curWindup)
             {
                 throwPending = false;
-                Throw();
+                switch (weapon)
+                {
+                    case BerserkerWeapon.HeavyChainaxe: Cleave(); break;
+                    case BerserkerWeapon.Eviscerator: Descent(); break;
+                    default: Throw(); break;
+                }
             }
         }
 
@@ -80,9 +156,32 @@ namespace Anathema.Abilities.KhorneBerserker
 
         protected override void Activate()
         {
+            ResolveWeapon();
             active = true;
             throwPending = true;
             startTime = Time.time;
+        }
+
+        void ResolveWeapon()
+        {
+            weapon = BerserkerWeapons.Of(gameObject);
+            if (posed) pose.Reset();
+            pose = weapon == BerserkerWeapon.DualChainaxes ? armPose : fullPose;
+            switch (weapon)
+            {
+                case BerserkerWeapon.HeavyChainaxe:
+                    curWindup = cleaveWindupDuration; curSwing = cleaveSwingDuration; curRecover = cleaveRecoverDuration;
+                    curRaise = 80f; curFollow = 30f; curTwist = 50f; bothArms = true;
+                    break;
+                case BerserkerWeapon.Eviscerator:
+                    curWindup = descentWindupDuration; curSwing = descentSwingDuration; curRecover = descentRecoverDuration;
+                    curRaise = 125f; curFollow = 45f; curTwist = 0f; bothArms = true;
+                    break;
+                default:
+                    curWindup = windupDuration; curSwing = throwDuration; curRecover = recoverDuration;
+                    curRaise = armRaise; curFollow = armFollowThrough; curTwist = 0f; bothArms = false;
+                    break;
+            }
         }
 
         protected override void Cancel()
@@ -93,7 +192,8 @@ namespace Anathema.Abilities.KhorneBerserker
             active = false;
             throwPending = false;
             recoverFromArm = lastArm;
-            recoverEndTime = Time.time + recoverDuration;
+            recoverFromTwist = lastTwist;
+            recoverEndTime = Time.time + curRecover;
         }
 
         void Throw()
@@ -103,6 +203,13 @@ namespace Anathema.Abilities.KhorneBerserker
             if (dir.sqrMagnitude < 0.0001f) dir = transform.forward;
             dir.Normalize();
 
+            bool twin = UpgradeState.Has(gameObject, BerserkerUpgrade.TwinAxes);
+            LaunchAxe(twin ? Quaternion.AngleAxis(-twinSpreadDegrees, Vector3.up) * dir : dir);
+            if (twin) LaunchAxe(Quaternion.AngleAxis(twinSpreadDegrees, Vector3.up) * dir);
+        }
+
+        void LaunchAxe(Vector3 dir)
+        {
             Vector3 origin = transform.position + Vector3.up * muzzleHeight + dir * 0.7f;
 
             var go = new GameObject("Thrown Axe");
@@ -112,9 +219,54 @@ namespace Anathema.Abilities.KhorneBerserker
             go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit);
         }
 
+        // Gorecleave: a wide frontal sweep. Everything in reach is hurt, thrown back and left bleeding.
+        void Cleave()
+        {
+            Vector3 origin = transform.position;
+            Vector3 aim = Aim.AimDirection;
+            SlashEffect.Spawn(origin, aim, cleaveRange, cleaveArcDegrees, curSwing * 3f, new Color(1f, 0.15f, 0.08f, 0.9f));
+
+            foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, cleaveRange, cleaveArcDegrees))
+            {
+                float dealt = cleaveDamage * BerserkerUpgradeEffects.DamageScale(gameObject, target);
+                if (!target.TakeDamage(dealt, gameObject)) continue;
+
+                if (energy != null) energy.Gain(energyPerHit);
+                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
+                BloodImpact.Play(target.transform.position + Vector3.up, aim, 1f, true);
+                if (target.IsDead) continue;
+
+                Vector3 push = target.transform.position - origin;
+                push.y = 0f;
+                if (push.sqrMagnitude < 0.0001f) push = aim;
+                Knockback.Apply(target.gameObject, push, cleaveKnockbackDistance, cleaveKnockbackDuration);
+                Bleeding.Apply(target.gameObject, gameObject, cleaveBleedDamagePerSecond, cleaveBleedDuration);
+            }
+        }
+
+        // Executioner's Descent: one overhead blow. The lower the target's health, the harder it lands.
+        void Descent()
+        {
+            Vector3 origin = transform.position;
+            Vector3 aim = Aim.AimDirection;
+            SlashEffect.Spawn(origin, aim, descentRange, descentArcDegrees, curSwing * 4f, new Color(1f, 0.8f, 0.25f, 0.95f));
+
+            foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, descentRange, descentArcDegrees))
+            {
+                float wounded = Mathf.Clamp01((descentExecuteThreshold - target.Normalized) / descentExecuteThreshold);
+                float dealt = descentDamage * (1f + wounded * descentMaxBonus) * BerserkerUpgradeEffects.DamageScale(gameObject, target);
+                if (!target.TakeDamage(dealt, gameObject, false, descentArmorPierce)) continue;
+
+                if (energy != null) energy.Gain(energyPerHit);
+                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
+                BloodImpact.Play(target.transform.position + Vector3.up, aim, 1f, true);
+            }
+        }
+
         void OnHit(Health target)
         {
             if (energy != null) energy.Gain(energyPerHit);
+            BerserkerUpgradeEffects.RegisterHit(gameObject, damage);
             BloodImpact.Play(target.transform.position + Vector3.up, target.transform.position - transform.position, 1f, true);
             if (!target.IsDead) Bleeding.Apply(target.gameObject, gameObject, bleedDamagePerSecond, bleedDuration);
         }
@@ -144,36 +296,43 @@ namespace Anathema.Abilities.KhorneBerserker
             part.transform.localScale = scale;
         }
 
-        // Wind-up: right arm hauled back and up. Throw: whips forward. Recovery: eases back to rest.
+        // Wind-up: arm(s) hauled back and up. Strike: whips forward. Recovery: eases back to rest.
+        // The dual-axe toss only moves the right arm; the heavy weapons use both arms and a spine twist.
         void ApplyPose()
         {
             float now = Time.time;
-            float windupEnd = startTime + windupDuration;
-            float throwEnd = windupEnd + throwDuration;
+            float windupEnd = startTime + curWindup;
+            float throwEnd = windupEnd + curSwing;
             float arm;
+            float twist;
 
             if (active && now < windupEnd)
             {
-                float t = Mathf.SmoothStep(0f, 1f, (now - startTime) / windupDuration);
-                arm = Mathf.Lerp(0f, -armRaise, t);
+                float t = Mathf.SmoothStep(0f, 1f, (now - startTime) / curWindup);
+                arm = Mathf.Lerp(0f, -curRaise, t);
+                twist = Mathf.Lerp(0f, -curTwist, t);
             }
             else if (active && now < throwEnd)
             {
-                float t = (now - windupEnd) / throwDuration;
-                arm = Mathf.Lerp(-armRaise, armFollowThrough, t);
+                float t = (now - windupEnd) / curSwing;
+                arm = Mathf.Lerp(-curRaise, curFollow, t);
+                twist = Mathf.Lerp(-curTwist, curTwist, t);
             }
             else if (active)
             {
-                // Throw finished: ease back from the follow-through.
+                // Strike finished: ease back from the follow-through.
                 active = false;
-                recoverFromArm = armFollowThrough;
-                recoverEndTime = now + recoverDuration;
-                arm = armFollowThrough;
+                recoverFromArm = curFollow;
+                recoverFromTwist = curTwist;
+                recoverEndTime = now + curRecover;
+                arm = curFollow;
+                twist = curTwist;
             }
             else if (now < recoverEndTime)
             {
-                float t = Mathf.SmoothStep(0f, 1f, 1f - (recoverEndTime - now) / recoverDuration);
+                float t = Mathf.SmoothStep(0f, 1f, 1f - (recoverEndTime - now) / curRecover);
                 arm = Mathf.Lerp(recoverFromArm, 0f, t);
+                twist = Mathf.Lerp(recoverFromTwist, 0f, t);
             }
             else
             {
@@ -183,14 +342,18 @@ namespace Anathema.Abilities.KhorneBerserker
                     posed = false;
                 }
                 lastArm = 0f;
+                lastTwist = 0f;
                 return;
             }
 
             lastArm = arm;
+            lastTwist = twist;
             posed = true;
 
             pose.Reset();
+            if (curTwist != 0f) pose.Rotate("Spine", Vector3.up, twist);
             pose.Rotate("UpperArm_R", transform.right, arm);
+            if (bothArms) pose.Rotate("UpperArm_L", transform.right, arm);
         }
     }
 }

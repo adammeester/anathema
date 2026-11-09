@@ -29,6 +29,9 @@ namespace Anathema.Player
             // Tuning values (health, speed, ability numbers) come from Resources/Stats/<Character>.json.
             CharacterStats.EnsureOn(gameObject);
 
+            // Between-round upgrades (only for characters that have an upgrade list).
+            Anathema.Upgrades.UpgradeState.EnsureOn(gameObject);
+
             // Scenes built before the walk cycle existed don't have it on the model; add it so they still animate.
             Transform model = transform.Find("Model");
             if (model != null && model.GetComponent<ProceduralWalk>() == null) model.gameObject.AddComponent<ProceduralWalk>();

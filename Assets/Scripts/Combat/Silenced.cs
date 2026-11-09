@@ -18,6 +18,7 @@ namespace Anathema.Combat
             }
 
             if (Enraged.IsEnraged(target)) return null;
+            duration *= Health.CrowdControlScaleOf(target);
 
             var silenced = target.GetComponent<Silenced>();
             if (silenced == null) silenced = target.AddComponent<Silenced>();

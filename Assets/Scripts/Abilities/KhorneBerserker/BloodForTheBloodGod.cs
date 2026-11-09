@@ -65,11 +65,14 @@ namespace Anathema.Abilities.KhorneBerserker
         protected override bool CooldownStartsOnStrike => true;
         public override bool RootsMovement => winding;
 
+        // Skullthrone's Favour makes the ultimate cheaper.
+        float Cost => energyCost * (Anathema.Upgrades.UpgradeState.Has(gameObject, BerserkerUpgrade.SkullthroneFavour) ? BerserkerUpgrade.SkullthroneCostScale : 1f);
+
         public override string DisplayName => "Blood God";
         public override string KeyLabel => "R";
 
         // The HUD greys the slot out until the bar is full.
-        public override bool Available => energy != null && energy.Current >= energyCost
+        public override bool Available => energy != null && energy.Current >= Cost
                                           && !Silenced.IsSilenced(gameObject) && !Stunned.IsStunned(gameObject)
                                           && !Panicked.IsPanicked(gameObject);
 
@@ -166,12 +169,12 @@ namespace Anathema.Abilities.KhorneBerserker
 
         protected override bool IsTriggered()
         {
-            return Input.GetKeyDown(KeyCode.R) && energy != null && energy.Current >= energyCost;
+            return Input.GetKeyDown(KeyCode.R) && energy != null && energy.Current >= Cost;
         }
 
         protected override void Activate()
         {
-            if (energy == null || !energy.TrySpend(energyCost))
+            if (energy == null || !energy.TrySpend(Cost))
             {
                 RefundCooldown();
                 return;
@@ -195,7 +198,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 recoverFromLean = lastLean;
                 recoverFromArms = lastArms;
                 recoverEndTime = Time.time + RecoverDuration;
-                if (energy != null) energy.Gain(energyCost);
+                if (energy != null) energy.Gain(Cost);
                 RefundCooldown();
             }
             else if (charging)

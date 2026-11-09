@@ -47,6 +47,33 @@ Uses the legacy Input Manager (`Input.GetAxis`), so keep Active Input Handling o
 Models are generated in Blender: `blender -b --python Art/khorne_berserker.py` writes `Assets/Models/KhorneBerserker.fbx`
 (add `-- --render DIR` for preview PNGs). Abilities live in `Scripts/Abilities/<Character>/`.
 
+## Between-round upgrades (Khorne Berserker first)
+
+After every round except the last, each player picks **one upgrade out of three** (click a card or press 1-3). Offers are one
+per category: **Armament** (weapon transformations), **Endurance** (defensive) and **Ferocity** (ability enhancements). Upgrades last
+the rest of the match and reset on a rematch. The next round starts as soon as everyone has chosen (never before the damage report has
+had 5s); anyone still undecided after 25s gets a random offer. Characters without an upgrade list skip the pick.
+
+Khorne Berserker:
+
+| | Dual chainaxes (default) | Heavy Chainaxe - The Reaver | Eviscerator - The Executioner |
+| --- | --- | --- | --- |
+| LMB | alternating chops | slow heavy sweep, greater reach, 150 degree arc | slow strike with a 0.55s wind-up, big single-target hit |
+| RMB | Axe Toss | Gorecleave: wide frontal sweep, knockback + bleed | Executioner's Descent: overhead blow, up to +100% damage on low-health targets |
+| Passive | Rage: consecutive hits stack attack speed (5 stacks, 3s window) | heavy hits inflict Bleed | attacks ignore 40% of armour and shields |
+
+Weapons are optional and exclusive: a Berserker who never takes one stays competitive. Other upgrades: Ablative Plating, Gorehound's Vigour,
+Blood-Fuelled Regeneration, Defiant Roar, Feel No Pain, Unstoppable (Endurance); Crimson Momentum, Gore Rush, Hamstring, Twin Axes,
+Vengeful Blood, Skullthrone's Favour, Berserker's Fury, Relentless Pursuit, Skulltaker (Ferocity).
+
+- Code: `Scripts/Upgrades` (`UpgradeDef`, `UpgradeCatalog`, `UpgradeState`, `UpgradePickerView`); the Berserker list and numbers are in
+  `Abilities/KhorneBerserker/BerserkerUpgrade.cs`, passives/effects in `BerserkerUpgradeEffects.cs`, `Combat/Rage.cs`. Weapon variants live inside
+  `AxeChop` (LMB) and `AxeToss` (RMB) so the HUD slots, network cues and prefabs are unchanged. Weapon tuning fields are also in `Resources/Stats/KhorneBerserker.json`.
+- Online, the owned-upgrade mask is a `NetPlayer` network variable, so replicas show the right weapon; damage is still resolved by the owner's machine.
+  `Health` gained armour, bonus max health and an armour-piercing flag on `TakeDamage`. Both machines must run the same build.
+- To add upgrades for another character: add a list like `BerserkerUpgrade.All` and register it in `UpgradeCatalog` (bit numbers are append-only).
+- Offline training ground has no rounds: in the editor / dev builds F6 / F7 equip the Heavy Chainaxe / Eviscerator and F8 clears them.
+
 ## Online (2-6 players)
 
 Menu flow: **Menu scene → Host / Join → character select → Versus scene** (best of 3 or 5 rounds, then Rematch or Main Menu).

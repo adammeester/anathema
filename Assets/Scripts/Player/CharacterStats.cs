@@ -36,15 +36,17 @@ namespace Anathema.Player
         }
 
         // Which character this is, judged by the abilities it carries. Null if unknown (e.g. a bare test player).
-        string Identify()
+        public static string Identify(GameObject player)
         {
-            if (GetComponent<BerserkerCounter>() != null) return "KhorneBerserker";
-            if (GetComponent<InterceptorCounter>() != null) return "GreyKnight";
-            if (GetComponent<PlagueSpit>() != null) return "PlagueSurgeon";
-            if (GetComponent<WarpBolt>() != null) return "Psyker";
-            if (GetComponent<GalvanicShot>() != null) return "SkitariiRanger";
+            if (player.GetComponent<BerserkerCounter>() != null) return "KhorneBerserker";
+            if (player.GetComponent<InterceptorCounter>() != null) return "GreyKnight";
+            if (player.GetComponent<PlagueSpit>() != null) return "PlagueSurgeon";
+            if (player.GetComponent<WarpBolt>() != null) return "Psyker";
+            if (player.GetComponent<GalvanicShot>() != null) return "SkitariiRanger";
             return null;
         }
+
+        string Identify() => Identify(gameObject);
 
         void Awake()
         {

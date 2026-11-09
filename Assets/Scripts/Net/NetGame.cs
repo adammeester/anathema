@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using Anathema.Arena;
 using Anathema.CameraRig;
 using Anathema.Combat;
+using Anathema.Upgrades;
 using Unity.Collections;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -35,6 +36,7 @@ namespace Anathema.Net
         }
         public const ushort DefaultPort = 7777;
         public const float RoundPause = 5f;   // countdown (with the damage report) between rounds
+        public const float UpgradeWindow = 25f; // longest the between-rounds pause waits for upgrade picks
         public const float RoundIntro = 1.8f; // how long the "ROUND N" banner shows when a round begins
 
         public enum Phase
@@ -86,7 +88,10 @@ namespace Anathema.Net
         int lastDeadTeam = -1;    // server: team of the most recent death this round (wins a round everyone dies in)
         int bestOf = 3;           // 3 or 5; chosen by the host in the lobby
         float nextRoundTime;      // server: when the next round starts
-        float countdownEnd;       // both sides: when the between-rounds countdown reaches zero
+        float countdownEnd;       // both sides: when the between-rounds countdown reaches zero (the pick deadline)
+        float earliestNextRound;  // both sides: the next round never starts before this (the damage report needs time to read)
+        int roundsCompleted;      // rounds finished this match; upgrade picks are numbered by it
+        readonly UpgradePickerView upgradePicker = new UpgradePickerView();
         float introUntil;         // when the "ROUND N" banner stops showing
         bool frozen;
 
@@ -598,7 +603,13 @@ namespace Anathema.Net
                 introUntil = Time.time + RoundIntro;
             }
 
-            if (manager.IsServer && phase == Phase.RoundEnd && Time.time >= nextRoundTime)
+            if (phase == Phase.RoundEnd && NetPlayer.Local != null)
+                upgradePicker.HandleKeys(NetPlayer.Local.GetComponent<UpgradeState>());
+
+            // The next round starts once everyone has chosen their upgrade (and the report has been up long enough),
+            // or when the pick window runs out.
+            if (manager.IsServer && phase == Phase.RoundEnd
+                && ((AllUpgradesSettled() && Time.time >= earliestNextRound) || Time.time >= nextRoundTime))
                 StartNextRound();
 
             UpdateSpectate();
@@ -679,6 +690,7 @@ namespace Anathema.Net
 
             winnerTeam = -1;
             lastDeadTeam = -1;
+            roundsCompleted = 0;
             frozen = false;
             phase = Phase.Playing;
             introUntil = Time.time + RoundIntro;
@@ -719,6 +731,14 @@ namespace Anathema.Net
             toCentre.y = 0f;
             rotation = toCentre.sqrMagnitude > 0.01f ? Quaternion.LookRotation(toCentre.normalized, Vector3.up) : Quaternion.identity;
             return position;
+        }
+
+        // Everyone has finished choosing (characters with no upgrades settle immediately).
+        bool AllUpgradesSettled()
+        {
+            foreach (NetPlayer p in NetPlayer.All)
+                if (p != null && p.UpgradeRound < roundsCompleted) return false;
+            return true;
         }
 
         public void ServerOnDeath(NetPlayer victim)
@@ -768,7 +788,7 @@ namespace Anathema.Net
             frozen = true;
             winnerTeam = winner;
 
-            using var writer = new FastBufferWriter(8, Allocator.Temp);
+            using var writer = new FastBufferWriter(16, Allocator.Temp);
             writer.WriteValueSafe(winnerTeam);
 
             if (wins >= RoundsToWin)
@@ -778,10 +798,14 @@ namespace Anathema.Net
             }
             else
             {
+                roundsCompleted++;
+                writer.WriteValueSafe(roundsCompleted);
                 phase = Phase.RoundEnd;
-                nextRoundTime = Time.time + RoundPause;
+                earliestNextRound = Time.time + RoundPause;
+                nextRoundTime = Time.time + UpgradeWindow;
                 countdownEnd = nextRoundTime;
                 manager.CustomMessagingManager.SendNamedMessageToAll("roundEnd", writer);
+                if (NetPlayer.Local != null) NetPlayer.Local.OnRoundEnded(roundsCompleted);
             }
         }
 
@@ -789,9 +813,12 @@ namespace Anathema.Net
         {
             if (manager.IsServer) return;
             reader.ReadValueSafe(out winnerTeam);
+            reader.ReadValueSafe(out roundsCompleted);
             phase = Phase.RoundEnd;
-            countdownEnd = Time.time + RoundPause;
+            earliestNextRound = Time.time + RoundPause;
+            countdownEnd = Time.time + UpgradeWindow;
             frozen = true;
+            if (NetPlayer.Local != null) NetPlayer.Local.OnRoundEnded(roundsCompleted);
         }
 
         void OnOverMessage(ulong sender, FastBufferReader reader)
@@ -823,6 +850,8 @@ namespace Anathema.Net
             if (!manager.IsServer) return;
 
             foreach (NetPlayer player in NetPlayer.All) player.ServerResetKills();
+            roundsCompleted = 0;
+            if (NetPlayer.Local != null) NetPlayer.Local.ResetUpgrades(); // a rematch starts from scratch
             using var writer = new FastBufferWriter(8, Allocator.Temp);
             writer.WriteValueSafe(true);
             manager.CustomMessagingManager.SendNamedMessageToAll("rematch", writer);
@@ -832,6 +861,8 @@ namespace Anathema.Net
         void OnRematchMessage(ulong sender, FastBufferReader reader)
         {
             if (manager.IsServer) return;
+            roundsCompleted = 0;
+            if (NetPlayer.Local != null) NetPlayer.Local.ResetUpgrades();
             ApplyRoundReset();
         }
 
@@ -1373,10 +1404,25 @@ namespace Anathema.Net
                 GUI.Label(new Rect(0, top + 110, w, 60), $"{scoreLine}      ·      BEST OF {bestOf}", new GUIStyle(headline) { fontSize = 40 });
                 GUI.Label(new Rect(0, top + 162, w, 34), $"First to {RoundsToWin} rounds wins the match", subtitle);
 
+                // Upgrade pick: three cards over everything else until the player has chosen.
+                UpgradeState picking = NetPlayer.Local != null ? NetPlayer.Local.GetComponent<UpgradeState>() : null;
+                if (picking != null && picking.Pending)
+                {
+                    upgradePicker.Draw(w, h, picking, won, countdownEnd - Time.time);
+                    return;
+                }
+
                 DrawDamageReport(w, top + 220);
 
-                int seconds = Mathf.Max(1, Mathf.CeilToInt(countdownEnd - Time.time));
-                GUI.Label(new Rect(0, h - 190, w, 40), "NEXT ROUND IN", subtitle);
+                if (picking != null && picking.Mask != 0)
+                    GUI.Label(new Rect(w * 0.5f - 700f, h - 250, 1400f, 50f), "UPGRADES:  " + UpgradePickerView.OwnedSummary(picking),
+                        new GUIStyle(labelCentered) { fontSize = 22 });
+
+                // Once everyone has chosen the next round follows after the report; until then it waits (up to the pick window).
+                bool settled = AllUpgradesSettled();
+                float countdownTarget = settled ? Mathf.Min(countdownEnd, earliestNextRound) : countdownEnd;
+                int seconds = Mathf.Max(1, Mathf.CeilToInt(countdownTarget - Time.time));
+                GUI.Label(new Rect(0, h - 190, w, 40), settled ? "NEXT ROUND IN" : "WAITING FOR UPGRADES", subtitle);
                 GUI.Label(new Rect(0, h - 150, w, 120), seconds.ToString(), new GUIStyle(title) { fontSize = 110 });
                 return;
             }

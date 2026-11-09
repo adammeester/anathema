@@ -38,9 +38,13 @@ namespace Anathema.Abilities
         // True while this ability holds the character in place (PlayerMovement stops walking; gravity still applies).
         public virtual bool RootsMovement => false;
 
+        // Upgrades shorten (or lengthen) this ability's cooldown by setting this; 1 = as authored.
+        public float CooldownScale { get; set; } = 1f;
+        float EffectiveCooldown => cooldown * CooldownScale;
+
         public float CooldownRemaining => IsCasting ? 0f : Mathf.Max(0f, nextUseTime - Time.time);
         // 1 = just used, 0 = ready.
-        public float CooldownNormalized => cooldown > 0f ? Mathf.Clamp01(CooldownRemaining / cooldown) : 0f;
+        public float CooldownNormalized => EffectiveCooldown > 0f ? Mathf.Clamp01(CooldownRemaining / EffectiveCooldown) : 0f;
 
         protected virtual void Awake()
         {
@@ -229,7 +233,7 @@ namespace Anathema.Abilities
 
             // Wind-up abilities hold the cooldown back until their effect lands (they call StartCooldown()).
             float cooldownScale = ScalesWithAttackSpeed ? Enraged.AttackSpeedMultiplier(gameObject) : 1f;
-            nextUseTime = CooldownStartsOnStrike ? float.PositiveInfinity : Time.time + cooldown / cooldownScale;
+            nextUseTime = CooldownStartsOnStrike ? float.PositiveInfinity : Time.time + EffectiveCooldown / cooldownScale;
             ExActivation = false;
             BeginCast();
 
@@ -258,7 +262,7 @@ namespace Anathema.Abilities
 
         protected void StartCooldown()
         {
-            nextUseTime = Time.time + cooldown;
+            nextUseTime = Time.time + EffectiveCooldown;
         }
 
         // Call from Cancel() when the ability is stopped before its effect lands (e.g. during a wind-up):

@@ -37,6 +37,39 @@ namespace Anathema.Combat
         public float RoundHealed { get; private set; }
         public bool IsDead => Current <= 0f;
 
+        // Armour from Endurance upgrades: the fraction of every hit (damage over time included) that is shrugged off.
+        // Attacks with `pierce` ignore that share of it. Capped so nothing becomes immune.
+        public const float MaxArmor = 0.6f;
+        float armor;
+        public float Armor
+        {
+            get => armor;
+            set => armor = Mathf.Clamp(value, 0f, MaxArmor);
+        }
+
+        // Crowd control (stun, silence, root, panic, maim, slow) lasts this much as long on this character (Unstoppable).
+        public float CrowdControlScale { get; set; } = 1f;
+
+        public static float CrowdControlScaleOf(GameObject target)
+        {
+            return target != null && target.TryGetComponent(out Health h) ? h.CrowdControlScale : 1f;
+        }
+
+        // A short burst of extra armour (Feel No Pain), on top of the permanent kind.
+        float tempArmor;
+        float tempArmorEnd;
+
+        public void GrantTemporaryArmor(float fraction, float seconds)
+        {
+            tempArmor = Mathf.Max(Time.time < tempArmorEnd ? tempArmor : 0f, fraction);
+            tempArmorEnd = Mathf.Max(tempArmorEnd, Time.time + seconds);
+        }
+
+        public float EffectiveArmor => Mathf.Min(MaxArmor, armor + (Time.time < tempArmorEnd ? tempArmor : 0f));
+
+        // Extra maximum health from upgrades. Set absolutely (not added), so re-applying it is harmless.
+        float bonusMaxHealth;
+
         // Online play: the owning machine is authoritative for this character. Everywhere else it is a "replica":
         // it follows synced state and only replays the owner's ability visuals (no damage, no input).
         public NetPlayer Net => net;
@@ -85,8 +118,20 @@ namespace Anathema.Combat
             Recoverable = Mathf.Max(0f, Recoverable - recoverableDecayRate * Time.deltaTime);
         }
 
+        public void SetBonusMaxHealth(float bonus)
+        {
+            float delta = bonus - bonusMaxHealth;
+            if (Mathf.Approximately(delta, 0f)) return;
+
+            bonusMaxHealth = bonus;
+            maxHealth += delta;
+            // Gaining max health also grants that much current health; a fighter who is down stays down.
+            if (!IsDead) Current = Mathf.Clamp(Current + delta, 1f, maxHealth);
+        }
+
         // Entry point for everything that hurts a character. Online it decides where the damage is actually applied.
-        public bool TakeDamage(float amount, GameObject source, bool aoe = false)
+        // `pierce` (0-1) is the share of the victim's armour and shields this hit ignores.
+        public bool TakeDamage(float amount, GameObject source, bool aoe = false, float pierce = 0f)
         {
             if (IsDead || amount <= 0f) return false;
 
@@ -99,26 +144,32 @@ namespace Anathema.Combat
                 {
                     // Environmental damage (gas) is applied by the victim's own machine, so ignore it here.
                     if (source != null && !source.TryGetComponent(out NetPlayer _)) return false;
-                    net.SendDamage(amount, source, aoe);
+                    net.SendDamage(amount, source, aoe, pierce);
                     return true;
                 }
             }
 
-            return ApplyDamageLocal(amount, source, aoe);
+            return ApplyDamageLocal(amount, source, aoe, pierce);
         }
 
         // Applies damage to this machine's copy (counters and other modifiers run here).
-        public bool ApplyDamageLocal(float amount, GameObject source, bool aoe = false)
+        public bool ApplyDamageLocal(float amount, GameObject source, bool aoe = false, float pierce = 0f)
         {
             if (IsDead || Invulnerable || amount <= 0f) return false;
 
             if (!aoe && DamageModifier != null) amount = DamageModifier(amount, source);
             if (amount <= 0f) return false;
 
+            pierce = Mathf.Clamp01(pierce);
+            float armour = EffectiveArmor;
+            if (armour > 0f) amount *= 1f - armour * (1f - pierce);
+
             // A fully absorbed hit still counts as landing (the attacker gets their energy) but doesn't touch health.
+            // The pierced share of the hit goes straight past the shield.
             if (Absorber != null)
             {
-                amount = Absorber(amount, source);
+                float bypass = amount * pierce;
+                amount = Absorber(amount - bypass, source) + bypass;
                 if (amount <= 0f) return true;
             }
 

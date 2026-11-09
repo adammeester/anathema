@@ -26,6 +26,7 @@ namespace Anathema.Combat
             }
 
             if (Enraged.IsEnraged(target)) return null;
+            duration *= Health.CrowdControlScaleOf(target);
 
             var rooted = target.GetComponent<Rooted>();
             if (rooted == null) rooted = target.AddComponent<Rooted>();

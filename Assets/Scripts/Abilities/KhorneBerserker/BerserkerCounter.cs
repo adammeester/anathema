@@ -1,5 +1,6 @@
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Combat;
+using Anathema.Upgrades;
 using UnityEngine;
 
 namespace Anathema.Abilities.KhorneBerserker
@@ -31,7 +32,7 @@ namespace Anathema.Abilities.KhorneBerserker
 
             if (attacker == null) return;
             Health target = attacker.GetComponentInParent<Health>();
-            if (target != null && target.Team != Health.Team && target.TakeDamage(retaliationDamage, gameObject))
+            if (target != null && target.Team != Health.Team && target.TakeDamage(retaliationDamage * (UpgradeState.Has(gameObject, BerserkerUpgrade.VengefulBlood) ? BerserkerUpgrade.VengefulRetaliationScale : 1f), gameObject))
             {
                 Energy energy = GetComponent<Energy>();
                 if (energy != null) energy.Gain(energyPerHit);
