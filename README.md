@@ -81,7 +81,9 @@ Vengeful Blood, Skullthrone's Favour, Berserker's Fury, Relentless Pursuit, Skul
 - **Testing offline (editor / dev builds):** build the training arena with **Anathema > Rebuild Arena Scene (Khorne Berserker)**, press Play, and press
   **F1** for the upgrade test panel: click any upgrade to toggle it, **Roll 3 offers** runs the real picker (click or 1-3), **Clear all** resets.
   Hit the dummies to try weapons, Rage (shown above the ability bar), bleed, armour, etc. F6 / F7 equip the Heavy Chainaxe / Eviscerator, F8 clears.
-  The prep area, lock-in and network sync need a real online match (host + join `127.0.0.1`, see Online).
+  **F2** (or the panel's button) restarts the "round" into the **prep phase** right in the training arena: you're put back at your spawn inside the
+  barrier ring (can't leave it or fight), the three-card menu opens, and after you pick a 3s countdown drops the barrier. Upgrades picked this way persist, like in a match.
+  The network sync and the multi-player lock-in need a real online match (host + join `127.0.0.1`, see Online).
 
 ## Online (2-6 players)
 

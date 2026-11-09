@@ -80,7 +80,7 @@ namespace Anathema.Net
         public static bool Online => Instance != null && Instance.manager != null && Instance.manager.IsListening;
         public static bool Frozen => Instance != null && Instance.frozen;
         // The between-rounds prep area: movement is allowed (inside PrepRadius), fighting is not.
-        public static bool InPrep => Instance != null && Instance.phase == Phase.Prep;
+        public static bool InPrep => (Instance != null && Instance.phase == Phase.Prep) || OfflinePrep.Active;
         public static bool IsHost => Online && Instance.manager.IsServer;
 
         static string pendingNotice = "";

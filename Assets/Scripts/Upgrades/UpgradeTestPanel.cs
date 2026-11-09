@@ -26,7 +26,8 @@ namespace Anathema.Upgrades
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.F1)) open = !open;
-            picker.HandleKeys(state);
+            if (Input.GetKeyDown(KeyCode.F2)) Anathema.Net.OfflinePrep.Begin(gameObject);
+            if (!Anathema.Net.OfflinePrep.Active) picker.HandleKeys(state);
         }
 
         void Build()
@@ -56,6 +57,13 @@ namespace Anathema.Upgrades
             GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1f));
             float w = Screen.width / scale, h = 1080f;
 
+            // The offline prep phase draws its own screens (including the picker).
+            if (Anathema.Net.OfflinePrep.Active)
+            {
+                GUI.matrix = Matrix4x4.identity;
+                return;
+            }
+
             if (state.Pending)
             {
                 // A rolled pick: the real picker (round numbers are just a running count here).
@@ -66,7 +74,7 @@ namespace Anathema.Upgrades
 
             if (!open)
             {
-                GUI.Label(new Rect(20, 16, 420, 26), "F1: upgrade test panel", hint);
+                GUI.Label(new Rect(20, 16, 520, 26), "F1: upgrade test panel   F2: restart round into prep", hint);
                 GUI.matrix = Matrix4x4.identity;
                 return;
             }
@@ -79,7 +87,7 @@ namespace Anathema.Upgrades
             }
 
             const float rowH = 30f;
-            var panel = new Rect(20, 16, 470, 150 + all.Length * (rowH + 4f) + 60f);
+            var panel = new Rect(20, 16, 470, 200 + all.Length * (rowH + 4f) + 60f);
             Color old = GUI.color;
             GUI.color = new Color(0f, 0f, 0f, 0.8f);
             GUI.DrawTexture(panel, pixel);
@@ -90,6 +98,9 @@ namespace Anathema.Upgrades
                 "Click to toggle an upgrade, then hit the dummies. Weapons replace each other. The cards use the real picker.", hint);
 
             float y = panel.y + 96;
+            if (GUI.Button(new Rect(panel.x + 14, y, panel.width - 28, 36), "Restart round into PREP  (F2)", button))
+                Anathema.Net.OfflinePrep.Begin(gameObject);
+            y += 42;
             if (GUI.Button(new Rect(panel.x + 14, y, 222, 34), "Roll 3 offers", button)) state.DebugRoll();
             if (GUI.Button(new Rect(panel.x + 248, y, 208, 34), "Clear all", button)) state.ResetAll();
             y += 46;
