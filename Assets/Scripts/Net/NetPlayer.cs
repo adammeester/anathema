@@ -271,7 +271,6 @@ namespace Anathema.Net
         public void ResetForRematch()
         {
             if (!IsOwner) return;
-            SettleUpgradePick();
             if (abilities != null) foreach (Ability a in abilities) a.ReplayCancel();
             if (respawner != null) respawner.ResetNow();
             if (energy != null) energy.Clear();

@@ -45,7 +45,7 @@ namespace Anathema.Arena
         void Update()
         {
             if (NetGame.Online && (!NetGame.IsHost || NetPlayer.All.Count < 2)) return;
-            if (NetGame.Frozen || Time.time < nextSpawn) return;
+            if (NetGame.Frozen || NetGame.InPrep || Time.time < nextSpawn) return;
 
             nextSpawn = Time.time + interval;
             SpawnLine(LineDirections[nextLine]);

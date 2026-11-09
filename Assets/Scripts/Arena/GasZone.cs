@@ -62,6 +62,9 @@ namespace Anathema.Arena
         {
             if (Input.GetKeyDown(KeyCode.T) && !Anathema.Net.NetGame.Online) Restart();
 
+            // The prep area between rounds: the gas waits for the round to begin.
+            if (Anathema.Net.NetGame.InPrep) return;
+
             UpdateRadius();
             ApplyVisuals();
 

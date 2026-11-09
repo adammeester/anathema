@@ -75,6 +75,15 @@ namespace Anathema.Player
             if (!guarding && Panicked.TryGetFleeDirection(gameObject, out Vector3 flee)) velocity = flee * speed;
             velocity.y = verticalVelocity;
             controller.Move(velocity * Time.deltaTime);
+
+            // Prep area between rounds: you can walk about, but not out of your spawn zone.
+            if (Anathema.Net.NetGame.InPrep && TryGetComponent(out Respawner spawn))
+            {
+                Vector3 offset = transform.position - spawn.SpawnPosition;
+                offset.y = 0f;
+                float limit = Anathema.Net.NetGame.PrepRadius;
+                if (offset.magnitude > limit) controller.Move(-offset.normalized * (offset.magnitude - limit));
+            }
         }
     }
 }

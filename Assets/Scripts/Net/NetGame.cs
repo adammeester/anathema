@@ -36,7 +36,12 @@ namespace Anathema.Net
         }
         public const ushort DefaultPort = 7777;
         public const float RoundPause = 5f;   // countdown (with the damage report) between rounds
-        public const float UpgradeWindow = 25f; // longest the between-rounds pause waits for upgrade picks
+        // Between rounds: the report (RoundPause), then a prep phase where everyone is back at their spawn, confined to
+        // PrepRadius, unable to fight, picking an upgrade; then a short lock-in countdown before the round begins.
+        public const float PrepMin = 3f;        // the prep menu never closes sooner than this
+        public const float PrepWindow = 20f;    // longest it waits for slow pickers (then a random upgrade is taken)
+        public const float PrepCountdown = 3f;  // picks are locked and the barrier drops after this
+        public const float PrepRadius = 7f;
         public const float RoundIntro = 1.8f; // how long the "ROUND N" banner shows when a round begins
 
         public enum Phase
@@ -47,6 +52,7 @@ namespace Anathema.Net
             Loading,
             Playing,
             RoundEnd,
+            Prep,
             Over
         }
 
@@ -73,6 +79,8 @@ namespace Anathema.Net
         public static NetGame Instance { get; private set; }
         public static bool Online => Instance != null && Instance.manager != null && Instance.manager.IsListening;
         public static bool Frozen => Instance != null && Instance.frozen;
+        // The between-rounds prep area: movement is allowed (inside PrepRadius), fighting is not.
+        public static bool InPrep => Instance != null && Instance.phase == Phase.Prep;
         public static bool IsHost => Online && Instance.manager.IsServer;
 
         static string pendingNotice = "";
@@ -89,7 +97,9 @@ namespace Anathema.Net
         int bestOf = 3;           // 3 or 5; chosen by the host in the lobby
         float nextRoundTime;      // server: when the next round starts
         float countdownEnd;       // both sides: when the between-rounds countdown reaches zero (the pick deadline)
-        float earliestNextRound;  // both sides: the next round never starts before this (the damage report needs time to read)
+        float earliestNextRound;  // both sides: the prep menu stays open at least until this
+        bool prepLocked;          // both sides: picks are locked in and the round-start countdown is running
+        float prepGoTime;         // both sides: when the locked countdown ends
         int roundsCompleted;      // rounds finished this match; upgrade picks are numbered by it
         readonly UpgradePickerView upgradePicker = new UpgradePickerView();
         float introUntil;         // when the "ROUND N" banner stops showing
@@ -290,6 +300,8 @@ namespace Anathema.Net
             msg.RegisterNamedMessageHandler("team", OnTeamMessage);
             msg.RegisterNamedMessageHandler("lobby", OnLobbyMessage);
             msg.RegisterNamedMessageHandler("roundEnd", OnRoundEndMessage);
+            msg.RegisterNamedMessageHandler("prep", OnPrepMessage);
+            msg.RegisterNamedMessageHandler("prepLock", OnPrepLockMessage);
             msg.RegisterNamedMessageHandler("nextRound", OnNextRoundMessage);
             msg.RegisterNamedMessageHandler("over", OnOverMessage);
             msg.RegisterNamedMessageHandler("rematch", OnRematchMessage);
@@ -603,14 +615,24 @@ namespace Anathema.Net
                 introUntil = Time.time + RoundIntro;
             }
 
-            if (phase == Phase.RoundEnd && NetPlayer.Local != null)
+            if (phase == Phase.Prep && !prepLocked && NetPlayer.Local != null)
                 upgradePicker.HandleKeys(NetPlayer.Local.GetComponent<UpgradeState>());
 
-            // The next round starts once everyone has chosen their upgrade (and the report has been up long enough),
-            // or when the pick window runs out.
-            if (manager.IsServer && phase == Phase.RoundEnd
-                && ((AllUpgradesSettled() && Time.time >= earliestNextRound) || Time.time >= nextRoundTime))
-                StartNextRound();
+            if (manager.IsServer)
+            {
+                // Report -> prep area.
+                if (phase == Phase.RoundEnd && Time.time >= nextRoundTime) StartPrep();
+
+                // Prep: lock in once everyone has chosen (and the menu has been up a moment) or the window runs out,
+                // then count down and start the round.
+                if (phase == Phase.Prep)
+                {
+                    if (!prepLocked && ((AllUpgradesSettled() && Time.time >= earliestNextRound) || Time.time >= countdownEnd))
+                        ServerLockPrep();
+                    else if (prepLocked && Time.time >= prepGoTime)
+                        StartNextRound();
+                }
+            }
 
             UpdateSpectate();
 
@@ -631,7 +653,7 @@ namespace Anathema.Net
         void UpdateSpectate()
         {
             NetPlayer me = NetPlayer.Local;
-            bool inMatch = phase == Phase.Playing || phase == Phase.RoundEnd || phase == Phase.Over;
+            bool inMatch = phase == Phase.Playing || phase == Phase.RoundEnd || phase == Phase.Over; // prep: everyone is back up
             bool down = inMatch && me != null && me.Health.IsDead;
 
             if (spectateCamera == null) spectateCamera = FindFirstObjectByType<TopDownCamera>();
@@ -801,8 +823,7 @@ namespace Anathema.Net
                 roundsCompleted++;
                 writer.WriteValueSafe(roundsCompleted);
                 phase = Phase.RoundEnd;
-                earliestNextRound = Time.time + RoundPause;
-                nextRoundTime = Time.time + UpgradeWindow;
+                nextRoundTime = Time.time + RoundPause;
                 countdownEnd = nextRoundTime;
                 manager.CustomMessagingManager.SendNamedMessageToAll("roundEnd", writer);
                 if (NetPlayer.Local != null) NetPlayer.Local.OnRoundEnded(roundsCompleted);
@@ -815,8 +836,7 @@ namespace Anathema.Net
             reader.ReadValueSafe(out winnerTeam);
             reader.ReadValueSafe(out roundsCompleted);
             phase = Phase.RoundEnd;
-            earliestNextRound = Time.time + RoundPause;
-            countdownEnd = Time.time + UpgradeWindow;
+            countdownEnd = Time.time + RoundPause;
             frozen = true;
             if (NetPlayer.Local != null) NetPlayer.Local.OnRoundEnded(roundsCompleted);
         }
@@ -828,6 +848,74 @@ namespace Anathema.Net
             phase = Phase.Over;
             frozen = true;
         }
+
+        // ---- Prep area ---------------------------------------------------------------------------------------------
+
+        void StartPrep()
+        {
+            if (!manager.IsServer) return;
+
+            using var writer = new FastBufferWriter(8, Allocator.Temp);
+            writer.WriteValueSafe(true);
+            manager.CustomMessagingManager.SendNamedMessageToAll("prep", writer);
+            BeginPrep();
+        }
+
+        void OnPrepMessage(ulong sender, FastBufferReader reader)
+        {
+            if (manager.IsServer) return;
+            BeginPrep();
+        }
+
+        // Everyone back at their spawn at full health, free to walk inside the prep ring but not to fight; upgrade menu open.
+        void BeginPrep()
+        {
+            phase = Phase.Prep;
+            frozen = false;
+            prepLocked = false;
+            earliestNextRound = Time.time + PrepMin;
+            countdownEnd = Time.time + PrepWindow;
+
+            if (NetPlayer.Local != null)
+            {
+                NetPlayer.Local.ResetForRematch();
+                NetPlayer.Local.Health.Invulnerable = true; // nothing (gas, leftover bleeds) can hurt anyone in prep
+                var respawner = NetPlayer.Local.GetComponent<Respawner>();
+                if (respawner != null)
+                {
+                    if (prepArea != null) Destroy(prepArea.gameObject);
+                    prepArea = PrepArea.Show(respawner.SpawnPosition);
+                }
+            }
+
+            GasZone gas = FindFirstObjectByType<GasZone>();
+            if (gas != null) gas.Restart();
+            HealingOrb.ClearAll();
+        }
+
+        void ServerLockPrep()
+        {
+            using var writer = new FastBufferWriter(8, Allocator.Temp);
+            writer.WriteValueSafe(true);
+            manager.CustomMessagingManager.SendNamedMessageToAll("prepLock", writer);
+            LockPrep();
+        }
+
+        void OnPrepLockMessage(ulong sender, FastBufferReader reader)
+        {
+            if (manager.IsServer) return;
+            LockPrep();
+        }
+
+        // Picks are final (anyone undecided gets a random one) and the round-start countdown runs.
+        void LockPrep()
+        {
+            prepLocked = true;
+            prepGoTime = Time.time + PrepCountdown;
+            if (NetPlayer.Local != null) NetPlayer.Local.SettleUpgradePick();
+        }
+
+        PrepArea prepArea;
 
         void StartNextRound()
         {
@@ -872,9 +960,16 @@ namespace Anathema.Net
             winnerTeam = -1;
             lastDeadTeam = -1;
             frozen = false;
+            prepLocked = false;
             phase = Phase.Playing;
             introUntil = Time.time + RoundIntro;
-            if (NetPlayer.Local != null) NetPlayer.Local.ResetForRematch();
+            if (prepArea != null) Destroy(prepArea.gameObject);
+            if (NetPlayer.Local != null)
+            {
+                NetPlayer.Local.SettleUpgradePick();
+                NetPlayer.Local.Health.Invulnerable = false;
+                NetPlayer.Local.ResetForRematch();
+            }
             if (manager.IsServer) foreach (NetPlayer player in NetPlayer.All) player.ServerResetRoundStats();
             GasZone gas = FindFirstObjectByType<GasZone>();
             if (gas != null) gas.Restart();
@@ -966,6 +1061,7 @@ namespace Anathema.Net
                 case Phase.Loading: DrawBackdrop(w, h); GUI.Label(new Rect(0, h * 0.45f, w, 80), "ENTERING THE ARENA...", headline); break;
                 case Phase.Playing:
                 case Phase.RoundEnd:
+                case Phase.Prep:
                 case Phase.Over: DrawMatch(w, h); break;
             }
 
@@ -1345,7 +1441,7 @@ namespace Anathema.Net
             int totalRounds = 0;
             foreach (int score in teamScores.Values) totalRounds += score;
 
-            int roundNumber = totalRounds + (phase == Phase.Playing ? 1 : 0);
+            int roundNumber = totalRounds + (phase == Phase.Playing || phase == Phase.Prep ? 1 : 0);
             Color green = new Color(0.4f, 1f, 0.5f), red = new Color(1f, 0.4f, 0.35f);
             string scoreLine = string.Join("  -  ", order.ConvertAll(t => teamScores[t].ToString()));
 
@@ -1367,7 +1463,7 @@ namespace Anathema.Net
             GUI.Label(new Rect(scoreBox.center.x - 80, scoreBox.y + 6, 160, 30), $"ROUND {roundNumber}", new GUIStyle(labelCentered) { fontSize = 22, fontStyle = FontStyle.Bold });
             GUI.Label(new Rect(scoreBox.center.x - 80, scoreBox.y + 36, 160, 30), $"BEST OF {bestOf}", new GUIStyle(labelCentered) { fontSize = 20 });
 
-            if (phase == Phase.Playing || phase == Phase.RoundEnd)
+            if (phase == Phase.Playing || phase == Phase.RoundEnd || phase == Phase.Prep)
                 if (GUI.Button(new Rect(w - 190, 18, 160, 52), "LEAVE", button)) LeaveToMenu("");
 
             bool won = myTeam >= 0 && myTeam == winnerTeam;
@@ -1404,26 +1500,17 @@ namespace Anathema.Net
                 GUI.Label(new Rect(0, top + 110, w, 60), $"{scoreLine}      ·      BEST OF {bestOf}", new GUIStyle(headline) { fontSize = 40 });
                 GUI.Label(new Rect(0, top + 162, w, 34), $"First to {RoundsToWin} rounds wins the match", subtitle);
 
-                // Upgrade pick: three cards over everything else until the player has chosen.
-                UpgradeState picking = NetPlayer.Local != null ? NetPlayer.Local.GetComponent<UpgradeState>() : null;
-                if (picking != null && picking.Pending)
-                {
-                    upgradePicker.Draw(w, h, picking, won, countdownEnd - Time.time);
-                    return;
-                }
-
                 DrawDamageReport(w, top + 220);
 
-                if (picking != null && picking.Mask != 0)
-                    GUI.Label(new Rect(w * 0.5f - 700f, h - 250, 1400f, 50f), "UPGRADES:  " + UpgradePickerView.OwnedSummary(picking),
-                        new GUIStyle(labelCentered) { fontSize = 22 });
-
-                // Once everyone has chosen the next round follows after the report; until then it waits (up to the pick window).
-                bool settled = AllUpgradesSettled();
-                float countdownTarget = settled ? Mathf.Min(countdownEnd, earliestNextRound) : countdownEnd;
-                int seconds = Mathf.Max(1, Mathf.CeilToInt(countdownTarget - Time.time));
-                GUI.Label(new Rect(0, h - 190, w, 40), settled ? "NEXT ROUND IN" : "WAITING FOR UPGRADES", subtitle);
+                int seconds = Mathf.Max(1, Mathf.CeilToInt(countdownEnd - Time.time));
+                GUI.Label(new Rect(0, h - 190, w, 40), "PREPARATION IN", subtitle);
                 GUI.Label(new Rect(0, h - 150, w, 120), seconds.ToString(), new GUIStyle(title) { fontSize = 110 });
+                return;
+            }
+
+            if (phase == Phase.Prep)
+            {
+                DrawPrep(w, h, roundNumber, scoreLine);
                 return;
             }
 
@@ -1447,6 +1534,39 @@ namespace Anathema.Net
                 GUI.Label(new Rect(0, 820, w, 50), "Waiting for the host to start a rematch...", labelCentered);
             }
             if (GUI.Button(new Rect(bx, 900, 460, 70), "MAIN MENU", button)) LeaveToMenu("");
+        }
+
+        // The prep area screen: the upgrade menu, then "waiting", then the round-start countdown.
+        void DrawPrep(float w, float h, int roundNumber, string scoreLine)
+        {
+            UpgradeState mine = NetPlayer.Local != null ? NetPlayer.Local.GetComponent<UpgradeState>() : null;
+
+            if (prepLocked)
+            {
+                int go = Mathf.Max(1, Mathf.CeilToInt(prepGoTime - Time.time));
+                Rect(new Rect(0, h * 0.30f, w, 330), new Color(0f, 0f, 0f, 0.55f));
+                GUI.Label(new Rect(0, h * 0.30f + 6, w, 50), $"ROUND {roundNumber} BEGINS IN", subtitle);
+                GUI.Label(new Rect(0, h * 0.30f + 50, w, 200), go.ToString(), new GUIStyle(title) { fontSize = 170 });
+                if (mine != null && mine.Mask != 0)
+                    GUI.Label(new Rect(0, h * 0.30f + 262, w, 50), UpgradePickerView.OwnedSummary(mine), new GUIStyle(labelCentered) { fontSize = 22 });
+                return;
+            }
+
+            if (mine != null && mine.Pending)
+            {
+                upgradePicker.Draw(w, h, mine, roundNumber, countdownEnd - Time.time);
+                return;
+            }
+
+            // Chosen (or nothing to choose): wait for everyone else.
+            Rect(new Rect(0, h * 0.14f, w, 190), new Color(0f, 0f, 0f, 0.55f));
+            GUI.Label(new Rect(0, h * 0.14f + 8, w, 90), $"PREPARE FOR ROUND {roundNumber}", new GUIStyle(headline) { fontSize = 64 });
+            GUI.Label(new Rect(0, h * 0.14f + 100, w, 40), $"{scoreLine}      ·      BEST OF {bestOf}", subtitle);
+            GUI.Label(new Rect(0, h * 0.14f + 140, w, 40),
+                AllUpgradesSettled() ? "Ready" : "Waiting for the other players to choose...", subtitle);
+            if (mine != null && mine.Mask != 0)
+                GUI.Label(new Rect(w * 0.5f - 700f, h - 250, 1400f, 50f), "UPGRADES:  " + UpgradePickerView.OwnedSummary(mine),
+                    new GUIStyle(labelCentered) { fontSize = 22 });
         }
 
         // Post-round damage report: one row per fighter (you first, then allies, then enemies), so it scales to 2v2 / 3v3.

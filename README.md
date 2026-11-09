@@ -49,10 +49,16 @@ Models are generated in Blender: `blender -b --python Art/khorne_berserker.py` w
 
 ## Between-round upgrades (Khorne Berserker first)
 
-After every round except the last, each player picks **one upgrade out of three** (click a card or press 1-3). Offers are one
-per category: **Armament** (weapon transformations), **Endurance** (defensive) and **Ferocity** (ability enhancements). Upgrades last
-the rest of the match and reset on a rematch. The next round starts as soon as everyone has chosen (never before the damage report has
-had 5s); anyone still undecided after 25s gets a random offer. Characters without an upgrade list skip the pick.
+After every round except the last the match goes through the **prep phase** (Battlerite style):
+
+1. **Report** (5s, frozen): the round result and damage report.
+2. **Prep**: everyone is put back at their spawn at full health and may walk around inside a glowing barrier ring (`NetGame.PrepRadius`, 7m)
+   but cannot leave it or fight (abilities are disabled, everyone is invulnerable, the gas and orbs wait). The **upgrade menu** opens: pick one of
+   three (click a card or press 1-3), one per category: **Armament** (weapon transformations), **Endurance** (defensive), **Ferocity** (ability enhancements).
+3. **Lock-in**: once everyone has chosen (the menu stays at least 3s) or after 20s (undecided players get a random offer), picks are locked and a
+   3s countdown runs, then the barrier drops and the round begins.
+
+Upgrades last the rest of the match and reset on a rematch. Characters without an upgrade list skip the pick.
 
 Khorne Berserker:
 

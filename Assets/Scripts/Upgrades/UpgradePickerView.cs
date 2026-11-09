@@ -57,15 +57,15 @@ namespace Anathema.Upgrades
             else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) state.Choose(2);
         }
 
-        public void Draw(float w, float h, UpgradeState state, bool wonRound, float secondsLeft)
+        public void Draw(float w, float h, UpgradeState state, int nextRound, float secondsLeft)
         {
             if (state == null || !state.Pending) return;
             Build();
 
-            Fill(new Rect(0, 0, w, h), new Color(0f, 0f, 0f, 0.82f));
+            Fill(new Rect(0, 0, w, h), new Color(0f, 0f, 0f, 0.62f)); // the prep area stays visible behind the menu
             GUI.Label(new Rect(0, 70, w, 80), "CHOOSE AN UPGRADE", titleStyle);
             GUI.Label(new Rect(0, 150, w, 40),
-                (wonRound ? "Round won" : "Round lost") + "  ·  upgrades last for the rest of the match  ·  press 1, 2 or 3", subtitleStyle);
+                $"Prepare for round {nextRound}  ·  upgrades last for the rest of the match  ·  press 1, 2 or 3", subtitleStyle);
 
             int count = state.Offers.Count;
             float total = count * CardW + (count - 1) * CardGap;
@@ -81,7 +81,7 @@ namespace Anathema.Upgrades
             if (owned.Length > 0) GUI.Label(new Rect(w * 0.5f - 600f, y + CardH + 24f, 1200f, 70f), "Taken so far:  " + owned, ownedStyle);
 
             // Unchosen picks are settled at random when the timer runs out.
-            GUI.Label(new Rect(0, h - 110f, w, 40f), $"A random upgrade is taken in {Mathf.Max(0, Mathf.CeilToInt(secondsLeft))}s", subtitleStyle);
+            GUI.Label(new Rect(0, h - 110f, w, 40f), $"A random upgrade is taken in {Mathf.Max(0, Mathf.CeilToInt(secondsLeft))}s if you don't choose", subtitleStyle);
         }
 
         // Returns true when the card is clicked.
