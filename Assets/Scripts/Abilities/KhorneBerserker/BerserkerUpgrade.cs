@@ -67,7 +67,8 @@ namespace Anathema.Abilities.KhorneBerserker
         public const float HeadsmanCooldownScale = 0.7f;
         public const float HeadsmanThresholdScale = 1.4f;      // Descent's bonus starts at 70% instead of 50% health
         public const float WhettedWindupScale = 0.8f;
-        public const float WhettedPierce = 0.7f;               // replaces the Eviscerator's 40%
+        public const float WhettedPierce = 0.7f;               // armour ignored; replaces the Eviscerator's base value
+        public const float WhettedShieldBreak = 2f;            // replaces the Eviscerator's base 1.5x against shields
         public const float RendingBleedScale = 1.6f;
         public const float RendingExtraSeconds = 2f;
         public const float EarthshakerRangeScale = 1.25f;
@@ -132,7 +133,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 "Eviscerator only. Executioner's Descent recharges 30% faster and its bonus damage begins at 70% target health instead of 50%.")
                 .Requires(m => Wields(m, Eviscerator)),
             new UpgradeDef(WhettedEdge, UpgradeCategory.Armament, "Whetted Edge",
-                "Eviscerator only. Strikes wind up 20% faster and ignore 70% of armour and shields (up from 40%).")
+                "Eviscerator only. Strikes wind up 20% faster, ignore 70% of armour (up from 40%) and deal double damage to shields (up from 1.5x).")
                 .Requires(m => Wields(m, Eviscerator)),
             new UpgradeDef(RendingGouges, UpgradeCategory.Armament, "Rending Gouges",
                 "Heavy Chainaxe only. Heavy hits and Gorecleave bleed 60% harder and 2s longer.")
@@ -148,7 +149,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 "Slow, brutal area damage. Chop becomes a wide heavy sweep with greater reach; Axe Toss becomes Gorecleave, a frontal sweep that knocks back and bleeds. Heavy hits inflict Bleed.")
                 .InGroup(WeaponGroup),
             new UpgradeDef(Eviscerator, UpgradeCategory.Armament, "Eviscerator - The Executioner",
-                "High-risk burst. Chop becomes a slow strike with a pronounced wind-up; Axe Toss becomes Executioner's Descent, an overhead blow that deals bonus damage to the wounded. Attacks partially ignore armour and shields.")
+                "High-risk burst. Chop becomes a slow strike with a pronounced wind-up; Axe Toss becomes Executioner's Descent, an overhead blow that deals bonus damage to the wounded. Attacks partly ignore armour and deal 1.5x damage to shields.")
                 .InGroup(WeaponGroup),
 
             new UpgradeDef(AblativePlating, UpgradeCategory.Endurance, "Ablative Plating",

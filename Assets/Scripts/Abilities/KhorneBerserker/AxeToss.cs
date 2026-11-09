@@ -54,6 +54,7 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float descentExecuteThreshold = 0.5f;     // bonus starts below this share of max health
         [SerializeField] float descentMaxBonus = 1f;               // +100% damage against a target on the brink
         [SerializeField] float descentArmorPierce = 0.4f;
+        [SerializeField] float descentShieldBreak = 1.5f;
 
         [Header("Pose")]
         [SerializeField] float armRaise = 85f;
@@ -259,7 +260,9 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             Vector3 origin = transform.position;
             Vector3 aim = Aim.AimDirection;
-            float pierce = UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge) ? BerserkerUpgrade.WhettedPierce : descentArmorPierce;
+            bool whetted = UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge);
+            float pierce = whetted ? BerserkerUpgrade.WhettedPierce : descentArmorPierce;
+            float shieldBreak = whetted ? BerserkerUpgrade.WhettedShieldBreak : descentShieldBreak;
             SlashEffect.Spawn(origin, aim, descentRange, descentArcDegrees, curSwing * 4f, new Color(1f, 0.8f, 0.25f, 0.95f));
 
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, descentRange, descentArcDegrees))
@@ -267,7 +270,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 float threshold = Mathf.Min(1f, descentExecuteThreshold * (UpgradeState.Has(gameObject, BerserkerUpgrade.HeadsmansMark) ? BerserkerUpgrade.HeadsmanThresholdScale : 1f));
                 float wounded = Mathf.Clamp01((threshold - target.Normalized) / threshold);
                 float dealt = descentDamage * (1f + wounded * descentMaxBonus) * BerserkerUpgradeEffects.DamageScale(gameObject, target);
-                if (!target.TakeDamage(dealt, gameObject, false, pierce)) continue;
+                if (!target.TakeDamage(dealt, gameObject, false, pierce, shieldBreak)) continue;
 
                 if (energy != null) energy.Gain(energyPerHit);
                 BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);

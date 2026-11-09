@@ -66,7 +66,7 @@ After every round except the last the match goes through the **prep phase** (Bat
 
    **The Armament slot is weapon-aware, so nobody can take a weapon every round:** until you hold a transformed weapon it offers the next weapon
    in the progression; once you hold one (they replace each other, one per match) it offers **upgrades unique to that weapon** instead:
-   Eviscerator: Headsman's Mark (Descent recharges 30% faster, execute bonus from 70% health), Whetted Edge (20% faster wind-up, ignores 70% of armour);
+   Eviscerator: Headsman's Mark (Descent recharges 30% faster, execute bonus from 70% health), Whetted Edge (20% faster wind-up, ignores 70% of armour, 2x vs shields);
    Heavy Chainaxe: Rending Gouges (bleeds 60% harder, 2s longer), Earthshaker (Gorecleave +25% reach, +50% knockback);
    dual chainaxes: Chain Frenzy (Axe Toss recharges 30% faster, each landed axe adds a Rage stack).
    The other two cards are never weapons, so a Berserker can also skip every weapon and build from them. Upgrades in no set
@@ -83,7 +83,7 @@ Khorne Berserker:
 | --- | --- | --- | --- |
 | LMB | alternating chops | slow heavy sweep, greater reach, 150 degree arc | slow strike with a 0.55s wind-up, big single-target hit |
 | RMB | Axe Toss | Gorecleave: wide frontal sweep, knockback + bleed | Executioner's Descent: overhead blow, up to +100% damage on low-health targets |
-| Passive | Rage: consecutive hits stack attack speed (5 stacks, 3s window) | heavy hits inflict Bleed | attacks ignore 40% of armour and shields |
+| Passive | Rage: consecutive hits stack attack speed (5 stacks, 3s window) | heavy hits inflict Bleed | attacks ignore 40% of armour and deal 1.5x damage to shields |
 
 Weapons are optional and exclusive (the Heavy Chainaxe and Eviscerator replace each other; one weapon per match); the random pick for idle players never gives a weapon: a Berserker who never takes one stays competitive. Other upgrades: Ablative Plating, Gorehound's Vigour,
 Blood-Fuelled Regeneration, Defiant Roar, Feel No Pain, Unstoppable (Endurance); Crimson Momentum, Gore Rush, Hamstring, Twin Axes,
@@ -93,7 +93,7 @@ Vengeful Blood, Skullthrone's Favour, Berserker's Fury, Relentless Pursuit, Skul
   `Abilities/KhorneBerserker/BerserkerUpgrade.cs`, passives/effects in `BerserkerUpgradeEffects.cs`, `Combat/Rage.cs`. Weapon variants live inside
   `AxeChop` (LMB) and `AxeToss` (RMB) so the HUD slots, network cues and prefabs are unchanged. Weapon tuning fields are also in `Resources/Stats/KhorneBerserker.json`.
 - Online, the owned-upgrade mask is a `NetPlayer` network variable, so replicas show the right weapon; damage is still resolved by the owner's machine.
-  `Health` gained armour, bonus max health and an armour-piercing flag on `TakeDamage`. Both machines must run the same build.
+  `Health` gained armour, bonus max health and armour-piercing and shield-breaking multipliers on `TakeDamage`. Both machines must run the same build.
 - To add upgrades for another character: add a list like `BerserkerUpgrade.All` (and `Sets`) and register both in `UpgradeCatalog` (bit numbers are append-only).
 - **Testing offline (editor / dev builds):** build the training arena with **Anathema > Rebuild Arena Scene (Khorne Berserker)**, press Play, and press
   **F1** for the upgrade test panel: click any upgrade to toggle it, **Next pick** runs the real picker with the next fixed set (click or 1-3), **Clear all** resets.

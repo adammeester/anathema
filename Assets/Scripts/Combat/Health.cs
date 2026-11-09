@@ -130,8 +130,9 @@ namespace Anathema.Combat
         }
 
         // Entry point for everything that hurts a character. Online it decides where the damage is actually applied.
-        // `pierce` (0-1) is the share of the victim's armour and shields this hit ignores.
-        public bool TakeDamage(float amount, GameObject source, bool aoe = false, float pierce = 0f)
+        // `pierce` (0-1) is the share of the victim's armour this hit ignores; `shieldBreak` multiplies how much of a
+        // shield (Absorber) the hit uses up (1.5 = it burns through shields 50% faster).
+        public bool TakeDamage(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f)
         {
             if (IsDead || amount <= 0f) return false;
 
@@ -144,16 +145,16 @@ namespace Anathema.Combat
                 {
                     // Environmental damage (gas) is applied by the victim's own machine, so ignore it here.
                     if (source != null && !source.TryGetComponent(out NetPlayer _)) return false;
-                    net.SendDamage(amount, source, aoe, pierce);
+                    net.SendDamage(amount, source, aoe, pierce, shieldBreak);
                     return true;
                 }
             }
 
-            return ApplyDamageLocal(amount, source, aoe, pierce);
+            return ApplyDamageLocal(amount, source, aoe, pierce, shieldBreak);
         }
 
         // Applies damage to this machine's copy (counters and other modifiers run here).
-        public bool ApplyDamageLocal(float amount, GameObject source, bool aoe = false, float pierce = 0f)
+        public bool ApplyDamageLocal(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f)
         {
             if (IsDead || Invulnerable || amount <= 0f) return false;
 
@@ -165,11 +166,12 @@ namespace Anathema.Combat
             if (armour > 0f) amount *= 1f - armour * (1f - pierce);
 
             // A fully absorbed hit still counts as landing (the attacker gets their energy) but doesn't touch health.
-            // The pierced share of the hit goes straight past the shield.
+            // A shield-breaking hit uses up the shield faster: the shield sees the hit scaled up, and whatever it could not
+            // absorb is scaled back down before it reaches health.
             if (Absorber != null)
             {
-                float bypass = amount * pierce;
-                amount = Absorber(amount - bypass, source) + bypass;
+                float breaker = Mathf.Max(1f, shieldBreak);
+                amount = Absorber(amount * breaker, source) / breaker;
                 if (amount <= 0f) return true;
             }
 

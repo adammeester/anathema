@@ -348,7 +348,7 @@ namespace Anathema.Net
 
         // --- Damage and status effects (aimed at a replica, applied on its owner) ---------------------------------
 
-        public void SendDamage(float amount, GameObject source, bool aoe = false, float pierce = 0f)
+        public void SendDamage(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f)
         {
             NetworkObjectReference reference = default;
             bool hasSource = false;
@@ -357,25 +357,25 @@ namespace Anathema.Net
                 reference = no;
                 hasSource = true;
             }
-            DamageServerRpc(amount, reference, hasSource, aoe, pierce);
+            DamageServerRpc(amount, reference, hasSource, aoe, pierce, shieldBreak);
         }
 
         ClientRpcParams ToOwner => new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { OwnerClientId } } };
 
         [ServerRpc(RequireOwnership = false)]
-        void DamageServerRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, float pierce)
+        void DamageServerRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, float pierce, float shieldBreak)
         {
-            DamageClientRpc(amount, source, hasSource, aoe, pierce, ToOwner);
+            DamageClientRpc(amount, source, hasSource, aoe, pierce, shieldBreak, ToOwner);
         }
 
         [ClientRpc]
-        void DamageClientRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, float pierce, ClientRpcParams rpcParams = default)
+        void DamageClientRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, float pierce, float shieldBreak, ClientRpcParams rpcParams = default)
         {
             if (!IsOwner || NetGame.Frozen) return;
 
             GameObject attacker = null;
             if (hasSource && source.TryGet(out NetworkObject no)) attacker = no.gameObject;
-            health.ApplyDamageLocal(amount, attacker, aoe, pierce);
+            health.ApplyDamageLocal(amount, attacker, aoe, pierce, shieldBreak);
         }
 
         public void SendStatus(StatusKind kind, float a, float b, Vector3 direction, GameObject source = null)

@@ -42,7 +42,8 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float eviscSwingDuration = 0.1f;
         [SerializeField] float eviscRecoverDuration = 0.6f;
         [SerializeField] float eviscCooldown = 1.8f;
-        [SerializeField] float eviscArmorPierce = 0.4f;            // share of armour and shields ignored (passive)
+        [SerializeField] float eviscArmorPierce = 0.4f;            // share of armour ignored (passive)
+        [SerializeField] float eviscShieldBreak = 1.5f;            // damage multiplier against shields (passive)
         [SerializeField] float eviscSpineTwist = 10f;
         [SerializeField] float eviscArmRaise = 115f;
 
@@ -257,12 +258,15 @@ namespace Anathema.Abilities.KhorneBerserker
             float pierce = weapon == BerserkerWeapon.Eviscerator
                 ? (UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge) ? BerserkerUpgrade.WhettedPierce : eviscArmorPierce)
                 : 0f;
+            float shieldBreak = weapon == BerserkerWeapon.Eviscerator
+                ? (UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge) ? BerserkerUpgrade.WhettedShieldBreak : eviscShieldBreak)
+                : 1f;
             bool rending = UpgradeState.Has(gameObject, BerserkerUpgrade.RendingGouges);
 
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, Aim.AimDirection, reach, curArc))
             {
                 float dealt = baseDamage * BerserkerUpgradeEffects.DamageScale(gameObject, target);
-                if (!target.TakeDamage(dealt, gameObject, false, pierce)) continue;
+                if (!target.TakeDamage(dealt, gameObject, false, pierce, shieldBreak)) continue;
 
                 if (energy != null) energy.Gain(energyPerHit);
                 BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);

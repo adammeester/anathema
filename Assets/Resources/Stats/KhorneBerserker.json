@@ -33,7 +33,8 @@
       "eviscSwingDuration": 0.1,
       "eviscRecoverDuration": 0.6,
       "eviscCooldown": 1.8,
-      "eviscArmorPierce": 0.4
+      "eviscArmorPierce": 0.4,
+      "eviscShieldBreak": 1.5
     },
     "AxeRush": {
       "cooldown": 10,
@@ -81,7 +82,8 @@
       "descentCooldown": 6.5,
       "descentExecuteThreshold": 0.5,
       "descentMaxBonus": 1,
-      "descentArmorPierce": 0.4
+      "descentArmorPierce": 0.4,
+      "descentShieldBreak": 1.5
     },
     "BerserkerCounter": {
       "cooldown": 4,
