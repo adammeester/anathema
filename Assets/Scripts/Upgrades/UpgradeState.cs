@@ -96,10 +96,17 @@ namespace Anathema.Upgrades
             return true;
         }
 
-        // The next round started before the player chose: take a random offer so nobody is left behind.
+        // Time ran out before the player chose: take a random offer so nobody is left behind. Weapons are a deliberate
+        // choice, so an idle player is never given one (unless a weapon is the only thing on offer).
         public void AutoPickIfPending()
         {
-            if (Pending) Choose(UnityEngine.Random.Range(0, offers.Count));
+            if (!Pending) return;
+
+            var safe = new List<int>();
+            for (int i = 0; i < offers.Count; i++)
+                if (offers[i].Category != UpgradeCategory.Armament) safe.Add(i);
+
+            Choose(safe.Count > 0 ? safe[UnityEngine.Random.Range(0, safe.Count)] : UnityEngine.Random.Range(0, offers.Count));
         }
 
         // New match (rematch): forget everything.

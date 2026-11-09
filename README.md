@@ -68,7 +68,7 @@ Khorne Berserker:
 | RMB | Axe Toss | Gorecleave: wide frontal sweep, knockback + bleed | Executioner's Descent: overhead blow, up to +100% damage on low-health targets |
 | Passive | Rage: consecutive hits stack attack speed (5 stacks, 3s window) | heavy hits inflict Bleed | attacks ignore 40% of armour and shields |
 
-Weapons are optional and exclusive: a Berserker who never takes one stays competitive. Other upgrades: Ablative Plating, Gorehound's Vigour,
+Weapons are optional and exclusive (one per match: once you hold one, no other weapon is offered; a weapon you decline keeps being offered until you take another upgrade type or a weapon, and the random pick for idle players never gives a weapon): a Berserker who never takes one stays competitive. Other upgrades: Ablative Plating, Gorehound's Vigour,
 Blood-Fuelled Regeneration, Defiant Roar, Feel No Pain, Unstoppable (Endurance); Crimson Momentum, Gore Rush, Hamstring, Twin Axes,
 Vengeful Blood, Skullthrone's Favour, Berserker's Fury, Relentless Pursuit, Skulltaker (Ferocity).
 
