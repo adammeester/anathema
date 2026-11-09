@@ -100,6 +100,58 @@ namespace Anathema.Net
                     EX("Shift+E", "Virulent Cloud", "A full-strength plague cloud that poisons every enemy standing in it, tick by tick.",
                         "Damage 9/s  |  Cooldown 7s  |  Radius 3  |  Lasts 5s  |  Costs 35 energy")
                 }
+            },
+            new CharacterInfo
+            {
+                name = "Psyker", epithet = "The Warp Channeler", prefabPath = "Net/Player_Psyker",
+                role = Role.Ranged, accent = new Color(0.7f, 0.5f, 1f),
+                blurb = "Fragile warp caster. Fast bolts, chain lightning and crowd control, with a blink that leaves fire behind. No counter.",
+                footnote = "Hold Shift in game to use EX abilities",
+                abilities = new[]
+                {
+                    A("LMB", "Warp Bolt", "Hold to hurl crackling bolts of warp energy along your aim. Fast and accurate. Each hit builds energy.",
+                        "Damage 9  |  Cooldown 0.55s  |  Range 14  |  +8 energy per hit"),
+                    A("RMB", "Chain Lightning", "An instant bolt of white lightning strikes the first enemy along your aim, then leaps to the nearest other enemies, each jump weaker than the last.",
+                        "Damage 16 (x0.7 per jump)  |  Cooldown 5s  |  Range 12  |  2 jumps  |  +6 energy per hit"),
+                    A("Q", "Cripple", "Fire a slow, heavy bolt of crippling warp force at the first enemy in its path. It does a little damage and stuns the target. C during the wind-up cancels it.",
+                        "Damage 5  |  Stun 1.5s  |  Cooldown 8s  |  Range 14  |  +12 energy per hit"),
+                    A("E", "Psychic Barrier", "Wrap yourself in a psychic shield that soaks damage, area and over-time damage included. It fades if unused, and recasting replaces it. C drops it.",
+                        "Absorbs 50  |  Lasts 5s  |  Cooldown 10s"),
+                    A("Space", "Warp Step", "You have no counter. Step through the warp, vanishing and reappearing at the cursor (stopped short of walls). A pool of warp-fire is left where you land, burning enemies inside it.",
+                        "Cooldown 6s  |  Range 8  |  Fire 12/s  |  Radius 2.2  |  Lasts 4s"),
+                    A("R", "Psychic Blast", "Costs a full energy bar. After a brief gather you stand planted and channel a beam of white lightning that pierces everything in its path. The beam follows your cursor at a limited turn rate, so sweep it across enemies. Stuns, panic, silence and knockback interrupt it; C during the gather cancels and refunds.",
+                        "Damage 7 per 0.25s  |  Channel 3s  |  Range 15  |  Costs 100 energy", true),
+                    EX("Shift+Q", "Gravity Well", "Instead of the bolt, a singularity opens at the cursor and drags every enemy inside to its centre, then collapses in a burst that damages whoever is left near it.",
+                        "Detonation 25  |  Range 12  |  Radius 4  |  Lasts 1.8s  |  Costs 35 energy"),
+                    EX("Shift+E", "Mind Leech", "Instead of the shield, tether yourself to the enemy nearest the cursor. It interrupts and silences them at once, then drains their health, healing you and feeding your energy. Breaks if the target dies or strays out of range, or if you are disrupted.",
+                        "Drain 16/s  |  Heal 16/s  |  Silence 2s  |  Range 11  |  Lasts 2s  |  Costs 40 energy")
+                }
+            },
+            new CharacterInfo
+            {
+                name = "Skitarii Ranger", epithet = "The Arquebus Marksman", prefabPath = "Net/Player_SkitariiRanger",
+                role = Role.Ranged, accent = new Color(0.35f, 0.9f, 0.95f),
+                blurb = "Long-range marksman. Piercing charged shots and a servo leap to keep distance, with a counter that answers in kind.",
+                footnote = "Hold Shift in game to use EX abilities",
+                abilities = new[]
+                {
+                    A("LMB", "Galvanic Shot", "Hold to fire fast galvanic rounds from the arquebus. Modest damage, long reach. Each hit builds energy.",
+                        "Damage 14  |  Cooldown 0.75s  |  Range 22  |  +9 energy per hit"),
+                    A("RMB", "Transuranic Shot", "Hold to charge the arquebus (you are planted while it builds), release to fire one huge piercing shot. The longer the charge, the harder it hits and the longer it stuns everything in the line. Stuns, silence, panic and knockback break the charge; C cancels it.",
+                        "Damage 30-95  |  Stun 0.25-1.5s  |  Charge 1.6s  |  Cooldown 6s  |  Range 34  |  +25 energy per hit"),
+                    A("Q", "Shrapnel Canister", "Lob a canister to the cursor. It bursts into a field of whirling metal that damages enemies over time and slows anyone standing in it. C during the wind-up cancels it.",
+                        "Damage 14/s  |  35% slow  |  Cooldown 8s  |  Range 12  |  Radius 3.5  |  Lasts 4.5s  |  +10 energy per hit"),
+                    A("E", "Disengage", "A quick servo-assisted leap straight away from the cursor, vaulting low obstacles and stopping short of walls. Gets you out of melee and back to sniping range.",
+                        "Cooldown 7s  |  Distance 7"),
+                    A("Space", "Counter", "Raise a guard. A hit it catches is negated and answered with a half-charged Transuranic shot fired straight back at the attacker, and Disengage is ready again.",
+                        "Riposte shot at 50% charge  |  Cooldown 4s  |  Guard 1.2s"),
+                    A("R", "Culling Volley", "Costs a full energy bar. After a short gather you plant yourself and fire four enormous shots at fixed intervals, each along your cursor's direction at that moment. Each pierces everything in its line, hits hard and slows. A laser sight shows where the next shot goes. Stuns, panic, silence and knockback interrupt it; C during the gather cancels and refunds.",
+                        "Damage 55 x 4 shots  |  Range 60  |  20% slow for 2s  |  Costs 100 energy", true),
+                    EX("Shift+Q", "Scattershot", "Instead of the canister, fire a short-range shotgun blast in a cone that hurts, knocks back and slows everything in it.",
+                        "Damage 32  |  Range 7  |  Knockback 5  |  40% slow for 2.5s  |  Costs 35 energy"),
+                    EX("Shift+RMB", "Overcharge Round", "Instead of charging, fire an instant Transuranic shot at 60% of a full charge, with no planted wind-up.",
+                        "Costs 40 energy")
+                }
             }
         };
 

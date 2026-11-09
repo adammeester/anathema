@@ -20,6 +20,7 @@ namespace Anathema.EditorTools
     {
         const string MenuPath = "Assets/Scenes/Menu.unity";
         const string VersusPath = "Assets/Scenes/Versus.unity";
+        const string ShrinePath = "Assets/Scenes/Versus_Shrine.unity";
         const string TrainingPath = "Assets/Scenes/Arena.unity";
         const string PrefabDir = "Assets/Resources/Net";
         const string GreyKnightPrefab = PrefabDir + "/Player_GreyKnight.prefab";
@@ -33,7 +34,7 @@ namespace Anathema.EditorTools
             EditorApplication.delayCall += () =>
             {
                 if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
-                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab);
+                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(ShrinePath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab);
                 if (missing && File.Exists("Assets/Models/GreyKnight.fbx")) BuildAll();
             };
         }
@@ -52,7 +53,8 @@ namespace Anathema.EditorTools
             BuildPlayerPrefab(ArenaSceneBuilder.Character.PlagueSurgeon, PlagueSurgeonPrefab);
             BuildPlayerPrefab(ArenaSceneBuilder.Character.Psyker, PsykerPrefab);
             BuildPlayerPrefab(ArenaSceneBuilder.Character.SkitariiRanger, SkitariiRangerPrefab);
-            BuildVersusScene();
+            BuildVersusScene(VersusPath, ArenaSceneBuilder.MapColosseum);
+            BuildVersusScene(ShrinePath, ArenaSceneBuilder.MapShrine);
             BuildMenuScene();
 
             if (previous.IsValid()) SceneManager.SetActiveScene(previous);
@@ -61,6 +63,7 @@ namespace Anathema.EditorTools
             {
                 new EditorBuildSettingsScene(MenuPath, true),
                 new EditorBuildSettingsScene(VersusPath, true),
+                new EditorBuildSettingsScene(ShrinePath, true),
                 new EditorBuildSettingsScene(TrainingPath, true)
             };
 
@@ -106,21 +109,21 @@ namespace Anathema.EditorTools
             PrefabUtility.SavePrefabAsset(saved);
         }
 
-        static void BuildVersusScene()
+        static void BuildVersusScene(string path, int map)
         {
             Scene scene = NewScratchScene();
 
-            ArenaSceneBuilder.CreateLight();
-            ArenaSceneBuilder.CreateArena();
+            ArenaSceneBuilder.CreateLight(map);
+            ArenaSceneBuilder.CreateArena(map);
             new GameObject("Gas Zone").AddComponent<GasZone>();
             new GameObject("Orb Spawner").AddComponent<OrbSpawner>();
-            ArenaSceneBuilder.CreateCamera(null);
+            ArenaSceneBuilder.CreateCamera(null, map);
 
             // Opposite sides of the pit, facing the centre (NetGame turns them towards it).
             CreateSpawn(0, new Vector3(-20f, 0.1f, 0f));
             CreateSpawn(1, new Vector3(20f, 0.1f, 0f));
 
-            EditorSceneManager.SaveScene(scene, VersusPath);
+            EditorSceneManager.SaveScene(scene, path);
             EditorSceneManager.CloseScene(scene, true);
         }
 

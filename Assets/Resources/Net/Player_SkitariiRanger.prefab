@@ -21,6 +21,7 @@ GameObject:
   - component: {fileID: 3379650712309190963}
   - component: {fileID: 6366959596729987380}
   - component: {fileID: 2294260938901556395}
+  - component: {fileID: 7643171429579760611}
   - component: {fileID: 1942283802079846888}
   - component: {fileID: 7086551724263475339}
   - component: {fileID: 460217385042202048}
@@ -195,7 +196,12 @@ MonoBehaviour:
   muzzleHeight: 1.3
   muzzleForward: 1.5
   energyPerHit: 9
+  aimLift: 0.65
   boltColor: {r: 0.5, g: 0.95, b: 1, a: 1}
+  arcRoundEnabled: 0
+  exEnergyCost: 20
+  arcRange: 6
+  arcDamageFraction: 0.75
 --- !u!114 &3379650712309190963
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -216,10 +222,12 @@ MonoBehaviour:
   maxStun: 1.5
   range: 34
   shotRadius: 0.45
-  chargeMoveSlow: 0.45
+  boltSpeed: 60
   energyPerHit: 25
   muzzleHeight: 1.3
   muzzleForward: 1.6
+  exEnergyCost: 40
+  overchargeCharge: 0.6
 --- !u!114 &6366959596729987380
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -264,6 +272,35 @@ MonoBehaviour:
   distance: 7
   duration: 0.22
   wallPadding: 0.8
+  arcHeight: 3
+  maxVaultHeight: 2.5
+  caltropBurstEnabled: 0
+  exEnergyCost: 30
+  caltropRadius: 3
+  caltropDuration: 4
+  caltropDamagePerSecond: 12
+  caltropSlow: 0.4
+--- !u!114 &7643171429579760611
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6b1f0c2d9a7e4d3f8c5a1e2b3d4f5a60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.SkitariiRanger.RangerCounter
+  cooldown: 4
+  duration: 1.2
+  guardRadius: 1.6
+  guardColor: {r: 0.4, g: 0.7, b: 1, a: 0.45}
+  leanBackDegrees: 14
+  poseBlendTime: 0.1
+  glowScale: 1.06
+  glowColor: {r: 0.3, g: 0.6, b: 1, a: 0.4}
+  chargeFraction: 0.5
 --- !u!114 &1942283802079846888
 MonoBehaviour:
   m_ObjectHideFlags: 0

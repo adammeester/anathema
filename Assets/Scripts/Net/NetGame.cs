@@ -19,7 +19,20 @@ namespace Anathema.Net
     public class NetGame : MonoBehaviour
     {
         public const string MenuScene = "Menu";
-        public const string ArenaScene = "Versus"; // the online arena (the "Arena" scene is the offline training ground)
+        // The online arenas (the "Arena" scene is the offline training ground). The host picks one at random per match.
+        public static readonly string[] ArenaScenes = { "Versus", "Versus_Shrine" };
+        static int lastArenaIndex = -1;
+
+        public static bool IsArenaScene(string sceneName) => System.Array.IndexOf(ArenaScenes, sceneName) >= 0;
+
+        // Random arena, never the same one twice in a row.
+        static string PickArenaScene()
+        {
+            int index = Random.Range(0, ArenaScenes.Length);
+            if (ArenaScenes.Length > 1 && index == lastArenaIndex) index = (index + 1 + Random.Range(0, ArenaScenes.Length - 1)) % ArenaScenes.Length;
+            lastArenaIndex = index;
+            return ArenaScenes[index];
+        }
         public const ushort DefaultPort = 7777;
         public const float RoundPause = 5f;   // countdown (with the damage report) between rounds
         public const float RoundIntro = 1.8f; // how long the "ROUND N" banner shows when a round begins
@@ -579,7 +592,7 @@ namespace Anathema.Net
 
             if (phase == Phase.Lobby) select.Show(); else select.Hide();
 
-            if (!manager.IsServer && phase == Phase.Lobby && SceneManager.GetActiveScene().name == ArenaScene)
+            if (!manager.IsServer && phase == Phase.Lobby && IsArenaScene(SceneManager.GetActiveScene().name))
             {
                 phase = Phase.Playing;
                 introUntil = Time.time + RoundIntro;
@@ -593,7 +606,7 @@ namespace Anathema.Net
             if (manager.IsServer && phase == Phase.Lobby && CanStart())
             {
                 phase = Phase.Loading;
-                manager.SceneManager.LoadScene(ArenaScene, LoadSceneMode.Single);
+                manager.SceneManager.LoadScene(PickArenaScene(), LoadSceneMode.Single);
             }
         }
 
@@ -650,7 +663,7 @@ namespace Anathema.Net
 
         void OnLoadEventCompleted(string sceneName, LoadSceneMode mode, List<ulong> completed, List<ulong> timedOut)
         {
-            if (!manager.IsServer || sceneName != ArenaScene) return;
+            if (!manager.IsServer || !IsArenaScene(sceneName)) return;
 
             for (int seat = 0; seat < seats.Length; seat++)
             {

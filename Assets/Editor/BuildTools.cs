@@ -19,7 +19,7 @@ namespace Anathema.EditorTools
             Directory.CreateDirectory(Path.GetDirectoryName(OutputExe));
             var options = new BuildPlayerOptions
             {
-                scenes = new[] { "Assets/Scenes/Menu.unity", "Assets/Scenes/Versus.unity", "Assets/Scenes/Arena.unity" },
+                scenes = new[] { "Assets/Scenes/Menu.unity", "Assets/Scenes/Versus.unity", "Assets/Scenes/Versus_Shrine.unity", "Assets/Scenes/Arena.unity" },
                 locationPathName = OutputExe,
                 target = BuildTarget.StandaloneWindows64,
                 options = BuildOptions.None
