@@ -74,13 +74,19 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             if (berserker == null) return;
 
+            GainRage(berserker);
+
+            if (UpgradeState.Has(berserker, BerserkerUpgrade.CrimsonCommunion) && berserker.TryGetComponent(out Health health))
+                health.Heal(dealt * BerserkerUpgrade.CommunionHealFraction);
+        }
+
+        // One Rage stack (with Crimson Momentum's bigger cap and longer window).
+        public static void GainRage(GameObject berserker)
+        {
             bool momentum = UpgradeState.Has(berserker, BerserkerUpgrade.CrimsonMomentum);
             Rage.Gain(berserker,
                 Rage.DefaultMaxStacks + (momentum ? BerserkerUpgrade.MomentumExtraStacks : 0),
                 momentum ? BerserkerUpgrade.MomentumWindow : Rage.DefaultWindow);
-
-            if (UpgradeState.Has(berserker, BerserkerUpgrade.CrimsonCommunion) && berserker.TryGetComponent(out Health health))
-                health.Heal(dealt * BerserkerUpgrade.CommunionHealFraction);
         }
 
         // Skulltaker: finishing the wounded hurts more.

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Combat;
+using Anathema.Upgrades;
 using UnityEngine;
 
 namespace Anathema.Abilities.KhorneBerserker
@@ -214,6 +215,7 @@ namespace Anathema.Abilities.KhorneBerserker
                     curDamage = eviscDamage; curRange = eviscRange; curArc = eviscArcDegrees;
                     curWindup = eviscWindupDuration; curSwing = eviscSwingDuration; curRecover = eviscRecoverDuration;
                     curTwist = eviscSpineTwist; curRaise = eviscArmRaise; curFollow = armFollowThrough * 2f;
+                    if (UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge)) curWindup *= BerserkerUpgrade.WhettedWindupScale;
                     break;
                 default:
                     curDamage = damage; curRange = range; curArc = arcDegrees;
@@ -252,7 +254,10 @@ namespace Anathema.Abilities.KhorneBerserker
             float reach = strikeEmpowered ? curRange * empoweredRangeMultiplier : curRange;
             float baseDamage = strikeEmpowered ? curDamage * empoweredDamageMultiplier : curDamage;
             // The Eviscerator's passive: its blows partly ignore armour and shields.
-            float pierce = weapon == BerserkerWeapon.Eviscerator ? eviscArmorPierce : 0f;
+            float pierce = weapon == BerserkerWeapon.Eviscerator
+                ? (UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge) ? BerserkerUpgrade.WhettedPierce : eviscArmorPierce)
+                : 0f;
+            bool rending = UpgradeState.Has(gameObject, BerserkerUpgrade.RendingGouges);
 
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, Aim.AimDirection, reach, curArc))
             {
@@ -264,7 +269,9 @@ namespace Anathema.Abilities.KhorneBerserker
                 BloodImpact.Play(target.transform.position + Vector3.up, Aim.AimDirection, strikeEmpowered ? 1f : 0.7f);
                 // The Reaver's passive: heavy hits inflict Bleed.
                 if (weapon == BerserkerWeapon.HeavyChainaxe && !target.IsDead)
-                    Bleeding.Apply(target.gameObject, gameObject, heavyBleedDamagePerSecond, heavyBleedDuration);
+                    Bleeding.Apply(target.gameObject, gameObject,
+                        rending ? heavyBleedDamagePerSecond * BerserkerUpgrade.RendingBleedScale : heavyBleedDamagePerSecond,
+                        rending ? heavyBleedDuration + BerserkerUpgrade.RendingExtraSeconds : heavyBleedDuration);
             }
         }
 

@@ -57,16 +57,21 @@ After every round except the last the match goes through the **prep phase** (Bat
    three (click a card or press 1-3). The sets are **fixed and identical for every player** (no randomness), defined per character
    (`BerserkerUpgrade.Sets`), and each is one **Armament**, one **Endurance** and one **Ferocity** card. Berserker:
 
-   | Pick | Armament | Endurance | Ferocity |
+   | Pick | Armament slot | Endurance | Ferocity |
    | --- | --- | --- | --- |
    | after round 1 | Keep the Dual Chainaxes (Axe Toss throws two axes) | Feel No Pain | Berserker's Fury |
    | after round 2 | Eviscerator (Executioner) | Blood-Fuelled Regeneration | Relentless Pursuit |
-   | after round 3 | Heavy Chainaxe (Reaver) | Unstoppable | Skulltaker |
-   | after round 4 | (no weapon left: Ablative Plating) | Defiant Roar | Crimson Momentum |
+   | after round 3 | Heavy Chainaxe (Reaver), **or Headsman's Mark if you hold the Eviscerator** | Unstoppable | Skulltaker |
+   | after round 4 | Whetted Edge (Eviscerator) / Rending Gouges (Heavy) / Chain Frenzy (no weapon) | Defiant Roar | Crimson Momentum |
 
-   The weapon is only ever one card of three, so a Berserker can ignore every weapon and still build a full kit from the other cards. If a weapon
-   is blocked (you already hold the other one) its card is replaced by a backup. Upgrades in no set (Hamstring, Skullthrone's Favour,
-   Vengeful Blood) stay in the catalog for the test panel and future sets. A character past its last set, or with no sets, falls back to a random draw.
+   **The Armament slot is weapon-aware, so nobody can take a weapon every round:** until you hold a transformed weapon it offers the next weapon
+   in the progression; once you hold one (they replace each other, one per match) it offers **upgrades unique to that weapon** instead:
+   Eviscerator: Headsman's Mark (Descent recharges 30% faster, execute bonus from 70% health), Whetted Edge (20% faster wind-up, ignores 70% of armour);
+   Heavy Chainaxe: Rending Gouges (bleeds 60% harder, 2s longer), Earthshaker (Gorecleave +25% reach, +50% knockback);
+   dual chainaxes: Chain Frenzy (Axe Toss recharges 30% faster, each landed axe adds a Rage stack).
+   The other two cards are never weapons, so a Berserker can also skip every weapon and build from them. Upgrades in no set
+   (Hamstring, Skullthrone's Favour, Vengeful Blood, Earthshaker) stay in the catalog for the test panel and future sets.
+   A character past its last set, or with no sets, falls back to a random draw.
 3. **Lock-in**: once everyone has chosen (the menu stays at least 3s) or after 20s (undecided players get a random offer), picks are locked and a
    3s countdown runs, then the barrier drops and the round begins.
 

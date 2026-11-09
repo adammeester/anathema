@@ -124,8 +124,12 @@ namespace Anathema.Abilities.KhorneBerserker
                 switch (BerserkerWeapons.Of(gameObject))
                 {
                     case BerserkerWeapon.HeavyChainaxe: cooldown = cleaveCooldown; break;
-                    case BerserkerWeapon.Eviscerator: cooldown = descentCooldown; break;
-                    default: cooldown = tossCooldown; break;
+                    case BerserkerWeapon.Eviscerator:
+                        cooldown = descentCooldown * (UpgradeState.Has(gameObject, BerserkerUpgrade.HeadsmansMark) ? BerserkerUpgrade.HeadsmanCooldownScale : 1f);
+                        break;
+                    default:
+                        cooldown = tossCooldown * (UpgradeState.Has(gameObject, BerserkerUpgrade.ChainFrenzy) ? BerserkerUpgrade.FrenzyTossCooldownScale : 1f);
+                        break;
                 }
             }
             base.Update();
@@ -224,9 +228,13 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             Vector3 origin = transform.position;
             Vector3 aim = Aim.AimDirection;
-            SlashEffect.Spawn(origin, aim, cleaveRange, cleaveArcDegrees, curSwing * 3f, new Color(1f, 0.15f, 0.08f, 0.9f));
+            bool earthshaker = UpgradeState.Has(gameObject, BerserkerUpgrade.Earthshaker);
+            bool rending = UpgradeState.Has(gameObject, BerserkerUpgrade.RendingGouges);
+            float reach = cleaveRange * (earthshaker ? BerserkerUpgrade.EarthshakerRangeScale : 1f);
+            float knock = cleaveKnockbackDistance * (earthshaker ? BerserkerUpgrade.EarthshakerKnockbackScale : 1f);
+            SlashEffect.Spawn(origin, aim, reach, cleaveArcDegrees, curSwing * 3f, new Color(1f, 0.15f, 0.08f, 0.9f));
 
-            foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, cleaveRange, cleaveArcDegrees))
+            foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, reach, cleaveArcDegrees))
             {
                 float dealt = cleaveDamage * BerserkerUpgradeEffects.DamageScale(gameObject, target);
                 if (!target.TakeDamage(dealt, gameObject)) continue;
@@ -239,8 +247,10 @@ namespace Anathema.Abilities.KhorneBerserker
                 Vector3 push = target.transform.position - origin;
                 push.y = 0f;
                 if (push.sqrMagnitude < 0.0001f) push = aim;
-                Knockback.Apply(target.gameObject, push, cleaveKnockbackDistance, cleaveKnockbackDuration);
-                Bleeding.Apply(target.gameObject, gameObject, cleaveBleedDamagePerSecond, cleaveBleedDuration);
+                Knockback.Apply(target.gameObject, push, knock, cleaveKnockbackDuration);
+                Bleeding.Apply(target.gameObject, gameObject,
+                    rending ? cleaveBleedDamagePerSecond * BerserkerUpgrade.RendingBleedScale : cleaveBleedDamagePerSecond,
+                    rending ? cleaveBleedDuration + BerserkerUpgrade.RendingExtraSeconds : cleaveBleedDuration);
             }
         }
 
@@ -249,13 +259,15 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             Vector3 origin = transform.position;
             Vector3 aim = Aim.AimDirection;
+            float pierce = UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge) ? BerserkerUpgrade.WhettedPierce : descentArmorPierce;
             SlashEffect.Spawn(origin, aim, descentRange, descentArcDegrees, curSwing * 4f, new Color(1f, 0.8f, 0.25f, 0.95f));
 
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, descentRange, descentArcDegrees))
             {
-                float wounded = Mathf.Clamp01((descentExecuteThreshold - target.Normalized) / descentExecuteThreshold);
+                float threshold = Mathf.Min(1f, descentExecuteThreshold * (UpgradeState.Has(gameObject, BerserkerUpgrade.HeadsmansMark) ? BerserkerUpgrade.HeadsmanThresholdScale : 1f));
+                float wounded = Mathf.Clamp01((threshold - target.Normalized) / threshold);
                 float dealt = descentDamage * (1f + wounded * descentMaxBonus) * BerserkerUpgradeEffects.DamageScale(gameObject, target);
-                if (!target.TakeDamage(dealt, gameObject, false, descentArmorPierce)) continue;
+                if (!target.TakeDamage(dealt, gameObject, false, pierce)) continue;
 
                 if (energy != null) energy.Gain(energyPerHit);
                 BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
@@ -267,6 +279,8 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             if (energy != null) energy.Gain(energyPerHit);
             BerserkerUpgradeEffects.RegisterHit(gameObject, damage);
+            // Chain Frenzy: every axe that lands feeds Rage a second time.
+            if (UpgradeState.Has(gameObject, BerserkerUpgrade.ChainFrenzy)) BerserkerUpgradeEffects.GainRage(gameObject);
             BloodImpact.Play(target.transform.position + Vector3.up, target.transform.position - transform.position, 1f, true);
             if (!target.IsDead) Bleeding.Apply(target.gameObject, gameObject, bleedDamagePerSecond, bleedDuration);
         }
