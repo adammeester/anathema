@@ -47,6 +47,8 @@ namespace Anathema.Net
         readonly NetworkVariable<Vector3> netAim = new NetworkVariable<Vector3>(Vector3.zero, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         readonly NetworkVariable<int> slot = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         readonly NetworkVariable<int> kills = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        // Team id (1-based, matches Health.Team). Free-for-all gives every seat its own team.
+        readonly NetworkVariable<int> team = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
         Health health;
         Respawner respawner;
@@ -69,8 +71,12 @@ namespace Anathema.Net
         public float RoundDamageDealt => netDamageDealt.Value;
         public float RoundHealingDone => netHealingDone.Value;
 
+        // Server only: this fighter has died this round (cleared when the next round starts).
+        public bool ServerDead { get; set; }
+
         public void ServerResetRoundStats()
         {
+            ServerDead = false;
             netDamageDealt.Value = 0f;
             netHealingDone.Value = 0f;
         }
@@ -90,8 +96,12 @@ namespace Anathema.Net
             np.netHealingDone.Value += healing;
         }
 
-        // Server only: which seat (0 = host, 1 = guest) this character belongs to; call before spawning.
-        public void ServerSetSlot(int value) => slot.Value = value;
+        // Server only: which lobby seat (0 = host) this character belongs to, and which team it fights for.
+        public void ServerSetSlot(int seat, int teamId)
+        {
+            slot.Value = seat;
+            team.Value = teamId;
+        }
         public void ServerAddKill() => kills.Value += 1;
         public void ServerResetKills() => kills.Value = 0;
 
@@ -119,8 +129,8 @@ namespace Anathema.Net
         public override void OnNetworkSpawn()
         {
             All.Add(this);
-            health.SetTeam(slot.Value + 1);
-            slot.OnValueChanged += OnSlotChanged;
+            health.SetTeam(team.Value);
+            team.OnValueChanged += OnTeamChanged;
             smoothedAim = transform.position + transform.forward * 3f;
 
             if (IsOwner)
@@ -173,13 +183,12 @@ namespace Anathema.Net
             }
             netPosition.OnValueChanged -= OnRemotePosition;
             netAim.OnValueChanged -= OnRemoteAim;
-            slot.OnValueChanged -= OnSlotChanged;
+            team.OnValueChanged -= OnTeamChanged;
         }
 
-        // Seat 0 (host) is team 1, seat 1 is team 2, so the two fighters are always enemies.
-        void OnSlotChanged(int previous, int current)
+        void OnTeamChanged(int previous, int current)
         {
-            health.SetTeam(current + 1);
+            health.SetTeam(current);
         }
 
         void DestroyIfPresent<T>() where T : Component
@@ -237,32 +246,13 @@ namespace Anathema.Net
 
         void OnOwnerDamageTaken(float dealt, GameObject source) => ReportCredit(source, dealt, 0f);
 
-        void OnOwnerDied(Health _, GameObject killer)
-        {
-            NetworkObjectReference reference = default;
-            bool hasKiller = false;
-            if (killer != null && killer.TryGetComponent(out NetworkObject no) && no.IsSpawned && no != NetworkObject)
-            {
-                reference = no;
-                hasKiller = true;
-            }
-            ReportDeathServerRpc(reference, hasKiller);
-        }
+        void OnOwnerDied(Health _, GameObject killer) => ReportDeathServerRpc();
 
+        // A round ends when only one team has anyone left standing (checked by the server).
         [ServerRpc]
-        void ReportDeathServerRpc(NetworkObjectReference killer, bool hasKiller)
+        void ReportDeathServerRpc()
         {
-            NetPlayer credit = null;
-            if (hasKiller && killer.TryGet(out NetworkObject no)) credit = no.GetComponent<NetPlayer>();
-
-            // Gas or other environmental deaths hand the point to the opponent.
-            if (credit == null)
-            {
-                foreach (NetPlayer other in All)
-                    if (other != this) credit = other;
-            }
-
-            if (credit != null && credit != this) NetGame.Instance?.ServerOnKill(credit, this);
+            NetGame.Instance?.ServerOnDeath(this);
         }
 
         // Back to the spawn point with full health and no energy (rematch).

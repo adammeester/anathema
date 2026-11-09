@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Anathema.Net;
 using UnityEngine;
 
 namespace Anathema.Combat
@@ -53,7 +54,8 @@ namespace Anathema.Combat
         void OnDied(Health _, GameObject killer)
         {
             SetAlive(false);
-            if (!health.IsReplica) Invoke(nameof(Respawn), delay);
+            // Online, a death stays a death until the round resets (the round only ends once a whole team is down).
+            if (!health.IsReplica && !NetGame.Online) Invoke(nameof(Respawn), delay);
         }
 
         void Respawn()

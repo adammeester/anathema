@@ -1,3 +1,4 @@
+using Anathema.Net;
 using UnityEngine;
 
 namespace Anathema.Combat
@@ -11,7 +12,7 @@ namespace Anathema.Combat
         [SerializeField] float thickness = 0.16f;
 
         Health health;
-        bool? lastFriendly;
+        int lastLook = -1;
         Transform holder;
         Transform fill;
         Transform recoverable; // white segment: damage that can still be healed
@@ -92,11 +93,16 @@ namespace Anathema.Combat
             if (cam != null) holder.rotation = cam.transform.rotation;
 
             // Online: your own bar is green, everyone else's red. Offline: team 1 is green.
-            bool friendly = health.Net != null && health.Net.IsSpawned ? health.IsMine : health.Team == 1;
-            if (friendly != lastFriendly)
+            // Online teammates get a blue bar.
+            bool online = health.Net != null && health.Net.IsSpawned;
+            bool friendly = online ? health.IsMine : health.Team == 1;
+            bool ally = online && !friendly && NetPlayer.Local != null && NetPlayer.Local.Health.Team == health.Team;
+            int look = friendly ? 1 : ally ? 2 : 0;
+            if (look != lastLook)
             {
-                lastFriendly = friendly;
-                fill.GetComponent<Renderer>().material.color = friendly ? new Color(0.2f, 0.85f, 0.3f) : new Color(0.9f, 0.2f, 0.2f);
+                lastLook = look;
+                fill.GetComponent<Renderer>().material.color = friendly ? new Color(0.2f, 0.85f, 0.3f)
+                    : ally ? new Color(0.35f, 0.65f, 1f) : new Color(0.9f, 0.2f, 0.2f);
             }
 
             // Anchor the fill's left edge to the background's left edge.

@@ -47,9 +47,15 @@ Uses the legacy Input Manager (`Input.GetAxis`), so keep Active Input Handling o
 Models are generated in Blender: `blender -b --python Art/khorne_berserker.py` writes `Assets/Models/KhorneBerserker.fbx`
 (add `-- --render DIR` for preview PNGs). Abilities live in `Scripts/Abilities/<Character>/`.
 
-## Online 1v1
+## Online (2-6 players)
 
-Menu flow: **Menu scene → Host / Join → character select → Versus scene** (first to 5 kills, then Rematch or Main Menu).
+Menu flow: **Menu scene → Host / Join → character select → Versus scene** (best of 3 or 5 rounds, then Rematch or Main Menu).
+
+- Up to 6 players (`NetGame.MaxSeats`). The host picks the **game mode** in the lobby: **Free for all** (every player is their own team: 1v1, 1v1v1, ...)
+  or **Teams** (everyone picks Team A or B: 2v2, 3v3, ...). A match starts once at least two teams exist and everyone is ready.
+- A round ends when only one team has anyone alive; that team wins the round (a round everyone dies in goes to the team of the last death).
+  Dead players stay down until the round resets. If players leave mid-match it carries on while two teams remain.
+- Teams are `Health.Team` ids (1-based; synced via `NetPlayer`). Spawns are computed in `NetGame.SpawnPosition` (ring for FFA, two lines for Teams) rather than read from the scene's `SpawnPoint_*` markers.
 
 - `Assets/Scenes/Menu.unity` is the entry point; `Versus.unity` is the online arena; `Arena.unity` stays the offline training ground (dummies).
 - Netcode for GameObjects with direct IP (UDP **7777**). The host clicks Host Game, the friend types the host's IP and clicks Join Game.
