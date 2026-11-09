@@ -84,6 +84,35 @@ namespace Anathema.Abilities.KhorneBerserker
         //
         // The Armament slot is weapon-aware, so nobody can take a weapon every round:
         //   - until you hold a transformed weapon it offers the next weapon in the progression
+        //     (after round 1 the Eviscerator, after round 2 the Heavy Chainaxe);
+        //   - once you hold one, it offers upgrades unique to that weapon instead (they only exist for that weapon);
+        //   - a Berserker who never takes a weapon is offered the dual chainaxes' own upgrades later on.
+        // The other two cards are never weapons, so a Berserker can also skip every weapon and build from them.
+        //
+        //   after round 1   Armament: Eviscerator                                   Endurance: Feel No Pain         Ferocity: Berserker's Fury
+        //   after round 2   Armament: Heavy Chainaxe, or Headsman's Mark (Evisc.)   Endurance: Blood-Fuelled Regen  Ferocity: Relentless Pursuit
+        //   after round 3   Armament: Whetted Edge / Rending Gouges / Chain Frenzy  Endurance: Unstoppable          Ferocity: Skulltaker
+        //   after round 4   Armament: Earthshaker / Keep the Dual Chainaxes / Gore Rush   Endurance: Defiant Roar   Ferocity: Crimson Momentum
+        //
+        // Upgrades in no set (Hamstring, Skullthrone's Favour, Vengeful Blood, Gorehound's Vigour) stay in the catalog for the
+        // F1 test panel and for future sets.
+        public static readonly int[][][] Sets =
+        {
+            new[] { new[] { Eviscerator },                                   new[] { FeelNoPain },       new[] { BerserkersFury } },
+            new[] { new[] { HeadsmansMark, HeavyChainaxe, RendingGouges },   new[] { CrimsonCommunion }, new[] { RelentlessPursuit } },
+            new[] { new[] { WhettedEdge, RendingGouges, ChainFrenzy },       new[] { Unstoppable },      new[] { Skulltaker } },
+            new[] { new[] { Earthshaker, TwinAxes, GoreRush },               new[] { DefiantRoar },      new[] { CrimsonMomentum } },
+        };
+
+        static bool Wields(int mask, int weapon) => (mask & (1 << weapon)) != 0;
+        static bool NoWeapon(int mask) => (mask & ((1 << HeavyChainaxe) | (1 << Eviscerator))) == 0;
+
+        // The fixed offers: Sets[pick][slot] is a list of alternatives for one card; the first one that is still available is
+        // shown. Pick 0 is offered after round 1, pick 1 after round 2, and so on. Everyone sees the same sets, so the pick
+        // has no luck in it. Every set is Armament / Endurance / Ferocity.
+        //
+        // The Armament slot is weapon-aware, so nobody can take a weapon every round:
+        //   - until you hold a transformed weapon it offers the next weapon in the progression
         //     (round 1 dual chainaxes -> round 2 Eviscerator -> round 3 Heavy Chainaxe);
         //   - once you hold one, it offers upgrades unique to that weapon instead (they only exist for that weapon).
         // The other two cards are never weapons, so a Berserker can also skip every weapon and build from them.

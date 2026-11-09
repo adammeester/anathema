@@ -59,10 +59,10 @@ After every round except the last the match goes through the **prep phase** (Bat
 
    | Pick | Armament slot | Endurance | Ferocity |
    | --- | --- | --- | --- |
-   | after round 1 | Keep the Dual Chainaxes (Axe Toss throws two axes) | Feel No Pain | Berserker's Fury |
-   | after round 2 | Eviscerator (Executioner) | Blood-Fuelled Regeneration | Relentless Pursuit |
-   | after round 3 | Heavy Chainaxe (Reaver), **or Headsman's Mark if you hold the Eviscerator** | Unstoppable | Skulltaker |
-   | after round 4 | Whetted Edge (Eviscerator) / Rending Gouges (Heavy) / Chain Frenzy (no weapon) | Defiant Roar | Crimson Momentum |
+   | after round 1 | Eviscerator (Executioner) | Feel No Pain | Berserker's Fury |
+   | after round 2 | Heavy Chainaxe (Reaver), **or Headsman's Mark if you hold the Eviscerator** | Blood-Fuelled Regeneration | Relentless Pursuit |
+   | after round 3 | Whetted Edge (Eviscerator) / Rending Gouges (Heavy) / Chain Frenzy (no weapon) | Unstoppable | Skulltaker |
+   | after round 4 | Earthshaker (Heavy) / Keep the Dual Chainaxes (no weapon) / Gore Rush (Eviscerator, filler) | Defiant Roar | Crimson Momentum |
 
    **The Armament slot is weapon-aware, so nobody can take a weapon every round:** until you hold a transformed weapon it offers the next weapon
    in the progression; once you hold one (they replace each other, one per match) it offers **upgrades unique to that weapon** instead:
@@ -70,7 +70,7 @@ After every round except the last the match goes through the **prep phase** (Bat
    Heavy Chainaxe: Rending Gouges (bleeds 60% harder, 2s longer), Earthshaker (Gorecleave +25% reach, +50% knockback);
    dual chainaxes: Chain Frenzy (Axe Toss recharges 30% faster, each landed axe adds a Rage stack).
    The other two cards are never weapons, so a Berserker can also skip every weapon and build from them. Upgrades in no set
-   (Hamstring, Skullthrone's Favour, Vengeful Blood, Earthshaker) stay in the catalog for the test panel and future sets.
+   (Hamstring, Skullthrone's Favour, Vengeful Blood, Gorehound's Vigour) stay in the catalog for the test panel and future sets.
    A character past its last set, or with no sets, falls back to a random draw.
 3. **Lock-in**: once everyone has chosen (the menu stays at least 3s) or after 20s (undecided players get a random offer), picks are locked and a
    3s countdown runs, then the barrier drops and the round begins.
