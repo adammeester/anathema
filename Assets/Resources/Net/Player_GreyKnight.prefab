@@ -278,6 +278,11 @@ MonoBehaviour:
   energyPerHit: 8
   telegraphColor: {r: 1, g: 1, b: 1, a: 0.15}
   fillColor: {r: 1, g: 1, b: 1, a: 0.3}
+  exEnergyCost: 35
+  domeRadius: 3.5
+  domeDuration: 6
+  domeSlow: 0.5
+  domeColor: {r: 0.4, g: 0.7, b: 1, a: 1}
 --- !u!114 &6052617179607475017
 MonoBehaviour:
   m_ObjectHideFlags: 0

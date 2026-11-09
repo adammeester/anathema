@@ -27,10 +27,27 @@ namespace Anathema.Abilities.PlagueSurgeon
 
         Energy energy;
 
+        protected override float WindupDuration => 0.3f;
+        protected override Color WindupColor => new Color(0.55f, 0.65f, 0.2f, 1f);
+
+        // The EX energy is spent when the wind-up starts and given back if it is cancelled.
+        protected override void OnWindupStart()
+        {
+            if (!IsReplica) ExActivation = TrySpendEx(energy, exEnergyCost);
+            PlagueSurgeonPose.For(gameObject).ReadyThrow(WindupDuration + 0.1f);
+        }
+
+        protected override void OnWindupCancel()
+        {
+            PlagueSurgeonPose.For(gameObject).Release();
+            if (ExActivation && !IsReplica && energy != null) energy.Gain(exEnergyCost);
+        }
+
         public override string DisplayName => "Pestilent Fly";
         public override string KeyLabel => "RMB";
         public override float ExCost => exEnergyCost;
         public override string ExDescription => "Bursts when done";
+        public override string ExName => "Pestilent Burst";
 
         // Applied only when added in the editor.
         void Reset()
@@ -51,8 +68,6 @@ namespace Anathema.Abilities.PlagueSurgeon
 
         protected override void Activate()
         {
-            if (!IsReplica) ExActivation = TrySpendEx(energy, exEnergyCost);
-
             Vector3 dir = Aim.AimDirection;
             dir.y = 0f;
             if (dir.sqrMagnitude < 0.0001f) dir = transform.forward;
@@ -67,7 +82,7 @@ namespace Anathema.Abilities.PlagueSurgeon
 
         protected override void Cancel()
         {
-            // Nothing to cancel: the fly leaves instantly.
+            // Nothing to cancel once the fly has left (a wind-up in progress is cancelled by the base class).
         }
 
         void OnLatch(Health target)

@@ -25,6 +25,13 @@ namespace Anathema.Abilities.PlagueSurgeon
         float speed;
         float endTime;
 
+        protected override float WindupDuration => 0.3f;
+        protected override Color WindupColor => wingColor;
+
+        protected override void OnWindupStart() => PlagueSurgeonPose.For(gameObject).Wings(WindupDuration + 0.1f);
+
+        protected override void OnWindupCancel() => PlagueSurgeonPose.For(gameObject).Release();
+
         public override string DisplayName => "Winged Escape";
         public override string KeyLabel => "Space";
 

@@ -5,6 +5,8 @@ using Anathema.Abilities;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Abilities.KhorneBerserker;
 using Anathema.Abilities.PlagueSurgeon;
+using Anathema.Abilities.Psyker;
+using Anathema.Abilities.SkitariiRanger;
 using Anathema.Combat;
 using UnityEngine;
 
@@ -39,6 +41,8 @@ namespace Anathema.Player
             if (GetComponent<BerserkerCounter>() != null) return "KhorneBerserker";
             if (GetComponent<InterceptorCounter>() != null) return "GreyKnight";
             if (GetComponent<PlagueSpit>() != null) return "PlagueSurgeon";
+            if (GetComponent<WarpBolt>() != null) return "Psyker";
+            if (GetComponent<GalvanicShot>() != null) return "SkitariiRanger";
             return null;
         }
 

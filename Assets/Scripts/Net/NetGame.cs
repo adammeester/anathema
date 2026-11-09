@@ -42,20 +42,8 @@ namespace Anathema.Net
             public bool ready;
         }
 
-        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon" };
-        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon" };
-        static readonly string[] CharacterBlurb =
-        {
-            "Psychic warrior-monk. Ranged and precise, with a counter that turns into a teleport.",
-            "Frenzied melee brawler. Closes the gap fast and wins by staying on top of you.",
-            "Support caster. Poison clouds and plague flies that hurt foes and mend allies. No counter, just wings."
-        };
-        static readonly string[][] CharacterKit =
-        {
-            new[] { "LMB  Storm bolter", "Q  Halberd sweep", "RMB  Smite (piercing lance)", "Space  Counter + riposte", "R  Purgatus (ultimate)" },
-            new[] { "LMB  Chain-axe chops", "Q  Axe rush (EX: whirling carnage)", "E  Maim (EX: Butcher's Nails rage)", "Space  Blood rage counter", "R  Blood for the Blood God (ultimate)", "Hold Shift  EX version" },
-            new[] { "LMB  Plague spit (stacking rot)", "E  Restorative cloud (EX: damage cloud)", "RMB  Pestilent fly (EX: bursts)", "Space  Winged escape (i-frames)", "R  Ward of Plague (ultimate)", "Hold Shift  EX version" }
-        };
+        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon", "Psyker", "Skitarii Ranger" };
+        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon", "Net/Player_Psyker", "Net/Player_SkitariiRanger" };
 
         public static NetGame Instance { get; private set; }
         public static bool Online => Instance != null && Instance.manager != null && Instance.manager.IsListening;
@@ -87,6 +75,10 @@ namespace Anathema.Net
         Texture2D pixel;
         GUIStyle title, subtitle, label, labelSmall, labelCentered, button, buttonBig, field, headline;
         float uiScale = 1f;
+        readonly CharacterSelectView select = new CharacterSelectView();
+        readonly bool[] roleFilter = new bool[3];
+        bool draggingModel;
+        float modelDrag;
 
         // --- Creation ---------------------------------------------------------------------------------------------
 
@@ -145,6 +137,7 @@ namespace Anathema.Net
         {
             if (Instance == this)
             {
+                select.Hide();
                 Instance = null;
                 frozen = false;
             }
@@ -474,6 +467,8 @@ namespace Anathema.Net
         {
             if (Instance != this || manager == null) return;
 
+            if (phase == Phase.Lobby) select.Show(); else select.Hide();
+
             if (!manager.IsServer && phase == Phase.Lobby && SceneManager.GetActiveScene().name == ArenaScene)
             {
                 phase = Phase.Playing;
@@ -758,79 +753,216 @@ namespace Anathema.Net
         {
             DrawBackdrop(w, h);
 
-            GUI.Label(new Rect(0, 40, w, 80), "CHOOSE YOUR CHAMPION", headline);
-            Rect(new Rect(w * 0.5f - 300, 125, 600, 3), DarkGold);
-
+            var roster = CharacterSelectView.Roster;
             int mine = manager.IsServer ? 0 : MySeat();
             int other = mine == 0 ? 1 : 0;
             bool opponentHere = other >= 0 && seats[other].used;
+            var info = roster[Mathf.Clamp(myCharacter, 0, roster.Length - 1)];
+            Color accent = info.accent;
+            Vector2 mouse = Event.current.mousePosition;
+            bool repaint = Event.current.type == EventType.Repaint;
 
-            // Character cards.
-            int cardCount = CharacterNames.Length;
-            float gap = 40, cardH = 520;
-            float cardW = Mathf.Min(560f, (w - 80f - gap * (cardCount - 1)) / cardCount);
-            float startX = w * 0.5f - (cardW * cardCount + gap * (cardCount - 1)) * 0.5f;
-            for (int i = 0; i < CharacterNames.Length; i++)
+            // Header.
+            GUI.Label(new Rect(0, 14, w, 70), "CHAMPION SELECT", new GUIStyle(headline) { fontSize = 46 });
+            Rect(new Rect(w * 0.5f - 300, 86, 600, 3), DarkGold);
+
+            // --- Centre: the full model of the chosen champion, drag to rotate -----------------------------------------
+            float stageSize = 900f;
+            var stageRect = new Rect(w * 0.5f - stageSize * 0.5f, 100, stageSize, stageSize);
+            for (int i = 0; i < 6; i++) // soft glow behind the feet
             {
-                var card = new Rect(startX + i * (cardW + gap), 160, cardW, cardH);
-                bool selected = myCharacter == i;
-                bool opponentPicked = opponentHere && seats[other].character == i;
-                Color accent = i == 0 ? new Color(0.45f, 0.75f, 1f) : i == 1 ? new Color(1f, 0.32f, 0.22f) : new Color(0.55f, 0.85f, 0.2f);
+                float gw = 520f - i * 70f;
+                Rect(new Rect(w * 0.5f - gw * 0.5f, 860 - i * 6f, gw, 30f), new Color(accent.r, accent.g, accent.b, 0.05f));
+            }
 
-                Frame(card, Panel, selected ? accent : DarkGold, selected ? 6f : 3f);
-                Rect(new Rect(card.x + 6, card.y + 6, card.width - 12, 10), new Color(accent.r, accent.g, accent.b, selected ? 0.9f : 0.35f));
+            Event e = Event.current;
+            var dragZone = new Rect(w * 0.5f - 280, 160, 560, 740);
+            if (e.type == EventType.MouseDown && dragZone.Contains(e.mousePosition)) { draggingModel = true; e.Use(); }
+            else if (e.type == EventType.MouseDrag && draggingModel) { modelDrag += e.delta.x; e.Use(); }
+            else if (e.type == EventType.MouseUp) draggingModel = false;
 
-                GUI.Label(new Rect(card.x + 30, card.y + 34, cardW - 60, 44), CharacterNames[i].ToUpper(), new GUIStyle(label) { fontSize = 32, fontStyle = FontStyle.Bold, normal = { textColor = accent } });
-                GUI.Label(new Rect(card.x + 30, card.y + 88, cardW - 60, 90), CharacterBlurb[i], label);
+            if (repaint)
+            {
+                select.Render(myCharacter, draggingModel ? modelDrag : 0f);
+                modelDrag = 0f;
+                if (select.StageTexture != null) GUI.DrawTexture(stageRect, select.StageTexture, ScaleMode.StretchToFill, true);
+            }
 
-                float y = card.y + 200;
-                foreach (string line in CharacterKit[i])
+            // --- Left: champion info + abilities ----------------------------------------------------------------------
+            var left = new Rect(30, 120, 570, 790);
+            Frame(left, Panel, DarkGold, 3f);
+            Rect(new Rect(left.x + 3, left.y + 3, left.width - 6, 8), new Color(accent.r, accent.g, accent.b, 0.85f));
+
+            GUI.Label(new Rect(left.x + 20, left.y + 24, left.width - 40, 56), info.name, new GUIStyle(headline) { fontSize = 38, normal = { textColor = Color.white } });
+            GUI.Label(new Rect(left.x + 20, left.y + 80, left.width - 40, 34), info.epithet, new GUIStyle(labelCentered) { fontSize = 24, fontStyle = FontStyle.Bold, normal = { textColor = Gold } });
+            Rect(new Rect(left.x + 30, left.y + 124, left.width - 60, 2), DarkGold);
+
+            GUI.Label(new Rect(left.x + 40, left.y + 140, 260, 50), info.role.ToString().ToUpper(), new GUIStyle(label) { fontSize = 34, fontStyle = FontStyle.Bold, normal = { textColor = accent } });
+            GUI.Label(new Rect(left.x + 40, left.y + 190, left.width - 80, 140), info.blurb, label);
+
+            // Ability icons: normal abilities (ultimate last) on the first row, EX abilities on a row beneath.
+            CharacterSelectView.AbilityInfo hoveredAbility = null;
+            Rect hoveredRect = default;
+            var keyStyle = new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter, fontSize = 18, fontStyle = FontStyle.Bold, wordWrap = false };
+            for (int pass = 0; pass < 2; pass++)
+            {
+                var row = new System.Collections.Generic.List<CharacterSelectView.AbilityInfo>();
+                foreach (var a in info.abilities) if (a.ex == (pass == 1)) row.Add(a);
+                if (row.Count == 0) continue;
+                const float icon = 72f, spacing = 16f;
+                float rowW = row.Count * icon + (row.Count - 1) * spacing;
+                float rx = left.x + (left.width - rowW) * 0.5f;
+                float ry = left.y + (pass == 0 ? 380 : 560);
+                if (pass == 1)
                 {
-                    GUI.Label(new Rect(card.x + 40, y, cardW - 80, 34), line, labelSmall);
-                    y += 36;
+                    GUI.Label(new Rect(left.x + 20, ry - 40, left.width - 40, 30), "EX ABILITIES",
+                        new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter, fontSize = 20, fontStyle = FontStyle.Bold, wordWrap = false, normal = { textColor = new Color(0.8f, 0.6f, 1f) } });
+                    Rect(new Rect(left.x + 30, ry - 46, left.width - 60, 2), DarkGold);
+                }
+                for (int i = 0; i < row.Count; i++)
+                {
+                    var ir = new Rect(rx + i * (icon + spacing), ry + 28, icon, icon);
+                    GUI.Label(new Rect(ir.x - 20, ry, icon + 40, 28), row[i].key, keyStyle);
+                    if (row[i].icon != null) GUI.DrawTexture(ir, row[i].icon, ScaleMode.StretchToFill, true);
+                    GUI.Label(new Rect(ir.x - 4, ir.y + 20, icon + 8, 36), Abbreviation(row[i].name),
+                        new GUIStyle(keyStyle) { fontSize = 26, normal = { textColor = Color.white } });
+                    if (ir.Contains(mouse)) { hoveredAbility = row[i]; hoveredRect = ir; }
+                }
+            }
+
+            if (!string.IsNullOrEmpty(info.footnote))
+                GUI.Label(new Rect(left.x + 20, left.yMax - 80, left.width - 40, 36), info.footnote,
+                    new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter, fontStyle = FontStyle.Italic, wordWrap = false });
+            GUI.Label(new Rect(left.x + 20, left.yMax - 44, left.width - 40, 32), "Hover an ability for details",
+                new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter, fontSize = 17, wordWrap = false, normal = { textColor = new Color(0.6f, 0.58f, 0.55f) } });
+
+            // --- Right: role filters + champion tile grid -------------------------------------------------------------
+            const int cols = 5, rows = 4;
+            const float tile = 104f, tileGap = 14f;
+            float gridW = cols * tile + (cols - 1) * tileGap;
+            var right = new Rect(w - 30 - (gridW + 60), 120, gridW + 60, 790);
+
+            var filterPanel = new Rect(right.x, right.y, right.width, 120);
+            Frame(filterPanel, Panel, DarkGold, 3f);
+            GUI.Label(new Rect(filterPanel.x + 20, filterPanel.y + 8, 300, 36), "Filters", new GUIStyle(label) { fontSize = 28, normal = { textColor = Gold } });
+            string[] roleNames = { "MELEE", "RANGED", "SUPPORT" };
+            for (int i = 0; i < 3; i++)
+            {
+                var fr = new Rect(filterPanel.x + 20 + i * ((filterPanel.width - 40) / 3f), filterPanel.y + 52, (filterPanel.width - 40) / 3f - 12f, 52);
+                if (roleFilter[i]) Rect(new Rect(fr.x - 3, fr.y - 3, fr.width + 6, fr.height + 6), Gold);
+                if (GUI.Button(fr, roleNames[i], new GUIStyle(button) { fontSize = 22 })) roleFilter[i] = !roleFilter[i];
+            }
+            bool anyFilter = roleFilter[0] || roleFilter[1] || roleFilter[2];
+
+            var gridPanel = new Rect(right.x, right.y + 140, right.width, right.height - 140);
+            Frame(gridPanel, Panel, DarkGold, 3f);
+            GUI.Label(new Rect(gridPanel.x + 20, gridPanel.y + 8, 300, 36), "Champions", new GUIStyle(label) { fontSize = 28, normal = { textColor = Gold } });
+
+            int hoveredTile = -1;
+            for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+            {
+                int i = r * cols + c;
+                var t = new Rect(gridPanel.x + 30 + c * (tile + tileGap), gridPanel.y + 60 + r * (tile + tileGap), tile, tile);
+                if (i >= roster.Length)
+                {
+                    Frame(t, new Color(0.03f, 0.04f, 0.06f, 0.85f), new Color(0.2f, 0.2f, 0.22f), 2f);
+                    continue;
                 }
 
-                string tag = selected && opponentPicked ? "YOU + OPPONENT" : selected ? "YOU" : opponentPicked ? "OPPONENT" : "";
-                if (tag.Length > 0)
-                    GUI.Label(new Rect(card.x + 30, card.yMax - 52, cardW - 60, 40), tag, new GUIStyle(label) { fontSize = 24, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleRight, normal = { textColor = accent } });
+                var ci = roster[i];
+                bool selected = myCharacter == i;
+                bool opponentPicked = opponentHere && seats[other].character == i;
+                bool dim = anyFilter && !roleFilter[(int)ci.role];
+                bool hover = t.Contains(mouse);
+                if (hover) hoveredTile = i;
 
-                // Whole card is the button (invisible), so clicking anywhere on it picks the champion.
-                if (GUI.Button(card, GUIContent.none, GUIStyle.none)) SetMyCharacter(i);
+                Rect(t, selected ? ci.accent : hover ? Gold : DarkGold);
+                var inner = new Rect(t.x + (selected ? 5 : 3), t.y + (selected ? 5 : 3), t.width - (selected ? 10 : 6), t.height - (selected ? 10 : 6));
+                Rect(inner, new Color(0.05f, 0.06f, 0.09f));
+                if (select.Portraits != null && select.Portraits[i] != null)
+                    GUI.DrawTexture(inner, select.Portraits[i], ScaleMode.ScaleAndCrop, true);
+                if (dim) Rect(inner, new Color(0f, 0f, 0f, 0.65f));
+
+                if (opponentPicked)
+                {
+                    Rect(new Rect(inner.x, inner.yMax - 24, inner.width, 24), new Color(0f, 0f, 0f, 0.75f));
+                    GUI.Label(new Rect(inner.x, inner.yMax - 24, inner.width, 24), "OPPONENT",
+                        new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter, fontSize = 15, fontStyle = FontStyle.Bold, wordWrap = false, normal = { textColor = ci.accent } });
+                }
+
+                if (GUI.Button(t, GUIContent.none, GUIStyle.none)) SetMyCharacter(i);
             }
+
+            // Hover card for a tile (like the info popup in the reference).
+            if (hoveredTile >= 0)
+            {
+                var hc = roster[hoveredTile];
+                var tip = new Rect(right.x - 380, right.y + 140, 360, 200);
+                Frame(tip, new Color(0.04f, 0.05f, 0.08f, 0.97f), DarkGold, 2f);
+                GUI.Label(new Rect(tip.x + 14, tip.y + 8, tip.width - 28, 32), hc.name, new GUIStyle(label) { fontSize = 24, fontStyle = FontStyle.Bold, normal = { textColor = Color.white } });
+                GUI.Label(new Rect(tip.x + 14, tip.y + 44, tip.width - 28, 140), hc.blurb, new GUIStyle(labelSmall) { fontSize = 18 });
+            }
+
+            // --- Bottom: status, match length, ready, back -------------------------------------------------------------
+            string opponentText = !opponentHere ? "Waiting for your opponent to join..."
+                : $"Opponent: {CharacterNames[seats[other].character]} - {(seats[other].ready ? "READY" : "choosing")}";
+            GUI.Label(new Rect(0, 912, w, 36), opponentText, labelCentered);
+
+            bool canReady = opponentHere;
+            GUI.enabled = canReady;
+            string readyText = myReady ? "READY!  (cancel)" : "READY";
+            if (GUI.Button(new Rect(w * 0.5f - 220, 954, 440, 80), readyText, buttonBig)) SetMyReady(!myReady);
+            GUI.enabled = true;
+
+            if (GUI.Button(new Rect(30, 970, 200, 60), "BACK", button)) LeaveToMenu("");
 
             // Match length: the host picks, the guest sees it.
             if (manager.IsServer)
             {
-                GUI.Label(new Rect(w * 0.5f - 400, 692, 300, 56), "MATCH LENGTH", new GUIStyle(label) { alignment = TextAnchor.MiddleRight, fontStyle = FontStyle.Bold });
-                DrawBestOfButton(new Rect(w * 0.5f - 80, 692, 200, 56), 3);
-                DrawBestOfButton(new Rect(w * 0.5f + 140, 692, 200, 56), 5);
+                GUI.Label(new Rect(w - 700, 962, 260, 56), "MATCH LENGTH", new GUIStyle(label) { alignment = TextAnchor.MiddleRight, fontStyle = FontStyle.Bold, fontSize = 22 });
+                DrawBestOfButton(new Rect(w - 420, 962, 180, 56), 3);
+                DrawBestOfButton(new Rect(w - 220, 962, 180, 56), 5);
+                GUI.Label(new Rect(w - 700, 1030, 660, 30), $"Friend joins with: {localIps} (UDP {DefaultPort})", new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleRight, fontSize = 16, wordWrap = false });
             }
             else
             {
-                GUI.Label(new Rect(0, 692, w, 56), $"MATCH LENGTH:  BEST OF {bestOf}  (set by host)", new GUIStyle(labelCentered) { fontStyle = FontStyle.Bold });
+                GUI.Label(new Rect(w - 700, 962, 660, 56), $"BEST OF {bestOf}  (set by host)", new GUIStyle(label) { alignment = TextAnchor.MiddleRight, fontStyle = FontStyle.Bold, fontSize = 22 });
             }
-
-            // Status line.
-            string opponentText = !opponentHere ? "Waiting for your opponent to join..."
-                : $"Opponent: {CharacterNames[seats[other].character]} - {(seats[other].ready ? "READY" : "choosing")}";
-            GUI.Label(new Rect(0, 760, w, 40), opponentText, labelCentered);
-
-            if (manager.IsServer)
-            {
-                GUI.Label(new Rect(0, 800, w, 40), $"Your friend joins with:  {localIps}   (port {DefaultPort} UDP)", new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter });
-            }
-
-            // Ready / back.
-            bool canReady = opponentHere;
-            GUI.enabled = canReady;
-            string readyText = myReady ? "READY!  (click to cancel)" : "READY";
-            if (GUI.Button(new Rect(w * 0.5f - 250, 850, 500, 90), readyText, buttonBig)) SetMyReady(!myReady);
-            GUI.enabled = true;
-
-            if (GUI.Button(new Rect(60, h - 110, 200, 60), "BACK", button)) LeaveToMenu("");
 
             if (myReady && opponentHere && seats[other].ready)
-                GUI.Label(new Rect(0, 950, w, 40), "Both ready - starting...", labelCentered);
+                GUI.Label(new Rect(0, 1040, w, 36), "Both ready - starting...", labelCentered);
+
+            // Ability tooltip drawn last so it sits on top of everything.
+            if (hoveredAbility != null)
+            {
+                const float tipW = 460f;
+                var nameStyle = new GUIStyle(label) { fontSize = 24, fontStyle = FontStyle.Bold, wordWrap = false, normal = { textColor = hoveredAbility.ex ? new Color(0.8f, 0.6f, 1f) : accent } };
+                var descStyle = new GUIStyle(labelSmall) { fontSize = 19 };
+                var statStyle = new GUIStyle(labelSmall) { fontSize = 17, normal = { textColor = Gold } };
+                float descH = descStyle.CalcHeight(new GUIContent(hoveredAbility.description), tipW - 28);
+                float statH = statStyle.CalcHeight(new GUIContent(hoveredAbility.stats), tipW - 28);
+                string tag = hoveredAbility.ex ? "EX ABILITY" : hoveredAbility.ultimate ? "ULTIMATE" : "ABILITY";
+                float tipH = 44 + 26 + descH + 14 + statH + 16;
+                var tip = new Rect(hoveredRect.xMax + 16, Mathf.Min(hoveredRect.y - 10, h - tipH - 10), tipW, tipH);
+                if (tip.xMax > w - 10) tip.x = hoveredRect.x - tipW - 16;
+                Frame(tip, new Color(0.04f, 0.05f, 0.08f, 0.98f), hoveredAbility.ex ? new Color(0.8f, 0.6f, 1f) : accent, 2f);
+                GUI.Label(new Rect(tip.x + 14, tip.y + 8, tip.width - 28, 32), $"{hoveredAbility.name}  [{hoveredAbility.key}]", nameStyle);
+                GUI.Label(new Rect(tip.x + 14, tip.y + 38, tip.width - 28, 24), tag,
+                    new GUIStyle(labelSmall) { fontSize = 15, fontStyle = FontStyle.Bold, wordWrap = false, normal = { textColor = new Color(0.6f, 0.58f, 0.55f) } });
+                GUI.Label(new Rect(tip.x + 14, tip.y + 66, tip.width - 28, descH), hoveredAbility.description, descStyle);
+                Rect(new Rect(tip.x + 14, tip.y + 66 + descH + 4, tip.width - 28, 1), DarkGold);
+                GUI.Label(new Rect(tip.x + 14, tip.y + 66 + descH + 10, tip.width - 28, statH), hoveredAbility.stats, statStyle);
+            }
+        }
+
+        static string Abbreviation(string name)
+        {
+            var parts = name.Split(' ', '-');
+            string s = "";
+            foreach (string p in parts)
+                if (p.Length > 0 && s.Length < 2 && p != "for" && p != "the") s += char.ToUpper(p[0]);
+            return s.Length > 0 ? s : name.Substring(0, 1);
         }
 
         void DrawBestOfButton(Rect r, int value)

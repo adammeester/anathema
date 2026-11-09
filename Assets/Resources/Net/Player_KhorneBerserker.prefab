@@ -89,7 +89,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb8b7a76ab003be4a80b01073c0118a3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Health
-  maxHealth: 130
+  maxHealth: 150
   team: 1
   recoverableDecayDelay: 4
   recoverableDecayRate: 6
@@ -223,6 +223,7 @@ MonoBehaviour:
   spinDuration: 0.7
   recoverDuration: 0.15
   energyPerHit: 6
+  exEnergyCost: 35
   slashColor: {r: 1, g: 0.2, b: 0.1, a: 0.8}
   armLift: 60
 --- !u!114 &6384958865552583986
@@ -273,6 +274,8 @@ MonoBehaviour:
   swingDuration: 0.1
   recoverDuration: 0.15
   energyPerHit: 8
+  exEnergyCost: 35
+  nailsDuration: 6
   slashColor: {r: 0.6, g: 0.02, b: 0.02, a: 0.9}
   crouchLean: 22
   armsRaise: 50
@@ -352,9 +355,10 @@ MonoBehaviour:
   glowScale: 1.06
   glowColor: {r: 0.3, g: 0.6, b: 1, a: 0.4}
   retaliationDamage: 18
-  healAmount: 12
+  healFraction: 0.1
   energyPerHit: 10
   burstRadius: 2.2
+  enrageDuration: 4
   burstColor: {r: 1, g: 0.15, b: 0.1, a: 0.9}
 --- !u!114 &6440626788595514686
 MonoBehaviour:

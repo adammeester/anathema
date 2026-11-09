@@ -1,0 +1,497 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &8844120712653753745
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7607750486241095920}
+  - component: {fileID: 7426669744301311998}
+  - component: {fileID: 982477013015914455}
+  - component: {fileID: 3538650159009085752}
+  - component: {fileID: 3354299869392627116}
+  - component: {fileID: 8557206841007336913}
+  - component: {fileID: 7161829690998883309}
+  - component: {fileID: 5555797694109250182}
+  - component: {fileID: 6718889239421477003}
+  - component: {fileID: 6677596520718113654}
+  - component: {fileID: 8388641068491544697}
+  - component: {fileID: 2532294745468691654}
+  - component: {fileID: 6841414072090863450}
+  - component: {fileID: 8272604845336622420}
+  - component: {fileID: 2735570303233492133}
+  - component: {fileID: 4687864249785004690}
+  - component: {fileID: 8933078460256570817}
+  - component: {fileID: 211242061425868260}
+  - component: {fileID: 2230072284451291063}
+  - component: {fileID: 1399126658506189340}
+  m_Layer: 0
+  m_Name: Player_Psyker
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7607750486241095920
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 3602832710347041222}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &7426669744301311998
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 1.8
+  m_Radius: 0.4
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0.9, z: 0}
+--- !u!114 &982477013015914455
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb8b7a76ab003be4a80b01073c0118a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Health
+  maxHealth: 100
+  team: 1
+  recoverableDecayDelay: 4
+  recoverableDecayRate: 6
+  maxRecoverableChunks: 3
+--- !u!114 &3538650159009085752
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c486fe249312fb4284cb54138eca904, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.HealthBar
+  height: 2.3
+  width: 1.6
+  thickness: 0.16
+--- !u!114 &3354299869392627116
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1b891849688edf41ae382c760671a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Energy
+  maxEnergy: 100
+  startingEnergy: 0
+--- !u!114 &8557206841007336913
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aad082e899eb23a45bba94183514dfbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.EnergyBar
+  height: 2.1
+  width: 1.6
+  thickness: 0.1
+--- !u!114 &7161829690998883309
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 310d721b8c688ae4a8721f557dbc141f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Respawner
+  delay: 3
+--- !u!114 &5555797694109250182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da002b6d6640a9c4790ad411519d406e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.MouseAim
+--- !u!114 &6718889239421477003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f96c27d7c6c15984fbf83864441b4db9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.PlayerMovement
+  moveSpeed: 6.5
+  gravity: -25
+--- !u!114 &6677596520718113654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4658f0590cb526e4cb05b0e083078e7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.WarpBolt
+  cooldown: 0.55
+  damage: 9
+  range: 14
+  projectileSpeed: 26
+  projectileRadius: 0.28
+  muzzleHeight: 1.25
+  muzzleForward: 0.6
+  energyPerHit: 8
+  boltColor: {r: 0.45, g: 0.95, b: 1, a: 1}
+--- !u!114 &8388641068491544697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7a3332eef07e8c46ba411a5a7641082, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.Cripple
+  cooldown: 8
+  damage: 5
+  stunDuration: 1.5
+  range: 14
+  projectileSpeed: 20
+  projectileRadius: 0.35
+  muzzleHeight: 1.25
+  muzzleForward: 0.6
+  energyPerHit: 12
+  exEnergyCost: 35
+  wellRange: 12
+  wellRadius: 4
+  wellDuration: 1.8
+  wellPullSpeed: 6
+  wellDetonationDamage: 25
+  boltColor: {r: 0.75, g: 0.55, b: 1, a: 1}
+--- !u!114 &2532294745468691654
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2c338a06ec8d484586a9ec082714907, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.ChainLightning
+  cooldown: 5
+  damage: 16
+  range: 12
+  aimRadius: 0.6
+  maxJumps: 2
+  jumpRange: 5
+  falloff: 0.7
+  energyPerHit: 6
+  originHeight: 1.25
+--- !u!114 &6841414072090863450
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51e95454bcf17a84f8d25fefbbf7f0b9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.PsychicBarrier
+  cooldown: 10
+  strength: 50
+  duration: 5
+  exEnergyCost: 40
+  leechRange: 11
+  leechDuration: 2
+  silenceDuration: 2
+  leechDamagePerSecond: 16
+  leechHealPerSecond: 16
+  leechEnergyPerSecond: 12
+  shellColor: {r: 0.35, g: 0.85, b: 1, a: 0.3}
+--- !u!114 &8272604845336622420
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 74ba700e42ea21748bbc5162812ddd21, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.WarpStep
+  cooldown: 6
+  range: 8
+  wallPadding: 0.8
+  fireRadius: 2.2
+  fireDuration: 4
+  fireDamagePerSecond: 12
+--- !u!114 &2735570303233492133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8e16bc6f5445a7a4ebb6deb20e4c0e60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.PsychicBlast
+  cooldown: 1
+  energyCost: 100
+  gatherDuration: 0.4
+  channelDuration: 3
+  range: 15
+  beamRadius: 0.45
+  tickInterval: 0.25
+  damagePerTick: 7
+  turnRate: 110
+  originHeight: 1.2
+--- !u!114 &4687864249785004690
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cf620fdf76aceb459465136a8368afb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.AimIndicator
+  lineHeight: 0.1
+  maxLength: 14
+  color: {r: 1, g: 1, b: 1, a: 0.35}
+--- !u!114 &8933078460256570817
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71dca0e14b933df49b60635d333e3a4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.PlayerHud
+--- !u!136 &211242061425868260
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 2
+  m_Radius: 0.4
+  m_Height: 1.8
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.9, z: 0}
+--- !u!114 &2230072284451291063
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 2038233783
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  m_InScenePlacedDisabledByDefault: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  m_InScenePlaced: 0
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &1399126658506189340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e587042fc420dd4db2d759c9350e464, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Net.NetPlayer
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!1001 &3924161670642519597
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 7607750486241095920}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      propertyPath: m_Name
+      value: Model
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8376696937978824494}
+  m_SourcePrefab: {fileID: 100100000, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+--- !u!4 &3602832710347041222 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+  m_PrefabInstance: {fileID: 3924161670642519597}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &4230012471778538364 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 68d7a908c03a1714ca5d393e518a2a81, type: 3}
+  m_PrefabInstance: {fileID: 3924161670642519597}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8376696937978824494
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4230012471778538364}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcbcca4c79d1c1b429006218b5a1c260, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.ProceduralWalk
+  strideLength: 2.3
+  referenceSpeed: 0
+  responsiveness: 14
+  thighSwing: 34
+  kneeBend: 62
+  footLevel: 0.75
+  bob: 0.045
+  forwardLean: 5
+  pelvisTwist: 5
+  shoulderTwist: 4
+  headStability: 0.75
+  armSwingLeft: 10
+  armSwingRight: 3
+  coatSway: 14

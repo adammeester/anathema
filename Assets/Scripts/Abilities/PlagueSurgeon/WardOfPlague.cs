@@ -20,6 +20,14 @@ namespace Anathema.Abilities.PlagueSurgeon
         public override string DisplayName => "Ward of Plague";
         public override string KeyLabel => "R";
 
+        protected override float WindupDuration => 0.6f;
+        protected override Color WindupColor => new Color(0.6f, 0.9f, 0.3f, 1f);
+
+        // Energy is only spent when the ward lands, so cancelling the wind-up costs nothing.
+        protected override void OnWindupStart() => PlagueSurgeonPose.For(gameObject).Conjure(WindupDuration + 0.1f);
+
+        protected override void OnWindupCancel() => PlagueSurgeonPose.For(gameObject).Release();
+
         // The HUD greys the slot out until the bar is full.
         public override bool Available => energy != null && energy.Current >= energyCost && !Silenced.IsSilenced(gameObject) && !Panicked.IsPanicked(gameObject);
 

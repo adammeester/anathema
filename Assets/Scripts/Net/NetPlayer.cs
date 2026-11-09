@@ -25,7 +25,8 @@ namespace Anathema.Net
             Bleed,
             Heal,
             Panic,
-            Ward
+            Ward,
+            Slow
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -367,7 +368,7 @@ namespace Anathema.Net
             switch ((StatusKind)kind)
             {
                 case StatusKind.Stun: Stunned.Apply(gameObject, a); break;
-                case StatusKind.Silence: Silenced.Apply(gameObject, a); break;
+                case StatusKind.Silence: Silenced.Apply(gameObject, a, b > 0f); break;
                 case StatusKind.Maim: Maimed.Apply(gameObject, a, b); break;
                 case StatusKind.Knockback: Knockback.Apply(gameObject, direction, a, b); break;
                 case StatusKind.Root: Rooted.Apply(gameObject, a); break;
@@ -375,6 +376,7 @@ namespace Anathema.Net
                 case StatusKind.Heal: ReportCredit(attacker, 0f, health.Heal(a)); break;
                 case StatusKind.Panic: Panicked.Apply(gameObject, attacker, a); break;
                 case StatusKind.Ward: PlagueWard.Apply(gameObject, attacker, a, b); break;
+                case StatusKind.Slow: Slowed.Apply(gameObject, a, b); break;
             }
         }
     }

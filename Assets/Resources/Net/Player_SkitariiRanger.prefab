@@ -1,0 +1,477 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &2315638733845888692
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4795601324638495525}
+  - component: {fileID: 2955951729617407141}
+  - component: {fileID: 8684956474834295960}
+  - component: {fileID: 2308359441588730158}
+  - component: {fileID: 5825822745483768500}
+  - component: {fileID: 4835013343491433344}
+  - component: {fileID: 5512851982493689949}
+  - component: {fileID: 8903946767937800248}
+  - component: {fileID: 5298318265258294222}
+  - component: {fileID: 697972963568275955}
+  - component: {fileID: 3379650712309190963}
+  - component: {fileID: 6366959596729987380}
+  - component: {fileID: 2294260938901556395}
+  - component: {fileID: 1942283802079846888}
+  - component: {fileID: 7086551724263475339}
+  - component: {fileID: 460217385042202048}
+  - component: {fileID: 6626596215736062339}
+  - component: {fileID: 4193468592126354364}
+  - component: {fileID: 1899811518094659331}
+  m_Layer: 0
+  m_Name: Player_SkitariiRanger
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4795601324638495525
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5168049752815365960}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &2955951729617407141
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 1.9
+  m_Radius: 0.4
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0.95, z: 0}
+--- !u!114 &8684956474834295960
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb8b7a76ab003be4a80b01073c0118a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Health
+  maxHealth: 105
+  team: 1
+  recoverableDecayDelay: 4
+  recoverableDecayRate: 6
+  maxRecoverableChunks: 3
+--- !u!114 &2308359441588730158
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c486fe249312fb4284cb54138eca904, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.HealthBar
+  height: 2.5
+  width: 1.6
+  thickness: 0.16
+--- !u!114 &5825822745483768500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1b891849688edf41ae382c760671a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Energy
+  maxEnergy: 100
+  startingEnergy: 0
+--- !u!114 &4835013343491433344
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aad082e899eb23a45bba94183514dfbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.EnergyBar
+  height: 2.3
+  width: 1.6
+  thickness: 0.1
+--- !u!114 &5512851982493689949
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 310d721b8c688ae4a8721f557dbc141f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Respawner
+  delay: 3
+--- !u!114 &8903946767937800248
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da002b6d6640a9c4790ad411519d406e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.MouseAim
+--- !u!114 &5298318265258294222
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f96c27d7c6c15984fbf83864441b4db9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.PlayerMovement
+  moveSpeed: 6.5
+  gravity: -25
+--- !u!114 &697972963568275955
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdf9bf036cb936c4699479698727bb4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.SkitariiRanger.GalvanicShot
+  cooldown: 0.75
+  damage: 14
+  range: 22
+  projectileSpeed: 42
+  projectileRadius: 0.2
+  muzzleHeight: 1.3
+  muzzleForward: 1.5
+  energyPerHit: 9
+  boltColor: {r: 0.5, g: 0.95, b: 1, a: 1}
+--- !u!114 &3379650712309190963
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6480cbdec63a6049a4e7c836448ec8d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.SkitariiRanger.TransuranicShot
+  cooldown: 6
+  chargeTime: 1.6
+  minDamage: 30
+  maxDamage: 95
+  minStun: 0.25
+  maxStun: 1.5
+  range: 34
+  shotRadius: 0.45
+  chargeMoveSlow: 0.45
+  energyPerHit: 25
+  muzzleHeight: 1.3
+  muzzleForward: 1.6
+--- !u!114 &6366959596729987380
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19428a012bc14854093e139ecbcb0b5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.SkitariiRanger.ShrapnelField
+  cooldown: 8
+  fieldRange: 12
+  fieldRadius: 3.5
+  fieldDuration: 4.5
+  fieldDamagePerSecond: 14
+  fieldSlow: 0.35
+  exEnergyCost: 35
+  blastRange: 7
+  blastHalfAngle: 38
+  blastDamage: 32
+  blastKnockback: 5
+  blastKnockbackTime: 0.25
+  blastSlow: 0.4
+  blastSlowDuration: 2.5
+  energyPerHit: 10
+  muzzleHeight: 1.3
+--- !u!114 &2294260938901556395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4077eadacf3da8d40a4364c7224d9943, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.SkitariiRanger.Disengage
+  cooldown: 7
+  distance: 7
+  duration: 0.22
+  wallPadding: 0.8
+--- !u!114 &1942283802079846888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bb3e8c37c72258848b73ae8f5385cda9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.SkitariiRanger.CullingVolley
+  cooldown: 1
+  energyCost: 100
+  gatherDuration: 0.6
+  shotCount: 4
+  shotInterval: 0.95
+  damage: 55
+  range: 60
+  shotRadius: 0.6
+  slow: 0.2
+  slowDuration: 2
+  recoverTime: 0.4
+  muzzleHeight: 1.3
+  muzzleForward: 1.6
+--- !u!114 &7086551724263475339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cf620fdf76aceb459465136a8368afb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.AimIndicator
+  lineHeight: 0.1
+  maxLength: 14
+  color: {r: 1, g: 1, b: 1, a: 0.35}
+--- !u!114 &460217385042202048
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71dca0e14b933df49b60635d333e3a4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.PlayerHud
+--- !u!136 &6626596215736062339
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 2
+  m_Radius: 0.4
+  m_Height: 1.9
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.95, z: 0}
+--- !u!114 &4193468592126354364
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 1645146780
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  m_InScenePlacedDisabledByDefault: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  m_InScenePlaced: 0
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &1899811518094659331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e587042fc420dd4db2d759c9350e464, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Net.NetPlayer
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!1001 &4625795652195420323
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4795601324638495525}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      propertyPath: m_Name
+      value: Model
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1283996252228861013}
+  m_SourcePrefab: {fileID: 100100000, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+--- !u!4 &5168049752815365960 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+  m_PrefabInstance: {fileID: 4625795652195420323}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5544856324370249202 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: eb9c3712e3111fa498aa3b8e39449d30, type: 3}
+  m_PrefabInstance: {fileID: 4625795652195420323}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1283996252228861013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5544856324370249202}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcbcca4c79d1c1b429006218b5a1c260, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.ProceduralWalk
+  strideLength: 2.3
+  referenceSpeed: 0
+  responsiveness: 14
+  thighSwing: 34
+  kneeBend: 62
+  footLevel: 0.75
+  bob: 0.045
+  forwardLean: 5
+  pelvisTwist: 5
+  shoulderTwist: 4
+  headStability: 0.75
+  armSwingLeft: 10
+  armSwingRight: 3
+  coatSway: 14

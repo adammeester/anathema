@@ -137,16 +137,12 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         void Teleport(Vector3 destination)
         {
             Vector3 origin = transform.position;
-            SlashEffect.Spawn(origin, Aim.AimDirection, 1.2f, 360f, 0.35f, teleportColor);
-
             // CharacterController overrides transform.position writes unless it is switched off first.
             if (controller != null) controller.enabled = false;
             transform.position = destination;
             if (controller != null) controller.enabled = true;
 
-            SlashEffect.Spawn(destination, Aim.AimDirection, 1.2f, 360f, 0.35f, teleportColor);
-
-            GreyKnightSound.Blink();
+            AbilityFx.Teleport(origin, destination, teleportColor);
             CloseWindow();
             if (sweep != null) sweep.Empower(empowerDuration);
         }

@@ -48,6 +48,9 @@ namespace Anathema.Abilities.KhorneBerserker
         float lastArms;
         readonly HashSet<Health> struck = new HashSet<Health>();
 
+        protected override float WindupDuration => 0.25f;
+        protected override Color WindupColor => slashColor;
+
         public override string DisplayName => "Rush";
         public override string KeyLabel => "Q";
 

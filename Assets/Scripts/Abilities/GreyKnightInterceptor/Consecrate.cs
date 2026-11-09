@@ -42,6 +42,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         public override string KeyLabel => "E";
         public override float ExCost => exEnergyCost;
         public override string ExDescription => "Sanctum";
+        public override string ExName => "Sanctum";
 
         // Applied only when added in the editor.
         void Reset()

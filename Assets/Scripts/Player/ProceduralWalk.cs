@@ -64,6 +64,7 @@ namespace Anathema.Player
             var byName = new Dictionary<string, Transform>();
             foreach (Transform t in GetComponentsInChildren<Transform>(true)) byName[t.name] = t;
 
+
             hips = Grab(byName, "Hips");
             spine = Grab(byName, "Spine");
             head = Grab(byName, "Head");

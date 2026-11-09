@@ -141,18 +141,23 @@ namespace Anathema.Player
             // While Shift is held (EX mode) abilities without an EX version are greyed out and the EX ones are highlighted.
             bool exMode = Input.GetKey(KeyCode.LeftShift);
             bool hasEx = ability.ExCost > 0f;
-            bool exDim = exMode && !hasEx;
-            bool exLit = exMode && hasEx;
+            bool exLit = exMode && hasEx && !ability.ExBlocked;
+            bool exDim = exMode && !exLit;
 
             DrawFrame(r, f, exLit ? EnergyColor : (ready && !exDim ? Gold : DarkGold));
             DrawRect(r, exLit ? new Color(0.10f, 0.22f, 0.36f, 1f) : new Color(0.12f, 0.14f, 0.20f, 1f));
             GUI.DrawTexture(new Rect(r.x, r.y, r.width, r.height * 0.5f), sheen);
 
             // Ability name, wrapped inside the slot.
-            DrawText(new Rect(r.x, r.y + r.height * 0.18f, r.width, r.height * 0.64f), ability.DisplayName,
+            DrawText(new Rect(r.x, r.y + r.height * 0.18f, r.width, r.height * 0.64f), exLit ? ability.ExName : ability.DisplayName,
                 Mathf.RoundToInt(19f * scale), FontStyle.Bold, ready ? Color.white : new Color(1f, 1f, 1f, 0.55f));
 
-            if (!ready)
+            if (!ready && cd <= 0f && !ability.IsCasting)
+            {
+                // Not on cooldown, just unavailable (e.g. ultimate without enough energy): plain grey-out, no timer.
+                DrawRect(r, new Color(0f, 0f, 0f, 0.55f));
+            }
+            else if (!ready)
             {
                 // Dark curtain that drains upward as the cooldown runs out, with a bright leading edge.
                 float h = r.height * cd;

@@ -19,6 +19,7 @@ namespace Anathema.Combat
             if (Anathema.Net.NetPlayer.TryGetRemote(target, out var remote))
             {
                 remote.SendStatus(Anathema.Net.NetPlayer.StatusKind.Stun, duration, 0f, Vector3.zero);
+                StunFx.Show(target, duration); // the victim's machine does the real stun; show the effect here too
                 return null;
             }
 
@@ -27,6 +28,7 @@ namespace Anathema.Combat
             var stunned = target.GetComponent<Stunned>();
             if (stunned == null) stunned = target.AddComponent<Stunned>();
             stunned.endTime = Mathf.Max(stunned.endTime, Time.time + duration);
+            StunFx.Show(target, duration);
             return stunned;
         }
 

@@ -25,13 +25,15 @@ namespace Anathema.EditorTools
         const string GreyKnightPrefab = PrefabDir + "/Player_GreyKnight.prefab";
         const string BerserkerPrefab = PrefabDir + "/Player_KhorneBerserker.prefab";
         const string PlagueSurgeonPrefab = PrefabDir + "/Player_PlagueSurgeon.prefab";
+        const string PsykerPrefab = PrefabDir + "/Player_Psyker.prefab";
+        const string SkitariiRangerPrefab = PrefabDir + "/Player_SkitariiRanger.prefab";
 
         static NetSceneBuilder()
         {
             EditorApplication.delayCall += () =>
             {
                 if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
-                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab);
+                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab);
                 if (missing && File.Exists("Assets/Models/GreyKnight.fbx")) BuildAll();
             };
         }
@@ -48,6 +50,8 @@ namespace Anathema.EditorTools
             BuildPlayerPrefab(ArenaSceneBuilder.Character.GreyKnight, GreyKnightPrefab);
             BuildPlayerPrefab(ArenaSceneBuilder.Character.KhorneBerserker, BerserkerPrefab);
             BuildPlayerPrefab(ArenaSceneBuilder.Character.PlagueSurgeon, PlagueSurgeonPrefab);
+            BuildPlayerPrefab(ArenaSceneBuilder.Character.Psyker, PsykerPrefab);
+            BuildPlayerPrefab(ArenaSceneBuilder.Character.SkitariiRanger, SkitariiRangerPrefab);
             BuildVersusScene();
             BuildMenuScene();
 
@@ -81,9 +85,10 @@ namespace Anathema.EditorTools
 
             // Replicas (other players' characters) use a plain capsule instead of the CharacterController.
             var capsule = root.AddComponent<CapsuleCollider>();
-            capsule.height = 2f;
-            capsule.radius = 0.5f;
-            capsule.center = new Vector3(0f, 1f, 0f);
+            var cc = root.GetComponent<CharacterController>();
+            capsule.height = cc.height;
+            capsule.radius = cc.radius;
+            capsule.center = cc.center;
             capsule.enabled = false;
 
             root.AddComponent<NetworkObject>();

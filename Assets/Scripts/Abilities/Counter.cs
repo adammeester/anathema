@@ -126,6 +126,14 @@ namespace Anathema.Abilities
 
         protected override void Activate()
         {
+            // Raising the guard drops anything else in progress (wind-ups, channels).
+            if (!IsReplica)
+            {
+                foreach (Ability other in GetComponents<Ability>())
+                    if (other != this) other.InterruptForGuard();
+                if (Health.Net != null && Health.Net.IsSpawned) Health.Net.SendCue(-1, Aim.AimPoint);
+            }
+
             IsGuarding = true;
             startTime = Time.time;
             endTime = startTime + duration;
@@ -148,6 +156,7 @@ namespace Anathema.Abilities
         float OnIncomingDamage(float amount, GameObject source)
         {
             Cancel();
+            AbilityFx.CounterTriggered(transform.position, guardRadius);
             OnCounterSuccess(source);
             return 0f;
         }

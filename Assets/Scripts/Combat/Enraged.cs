@@ -54,6 +54,7 @@ namespace Anathema.Combat
             DestroyIfPresent<Rooted>();
             DestroyIfPresent<Panicked>();
             DestroyIfPresent<Maimed>();
+            DestroyIfPresent<Slowed>();
             DestroyIfPresent<Knockback>();
         }
 

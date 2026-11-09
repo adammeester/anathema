@@ -1,0 +1,69 @@
+{
+  "health": 100,
+  "moveSpeed": 6.5,
+  "maxEnergy": 100,
+  "abilities": {
+    "WarpBolt": {
+      "cooldown": 0.8,
+      "damage": 9,
+      "range": 14,
+      "projectileSpeed": 26,
+      "projectileRadius": 0.28,
+      "energyPerHit": 8
+    },
+    "ChainLightning": {
+      "cooldown": 5,
+      "damage": 16,
+      "range": 12,
+      "aimRadius": 0.6,
+      "maxJumps": 2,
+      "jumpRange": 5,
+      "falloff": 0.7,
+      "energyPerHit": 6
+    },
+    "Cripple": {
+      "cooldown": 8,
+      "damage": 5,
+      "stunDuration": 1.5,
+      "range": 14,
+      "projectileSpeed": 20,
+      "projectileRadius": 0.35,
+      "energyPerHit": 12,
+      "exEnergyCost": 35,
+      "wellRange": 12,
+      "wellRadius": 4,
+      "wellDuration": 1.8,
+      "wellPullSpeed": 6,
+      "wellDetonationDamage": 25
+    },
+    "PsychicBarrier": {
+      "cooldown": 10,
+      "strength": 50,
+      "duration": 5,
+      "exEnergyCost": 40,
+      "leechRange": 11,
+      "leechDuration": 2,
+      "silenceDuration": 2,
+      "leechDamagePerSecond": 16,
+      "leechHealPerSecond": 16,
+      "leechEnergyPerSecond": 12
+    },
+    "WarpStep": {
+      "cooldown": 6,
+      "range": 8,
+      "fireRadius": 2.2,
+      "fireDuration": 4,
+      "fireDamagePerSecond": 12
+    },
+    "PsychicBlast": {
+      "energyCost": 100,
+      "gatherDuration": 0.4,
+      "channelDuration": 3,
+      "range": 15,
+      "beamRadius": 0.45,
+      "tickInterval": 0.25,
+      "damagePerTick": 7,
+      "turnRate": 110
+    }
+  }
+}

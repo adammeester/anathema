@@ -51,6 +51,7 @@ namespace Anathema.Abilities.KhorneBerserker
         public override string KeyLabel => "E";
         public override float ExCost => exEnergyCost;
         public override string ExDescription => "The Butcher's Nails";
+        public override string ExName => "Butcher's Nails";
 
         // Applied only when added in the editor.
         void Reset()
@@ -68,6 +69,8 @@ namespace Anathema.Abilities.KhorneBerserker
         protected override void Update()
         {
             base.Update();
+
+            if (strikePending && !IsReplica && IsDisabled) InterruptSelf();
 
             if (strikePending && Time.time >= windupEndTime)
             {
@@ -111,6 +114,7 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             if (!active) return;
 
+            if (strikePending) RefundCooldown();
             active = false;
             strikePending = false;
             recoverFromLean = lastLean;

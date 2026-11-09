@@ -6,7 +6,8 @@ namespace Anathema.Abilities.PlagueSurgeon
     // Press E to vent a restorative cloud at the cursor (clamped to range). It lingers on the ground and heals every ally
     // standing in it (including the surgeon); the poison is halved, so enemies still suffer but it's mainly sustain.
     // EX (hold Shift, costs energy): a full-strength plague cloud that poisons every enemy standing in it, tick by tick.
-    // Pressing C does nothing here: once vented the cloud is on the ground and can't be recalled.
+    // Pressing C during the short wind-up cancels it (refunding the cooldown and any EX energy); once vented the
+    // cloud is on the ground and can't be recalled.
     public class PlagueCloud : Ability
     {
         [SerializeField] float range = 10f;
@@ -22,10 +23,27 @@ namespace Anathema.Abilities.PlagueSurgeon
 
         Energy energy;
 
+        protected override float WindupDuration => 0.5f;
+        protected override Color WindupColor => ExActivation ? new Color(0.45f, 0.8f, 0.15f, 1f) : new Color(0.55f, 1f, 0.7f, 1f);
+
+        // The EX energy is spent when the wind-up starts and given back if it is cancelled.
+        protected override void OnWindupStart()
+        {
+            if (!IsReplica) ExActivation = TrySpendEx(energy, exEnergyCost);
+            PlagueSurgeonPose.For(gameObject).Conjure(WindupDuration + 0.1f);
+        }
+
+        protected override void OnWindupCancel()
+        {
+            PlagueSurgeonPose.For(gameObject).Release();
+            if (ExActivation && !IsReplica && energy != null) energy.Gain(exEnergyCost);
+        }
+
         public override string DisplayName => "Plague Cloud";
         public override string KeyLabel => "E";
         public override float ExCost => exEnergyCost;
         public override string ExDescription => "Damage cloud";
+        public override string ExName => "Virulent Cloud";
 
         // Applied only when added in the editor.
         void Reset()
@@ -46,7 +64,6 @@ namespace Anathema.Abilities.PlagueSurgeon
 
         protected override void Activate()
         {
-            if (!IsReplica) ExActivation = TrySpendEx(energy, exEnergyCost);
             PlagueSurgeonPose.For(gameObject).Conjure(0.6f);
 
             Vector3 origin = transform.position;

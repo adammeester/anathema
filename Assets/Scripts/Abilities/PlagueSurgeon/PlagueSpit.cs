@@ -30,6 +30,13 @@ namespace Anathema.Abilities.PlagueSurgeon
         Material globMaterial;
         Material haloMaterial;
 
+        protected override float WindupDuration => 0.15f;
+        protected override Color WindupColor => globColor;
+
+        protected override void OnWindupStart() => PlagueSurgeonPose.For(gameObject).ReadySpit(WindupDuration + 0.1f);
+
+        protected override void OnWindupCancel() => PlagueSurgeonPose.For(gameObject).Release();
+
         public override string DisplayName => "Spit";
         public override string KeyLabel => "LMB";
 
@@ -108,7 +115,7 @@ namespace Anathema.Abilities.PlagueSurgeon
                 Festering.Apply(target.gameObject, gameObject, energy, RotDuration, rotDamagePerSecond);
         }
 
-        // The spit resolves as soon as the glob leaves, so there is nothing to cancel.
+        // Once the glob leaves there is nothing to cancel (a wind-up in progress is cancelled by the base class).
         protected override void Cancel()
         {
         }

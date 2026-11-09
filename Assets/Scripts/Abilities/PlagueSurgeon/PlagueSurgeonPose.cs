@@ -94,6 +94,22 @@ namespace Anathema.Abilities.PlagueSurgeon
             return right.Shoulder.position + dir * (right.Ik.Reach * 0.95f) + Vector3.down * (right.Ik.Reach * 0.3f);
         }
 
+        // Wind-up holds: the arm comes up and stays up for `duration` without a kick. Release() drops them if the cast is cancelled.
+        public void ReadySpit(float duration) => Hold(right, Shape.Point, duration, false);
+
+        public void ReadyThrow(float duration) => Hold(left, Shape.Point, duration, false);
+
+        public void Release()
+        {
+            ReleaseArm(left);
+            ReleaseArm(right);
+        }
+
+        static void ReleaseArm(Arm arm)
+        {
+            if (arm != null && arm.Until > Time.time + 0.1f) arm.Until = Time.time + 0.1f;
+        }
+
         public void Spit() => Hold(right, Shape.Point, 0.55f, true);
 
         public void Throw() => Hold(left, Shape.Point, 0.45f, true);

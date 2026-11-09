@@ -10,7 +10,7 @@ namespace Anathema.Combat
 
         static AudioClip clip;
 
-        public static void Play(float volume = 0.6f)
+        public static void Play(float volume = 0.3f)
         {
             if (clip == null) clip = Build();
 
@@ -19,29 +19,39 @@ namespace Anathema.Combat
             source.clip = clip;
             source.spatialBlend = 0f;
             source.volume = volume;
-            source.pitch = Random.Range(0.95f, 1.1f);
+            source.pitch = Random.Range(0.9f, 1.15f);
             source.Play();
             Object.Destroy(go, clip.length / source.pitch + 0.1f);
         }
 
-        // A short bright tick: a quick pitched blip over a tiny noise click.
+        // A short dull hit, built from filtered noise and a low thump.
         static AudioClip Build()
         {
-            const float length = 0.16f;
+            // A dull organic thwack: a soft low thump, a muffled noise slap and a brief damp tail. No pitched tone.
+            const float length = 0.14f;
             int n = (int)(SampleRate * length);
             var data = new float[n];
             var rng = new System.Random(7);
-            float phase = 0f, body = 0f;
+            float phase = 0f, slap = 0f, tail = 0f;
 
             for (int i = 0; i < n; i++)
             {
                 float t = (float)i / SampleRate;
-                phase += (1500f + 700f * Mathf.Exp(-t * 40f)) / SampleRate;
-                float tone = Mathf.Sin(phase * Mathf.PI * 2f) * Mathf.Exp(-t * 22f);
-                body += (260f + 200f * Mathf.Exp(-t * 50f)) / SampleRate;
-                float thump = Mathf.Sin(body * Mathf.PI * 2f) * Mathf.Exp(-t * 30f) * 0.8f;
-                float click = (float)(rng.NextDouble() * 2.0 - 1.0) * Mathf.Exp(-t * 200f) * 0.5f;
-                data[i] = Mathf.Clamp(tone * 0.7f + thump + click, -1f, 1f);
+                float noise = (float)(rng.NextDouble() * 2.0 - 1.0);
+
+                // Thump: low sine falling fast, like a fist on a body.
+                phase += Mathf.Lerp(150f, 60f, Mathf.Clamp01(t / 0.05f)) / SampleRate;
+                float thump = Mathf.Sin(phase * Mathf.PI * 2f) * Mathf.Exp(-t * 35f);
+
+                // Slap: noise heavily low-passed, so it is a muffled smack rather than a bright click.
+                slap += 0.22f * (noise - slap);
+                float smack = slap * Mathf.Exp(-t * 55f) * 2.2f;
+
+                // Damp tail: even darker noise that dies away quickly.
+                tail += 0.06f * (noise - tail);
+                float body = tail * Mathf.Exp(-t * 28f) * 2.5f;
+
+                data[i] = Mathf.Clamp(thump * 0.8f + smack + body, -1f, 1f);
             }
 
             // Short fade-out so the end never clicks.

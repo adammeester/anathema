@@ -34,10 +34,15 @@ namespace Anathema.Abilities.KhorneBerserker
         int ticksDone;
         readonly HashSet<Health> struck = new HashSet<Health>();
 
+        // Energy is only spent when the spin starts, so cancelling the wind-up costs nothing.
+        protected override float WindupDuration => 0.3f;
+        protected override Color WindupColor => slashColor;
+
         public override string DisplayName => "Whirl";
         public override string KeyLabel => "Q";
         public override float ExCost => exEnergyCost;
         public override string ExDescription => "Whirling carnage";
+        public override string ExName => "Whirling Carnage";
 
         // Applied only when added in the editor.
         void Reset()

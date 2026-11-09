@@ -59,6 +59,8 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             base.Update();
 
+            if (throwPending && !IsReplica && IsDisabled) InterruptSelf();
+
             if (throwPending && Time.time >= startTime + windupDuration)
             {
                 throwPending = false;
@@ -87,6 +89,7 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             if (!active) return;
 
+            if (throwPending) RefundCooldown();
             active = false;
             throwPending = false;
             recoverFromArm = lastArm;

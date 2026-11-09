@@ -3,6 +3,8 @@ using System.IO;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Abilities.KhorneBerserker;
 using Anathema.Abilities.PlagueSurgeon;
+using Anathema.Abilities.Psyker;
+using Anathema.Abilities.SkitariiRanger;
 using Anathema.Arena;
 using Anathema.CameraRig;
 using Anathema.Combat;
@@ -24,6 +26,8 @@ namespace Anathema.EditorTools
         const string GreyKnightModelPath = "Assets/Models/GreyKnight.fbx";
         const string KhorneBerserkerModelPath = "Assets/Models/KhorneBerserker.fbx";
         const string PlagueSurgeonModelPath = "Assets/Models/PlagueSurgeon.fbx";
+        const string PsykerModelPath = "Assets/Models/Psyker.fbx";
+        const string SkitariiRangerModelPath = "Assets/Models/SkitariiRanger.fbx";
         // First model that exists is used for the player.
         static readonly string[] PlayerModelPaths =
         {
@@ -43,7 +47,9 @@ namespace Anathema.EditorTools
         {
             GreyKnight,
             KhorneBerserker,
-            PlagueSurgeon
+            PlagueSurgeon,
+            Psyker,
+            SkitariiRanger
         }
 
         [MenuItem("Anathema/Rebuild Arena Scene")]
@@ -54,6 +60,12 @@ namespace Anathema.EditorTools
 
         [MenuItem("Anathema/Rebuild Arena Scene (Plague Surgeon)")]
         static void BuildPlagueSurgeon() => Build(Character.PlagueSurgeon);
+
+        [MenuItem("Anathema/Rebuild Arena Scene (Psyker)")]
+        static void BuildPsyker() => Build(Character.Psyker);
+
+        [MenuItem("Anathema/Rebuild Arena Scene (Skitarii Ranger)")]
+        static void BuildSkitariiRanger() => Build(Character.SkitariiRanger);
 
         static void Build(Character character)
         {
@@ -308,14 +320,18 @@ namespace Anathema.EditorTools
             var root = new GameObject("Player");
 
             var controller = root.AddComponent<CharacterController>();
-            controller.height = 2f;
-            controller.radius = 0.5f;
-            controller.center = new Vector3(0f, 1f, 0f);
+            // The Psyker is an ordinary human, much smaller than the marines.
+            bool ranger = character == Character.SkitariiRanger;
+            bool psyker = character == Character.Psyker;
+            bool small = psyker || ranger;
+            controller.height = ranger ? 1.9f : psyker ? 1.8f : 2f;
+            controller.radius = small ? 0.4f : 0.5f;
+            controller.center = new Vector3(0f, controller.height * 0.5f, 0f);
 
-            root.AddComponent<Health>().Configure(character == Character.KhorneBerserker ? 150f : 120f, 1);
-            root.AddComponent<HealthBar>().Configure(2.7f);
+            root.AddComponent<Health>().Configure(character == Character.KhorneBerserker ? 150f : ranger ? 105f : psyker ? 100f : 120f, 1);
+            root.AddComponent<HealthBar>().Configure(ranger ? 2.5f : psyker ? 2.3f : 2.7f);
             root.AddComponent<Energy>();
-            root.AddComponent<EnergyBar>().Configure(2.5f);
+            root.AddComponent<EnergyBar>().Configure(ranger ? 2.3f : psyker ? 2.1f : 2.5f);
             root.AddComponent<Respawner>().Configure(3f);
             root.AddComponent<MouseAim>();
             root.AddComponent<PlayerMovement>();
@@ -340,6 +356,26 @@ namespace Anathema.EditorTools
                 root.AddComponent<WingedEscape>();
                 root.AddComponent<WardOfPlague>();
             }
+            else if (ranger)
+            {
+                // Long-range sniper: a quick shot, a chargeable piercing stun shot, shrapnel / shotgun, a disengage and a 4-shot volley.
+                root.AddComponent<GalvanicShot>();
+                root.AddComponent<TransuranicShot>();
+                root.AddComponent<ShrapnelField>();
+                root.AddComponent<Disengage>();
+                root.AddComponent<RangerCounter>();
+                root.AddComponent<CullingVolley>();
+            }
+            else if (psyker)
+            {
+                // Glass-cannon caster: ranged bolts, chain lightning, a stunning shot, a damage-absorbing barrier, a blink and a channelled beam ultimate.
+                root.AddComponent<WarpBolt>();
+                root.AddComponent<Cripple>();
+                root.AddComponent<ChainLightning>();
+                root.AddComponent<PsychicBarrier>();
+                root.AddComponent<WarpStep>();
+                root.AddComponent<PsychicBlast>();
+            }
             else
             {
                 root.AddComponent<BasicAttack>();
@@ -358,6 +394,8 @@ namespace Anathema.EditorTools
             GameObject modelAsset = null;
             string[] modelPaths = berserker ? new[] { KhorneBerserkerModelPath }
                 : character == Character.PlagueSurgeon ? new[] { PlagueSurgeonModelPath }.Concat(PlayerModelPaths).ToArray()
+                : psyker ? new[] { PsykerModelPath }.Concat(PlayerModelPaths).ToArray()
+                : ranger ? new[] { SkitariiRangerModelPath }.Concat(PlayerModelPaths).ToArray()
                 : PlayerModelPaths;
             foreach (string path in modelPaths)
             {

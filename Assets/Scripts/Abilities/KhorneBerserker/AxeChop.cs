@@ -94,6 +94,8 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             base.Update();
 
+            if (strikePending && !IsReplica && IsDisabled) InterruptSelf();
+
             if (empowered)
             {
                 Color c = empoweredColor;
@@ -146,6 +148,7 @@ namespace Anathema.Abilities.KhorneBerserker
             // A chop cancelled before it lands gives its empowerment back.
             if (strikePending && strikeEmpowered) Empower();
             strikeEmpowered = false;
+            if (strikePending) RefundCooldown();
 
             active = false;
             strikePending = false;
