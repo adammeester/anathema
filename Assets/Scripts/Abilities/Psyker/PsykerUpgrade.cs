@@ -22,7 +22,7 @@ namespace Anathema.Abilities.Psyker
         public static bool HoldsStave(GameObject player) => UpgradeState.Has(player, ForceStave);
 
         // Tunables shared with the code that applies them.
-        public const float WardedMindHealth = 40f;
+        public const float WardedMindHealth = 50f;
         public const float ConduitDamageScale = 0.6f;     // of Chain Lightning's base damage, per bounce
         public const float WarpWardStrength = 35f;
         public const float WarpWardSeconds = 4f;

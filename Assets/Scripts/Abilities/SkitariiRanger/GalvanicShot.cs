@@ -7,7 +7,7 @@ namespace Anathema.Abilities.SkitariiRanger
     // powers the EX shotgun blast and the ultimate.
     public class GalvanicShot : Ability
     {
-        [SerializeField] float damage = 14f;
+        [SerializeField] float damage = 11f;
         [SerializeField] float range = 22f;
         [SerializeField] float projectileSpeed = 42f;
         [SerializeField] float projectileRadius = 0.2f;

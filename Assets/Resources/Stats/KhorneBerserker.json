@@ -1,6 +1,6 @@
 {
-  "health": 150,
-  "moveSpeed": 6.5,
+  "health": 215,
+  "moveSpeed": 5.9,
   "maxEnergy": 100,
   "abilities": {
     "AxeChop": {
@@ -24,7 +24,7 @@
       "heavySwingDuration": 0.14,
       "heavyRecoverDuration": 0.5,
       "heavyCooldown": 1.3,
-      "heavyBleedDamagePerSecond": 2.5,
+      "heavyBleedDamagePerSecond": 3,
       "heavyBleedDuration": 3,
       "eviscDamage": 30,
       "eviscRange": 2.8,
@@ -54,9 +54,9 @@
     "AxeToss": {
       "cooldown": 6,
       "damage": 12,
-      "bleedDamagePerSecond": 3,
+      "bleedDamagePerSecond": 3.5,
       "bleedDuration": 5,
-      "projectileSpeed": 24,
+      "projectileSpeed": 21.6,
       "range": 12,
       "projectileRadius": 0.4,
       "muzzleHeight": 1,
@@ -73,7 +73,7 @@
       "cleaveWindupDuration": 0.3,
       "cleaveCooldown": 7,
       "cleaveKnockbackDistance": 3.5,
-      "cleaveBleedDamagePerSecond": 4,
+      "cleaveBleedDamagePerSecond": 5,
       "cleaveBleedDuration": 4,
       "descentDamage": 26,
       "descentRange": 3.2,
@@ -107,7 +107,7 @@
       "hitRadius": 1.7,
       "damage": 38,
       "stunDuration": 1.5,
-      "bleedDamagePerSecond": 3,
+      "bleedDamagePerSecond": 3.5,
       "bleedDuration": 5,
       "fissureWidth": 1.6,
       "braceLean": -12,
@@ -133,7 +133,7 @@
     },
     "WhirlingCarnage": {
       "cooldown": 5,
-      "damagePerTick": 9,
+      "damagePerTick": 11,
       "range": 3,
       "ticks": 3,
       "spinDuration": 0.7,

@@ -42,7 +42,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         public static bool HasPurifier(GameObject player) => UpgradeState.Has(player, PurifierOrder);
 
         // Purifier Order tunables.
-        public const float BurnPerSecond = 5f;
+        public const float BurnPerSecond = 6f;
         public const float BurnSeconds = 4f;
         public const float GroundFireRadius = 1.8f;
         public const float GroundFireSeconds = 4f;

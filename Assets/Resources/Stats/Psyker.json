@@ -1,13 +1,13 @@
 {
-  "health": 100,
-  "moveSpeed": 6.5,
+  "health": 145,
+  "moveSpeed": 5.9,
   "maxEnergy": 100,
   "abilities": {
     "WarpBolt": {
       "cooldown": 0.8,
       "damage": 9,
       "range": 14,
-      "projectileSpeed": 26,
+      "projectileSpeed": 23.4,
       "projectileRadius": 0.28,
       "energyPerHit": 8,
       "staveDamage": 12,
@@ -48,7 +48,7 @@
       "damage": 5,
       "stunDuration": 1.5,
       "range": 14,
-      "projectileSpeed": 20,
+      "projectileSpeed": 18,
       "projectileRadius": 0.35,
       "energyPerHit": 12,
       "exEnergyCost": 35,
@@ -80,7 +80,7 @@
       "range": 15,
       "beamRadius": 0.45,
       "tickInterval": 0.25,
-      "damagePerTick": 7,
+      "damagePerTick": 8,
       "turnRate": 110
     }
   }

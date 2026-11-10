@@ -43,6 +43,13 @@ namespace Anathema.Combat
         }
 
         // Damage snaps the victim out of it (see Health.PanicBreakFraction); DoT ticks never call this.
+        // Online: draws this on a replica (driven by NetPlayer's published status mask); lasts until the mask clears.
+        public static void ShowReplica(GameObject target)
+        {
+            if (target == null || target.TryGetComponent(out Panicked _)) return;
+            target.AddComponent<Panicked>().endTime = float.MaxValue;
+        }
+
         public static void Cancel(GameObject target)
         {
             if (target.TryGetComponent(out Panicked panicked)) Destroy(panicked);
@@ -71,6 +78,7 @@ namespace Anathema.Combat
         void Awake()
         {
             markMaterial = VisualUtil.UnlitMaterial(new Color(1f, 0.9f, 0.2f));
+            PanicSound.Play();
 
             mark = new GameObject("Panic Mark").transform;
             mark.SetParent(transform, false);

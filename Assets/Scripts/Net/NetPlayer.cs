@@ -66,6 +66,46 @@ namespace Anathema.Net
         // Energy (whole points) so teammates' frames can show it.
         readonly NetworkVariable<float> netEnergy = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
+        // Self-visible effects (ward, root, panic, charged, enraged) live only on the machine that owns the character,
+        // so the owner publishes which ones are up and replicas draw visual-only copies (see SyncStatusFx).
+        const int FxWard = 1, FxRoot = 2, FxPanic = 4, FxCharged = 8, FxEnraged = 16;
+        readonly NetworkVariable<int> netStatusFx = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        int appliedStatusFx;
+
+        int ReadStatusFx()
+        {
+            int m = 0;
+            if (PlagueWard.IsWarded(gameObject)) m |= FxWard;
+            if (Rooted.IsRooted(gameObject)) m |= FxRoot;
+            if (Panicked.IsPanicked(gameObject)) m |= FxPanic;
+            if (Charged.IsCharged(gameObject)) m |= FxCharged;
+            if (Enraged.IsEnraged(gameObject)) m |= FxEnraged;
+            return health.IsDead ? 0 : m;
+        }
+
+        // Replica: bring the drawn effects in line with what the owner published (only on changes, so an effect that
+        // ends locally, such as on death, isn't redrawn).
+        void SyncStatusFx()
+        {
+            int mask = netStatusFx.Value;
+            if (mask == appliedStatusFx) return;
+            int changed = mask ^ appliedStatusFx;
+            appliedStatusFx = mask;
+
+            ToggleFx<PlagueWard>(changed, mask, FxWard, PlagueWard.ShowReplica);
+            ToggleFx<Rooted>(changed, mask, FxRoot, Rooted.ShowReplica);
+            ToggleFx<Panicked>(changed, mask, FxPanic, Panicked.ShowReplica);
+            ToggleFx<Charged>(changed, mask, FxCharged, Charged.ShowReplica);
+            ToggleFx<Enraged>(changed, mask, FxEnraged, Enraged.ShowReplica);
+        }
+
+        void ToggleFx<T>(int changed, int mask, int bit, System.Action<GameObject> show) where T : Component
+        {
+            if ((changed & bit) == 0) return;
+            if ((mask & bit) != 0) show(gameObject);
+            else if (TryGetComponent(out T existing)) Destroy(existing);
+        }
+
         Health health;
         UpgradeState upgrades;
         Respawner respawner;
@@ -259,8 +299,12 @@ namespace Anathema.Net
                 }
                 int rageState = Rage.NetState(gameObject);
                 if (netRageState.Value != rageState) netRageState.Value = rageState;
+                int statusFx = ReadStatusFx();
+                if (netStatusFx.Value != statusFx) netStatusFx.Value = statusFx;
                 return;
             }
+
+            SyncStatusFx();
 
             health.SyncFromNetwork(netHealth.Value, netRecoverable.Value);
             if (upgrades == null) upgrades = GetComponent<UpgradeState>();
@@ -426,6 +470,9 @@ namespace Anathema.Net
         void StatusClientRpc(int kind, float a, float b, Vector3 direction, NetworkObjectReference source, bool hasSource, ClientRpcParams rpcParams = default)
         {
             if (!IsOwner || health.IsDead) return;
+
+            // A counter just negated the hit these effects came with: drop the hostile ones.
+            if (health.CounterNegatingStatuses && (StatusKind)kind != StatusKind.Heal && (StatusKind)kind != StatusKind.Ward) return;
 
             GameObject attacker = null;
             if (hasSource && source.TryGet(out NetworkObject sourceObject)) attacker = sourceObject.gameObject;

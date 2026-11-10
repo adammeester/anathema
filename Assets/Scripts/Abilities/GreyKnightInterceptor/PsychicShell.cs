@@ -13,7 +13,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
     {
         public const float Damage = 26f;
         public const float BlastRadius = 2.3f;
-        public const float Speed = 17f;
+        public const float Speed = 15.5f;
         public const float Range = 15f;
         public const float MinFalloff = 0.55f;   // damage at the very edge of the blast, as a fraction of the centre's
         const float HitRadius = 0.3f;
@@ -156,7 +156,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             }
 
             BlastFx.Spawn(point, BlastSize, fire);
-            GreyKnightSound.ConsecrateBoom();
+            GreyKnightSound.ConsecrateBoom(0.22f);
             if (hits > 0) GreyKnightSound.PsychicImpact(hits);
             if (fire)
                 FirePool.Spawn(owner, team, new Vector3(point.x, groundY, point.z), GreyKnightUpgrade.GroundFireRadius * 0.8f,

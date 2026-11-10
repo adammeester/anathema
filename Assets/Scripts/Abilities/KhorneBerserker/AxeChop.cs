@@ -29,7 +29,7 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float heavySwingDuration = 0.14f;
         [SerializeField] float heavyRecoverDuration = 0.5f;
         [SerializeField] float heavyCooldown = 1.3f;
-        [SerializeField] float heavyBleedDamagePerSecond = 2.5f;   // heavy hits inflict Bleed
+        [SerializeField] float heavyBleedDamagePerSecond = 3f;   // heavy hits inflict Bleed
         [SerializeField] float heavyBleedDuration = 3f;
         [SerializeField] float heavySpineTwist = 42f;
         [SerializeField] float heavyArmRaise = 85f;

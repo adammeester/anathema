@@ -50,9 +50,9 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             return Play(Get("smiteCharge", BuildSmiteCharge), 0.3f, 0.98f, 1.02f);
         }
 
-        public static void SmiteFire()
+        public static void SmiteFire(float volume = 0.5f)
         {
-            Play(Get("smiteFire", BuildSmiteFire), 0.5f, 0.95f, 1.05f);
+            Play(Get("smiteFire", BuildSmiteFire), volume, 0.95f, 1.05f);
         }
 
         // The sigil igniting: a low rumbling flame with soft pops.
@@ -62,9 +62,9 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         }
 
         // The ground erupting: a heavy whoomph and a roar of flame.
-        public static void ConsecrateBoom()
+        public static void ConsecrateBoom(float volume = 0.55f)
         {
-            Play(Get("consecrateBoom", BuildConsecrateBoom), 0.55f, 0.95f, 1.05f);
+            Play(Get("consecrateBoom", BuildConsecrateBoom), volume, 0.95f, 1.05f);
         }
 
         // Gathering flame during the Purgatus channel; the caller raises the pitch as the charge builds.

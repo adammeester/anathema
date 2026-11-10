@@ -16,7 +16,7 @@ namespace Anathema.Abilities.SkitariiRanger
         [SerializeField] float gatherDuration = 0.6f;
         [SerializeField] int shotCount = 4;
         [SerializeField] float shotInterval = 0.95f;
-        [SerializeField] float damage = 55f;
+        [SerializeField] float damage = 30f;
         [SerializeField] float range = 60f;
         [SerializeField] float shotRadius = 0.6f;
         [SerializeField] float slow = 0.2f;

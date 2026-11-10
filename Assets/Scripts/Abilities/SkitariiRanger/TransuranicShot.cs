@@ -12,13 +12,13 @@ namespace Anathema.Abilities.SkitariiRanger
     public class TransuranicShot : Ability
     {
         [SerializeField] float chargeTime = 1.6f;
-        [SerializeField] float minDamage = 30f;
-        [SerializeField] float maxDamage = 95f;
+        [SerializeField] float minDamage = 18f;
+        [SerializeField] float maxDamage = 40f;
         [SerializeField] float minStun = 0.25f;
         [SerializeField] float maxStun = 1.5f;
         [SerializeField] float range = 34f;
         [SerializeField] float shotRadius = 0.45f;
-        [SerializeField] float boltSpeed = 60f; // units/s; slow enough to dodge or break line of sight once the shot is away
+        [SerializeField] float boltSpeed = 54f; // units/s; slow enough to dodge or break line of sight once the shot is away
         [SerializeField] float energyPerHit = 25f;
         [SerializeField] float muzzleHeight = 1.3f;
         [SerializeField] float muzzleForward = 1.6f;

@@ -88,7 +88,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb8b7a76ab003be4a80b01073c0118a3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Health
-  maxHealth: 120
+  maxHealth: 175
   team: 1
   recoverableDecayDelay: 4
   recoverableDecayRate: 6

@@ -156,6 +156,7 @@ namespace Anathema.Abilities
         float OnIncomingDamage(float amount, GameObject source)
         {
             Cancel();
+            Health.CounterNegateUntil = Time.time + Health.CounterNegateWindow;
             AbilityFx.CounterTriggered(transform.position, guardRadius);
             OnCounterSuccess(source);
             return 0f;

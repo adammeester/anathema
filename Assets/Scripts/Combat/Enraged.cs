@@ -30,6 +30,13 @@ namespace Anathema.Combat
             return enraged;
         }
 
+        // Online: draws this on a replica (driven by NetPlayer's published status mask); lasts until the mask clears.
+        public static void ShowReplica(GameObject target)
+        {
+            if (target == null || target.TryGetComponent(out Enraged _)) return;
+            target.AddComponent<Enraged>().endTime = float.MaxValue;
+        }
+
         public static bool IsEnraged(GameObject target)
         {
             return target.TryGetComponent(out Enraged _);

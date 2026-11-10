@@ -21,7 +21,7 @@ namespace Anathema.Abilities.Psyker
         [SerializeField] float range = 15f;
         [SerializeField] float beamRadius = 0.45f;
         [SerializeField] float tickInterval = 0.25f;
-        [SerializeField] float damagePerTick = 7f;
+        [SerializeField] float damagePerTick = 8f;
         [SerializeField] float turnRate = 110f; // degrees per second the beam can swing toward the cursor
         [SerializeField] float originHeight = 1.2f;
 

@@ -8698,7 +8698,7 @@ MonoBehaviour:
   target: {fileID: 1130959008}
   pitch: 55
   yaw: 0
-  distance: 24
+  distance: 29
   fieldOfView: 30
   targetHeight: 1
   smoothTime: 0

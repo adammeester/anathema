@@ -22,31 +22,31 @@ namespace Anathema.Abilities.GreyKnightInterceptor
     public class GreyKnightArmament : MonoBehaviour, IPrimaryAttackOverride
     {
         // ---- Daemonhammer: LMB sweep ---------------------------------------------------------------------------------
-        const float SweepDamage = 30f;
-        const float SweepRange = 3.4f;
-        const float SweepArc = 130f;
-        const float SweepWindup = 0.42f, SweepStrike = 0.16f, SweepRecover = 0.26f;
-        const float SweepCooldown = 0.95f;
-        const float SweepEnergy = 8f;
+        float SweepDamage = 30f;
+        float SweepRange = 3.4f;
+        float SweepArc = 130f;
+        float SweepWindup = 0.42f, SweepStrike = 0.16f, SweepRecover = 0.26f;
+        float SweepCooldown = 0.95f;
+        float SweepEnergy = 8f;
 
         // ---- Daemonhammer: Q slam ------------------------------------------------------------------------------------
-        const float SlamDamage = 42f;
-        const float SlamRadius = 2.7f;
-        const float SlamReach = 2.3f;
-        const float SlamWindup = 0.6f, SlamStrike = 0.14f, SlamRecover = 0.4f;
-        const float SlamCooldown = 6f;
-        const float SlamStun = 0.6f;
-        const float SlamEnergy = 10f;
+        float SlamDamage = 42f;
+        float SlamRadius = 2.7f;
+        float SlamReach = 2.3f;
+        float SlamWindup = 0.6f, SlamStrike = 0.14f, SlamRecover = 0.4f;
+        float SlamCooldown = 6f;
+        float SlamStun = 0.6f;
+        float SlamEnergy = 10f;
 
         // ---- Psycannon: LMB shell, Q bash ----------------------------------------------------------------------------
-        const float ShellWindup = 0.12f;
-        const float ShellCooldown = 0.85f;
-        const float ShellEnergy = 8f;
-        const float OverchargeWindup = 0.8f;
-        const float OverchargeCooldown = 7f;
-        const float OverchargeDamage = 2.5f;   // times a normal shell
-        const float OverchargeRadius = 2f;     // times a normal blast
-        const float OverchargePanic = 2.5f;    // seconds
+        float ShellWindup = 0.12f;
+        float ShellCooldown = 1.5f;
+        float ShellEnergy = 8f;
+        float OverchargeWindup = 0.8f;
+        float OverchargeCooldown = 7f;
+        float OverchargeDamage = 2.5f;   // times a normal shell
+        float OverchargeRadius = 2f;     // times a normal blast
+        float OverchargePanic = 2.5f;    // seconds
 
         // ---- Hold geometry (design units relative to the shoulder centre, scaled to the model) -----------------------
         // Hammer: rear hand low and to the right, haft leaning up and to the left like a shouldered hammer.
@@ -112,6 +112,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         void Awake()
         {
+            Anathema.Player.CharacterStats.ApplyTo(gameObject, this);
             health = GetComponent<Health>();
             energy = GetComponent<Energy>();
             aim = GetComponent<MouseAim>();
@@ -369,7 +370,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 if (energy != null && hits > 0) energy.Gain(ShellEnergy * hits);
             }, damageScale, radiusScale, panicSeconds);
             kick = 1f;
-            GreyKnightSound.SmiteFire();
+            GreyKnightSound.SmiteFire(0.18f);
         }
 
         // ================================================================================================================

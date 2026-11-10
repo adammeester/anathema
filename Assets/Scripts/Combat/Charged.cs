@@ -33,6 +33,13 @@ namespace Anathema.Combat
             return charged;
         }
 
+        // Online: draws this on a replica (driven by NetPlayer's published status mask); lasts until the mask clears.
+        public static void ShowReplica(GameObject target)
+        {
+            if (target == null || target.TryGetComponent(out Charged _)) return;
+            target.AddComponent<Charged>().endTime = float.MaxValue;
+        }
+
         public static bool IsCharged(GameObject target)
         {
             return target != null && target.TryGetComponent(out Charged _);

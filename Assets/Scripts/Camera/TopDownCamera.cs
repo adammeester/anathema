@@ -9,7 +9,7 @@ namespace Anathema.CameraRig
         [SerializeField] Transform target;
         [SerializeField] float pitch = 55f;
         [SerializeField] float yaw = 0f;
-        [SerializeField] float distance = 24f;
+        [SerializeField] float distance = 29f;
         [SerializeField] float fieldOfView = 30f;
         [SerializeField] float targetHeight = 1f;
         [Tooltip("0 = rigidly locked to the player. Small values add a little follow lag.")]

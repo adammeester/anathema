@@ -1003,7 +1003,7 @@ namespace Anathema.EditorTools
             controller.radius = small ? 0.4f : 0.5f;
             controller.center = new Vector3(0f, controller.height * 0.5f, 0f);
 
-            root.AddComponent<Health>().Configure(character == Character.KhorneBerserker ? 150f : ranger ? 105f : psyker ? 100f : 120f, 1);
+            root.AddComponent<Health>().Configure(character == Character.KhorneBerserker ? 215f : ranger ? 150f : psyker ? 145f : 175f, 1);
             root.AddComponent<HealthBar>().Configure(ranger ? 2.5f : psyker ? 2.3f : 2.7f);
             root.AddComponent<Energy>();
             root.AddComponent<EnergyBar>().Configure(ranger ? 2.3f : psyker ? 2.1f : 2.5f);

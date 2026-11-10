@@ -85,6 +85,12 @@ namespace Anathema.Combat
         // Lets an ability (e.g. a counter) rewrite or negate incoming damage. Receives (amount, source); returns the new amount.
         public Func<float, GameObject, float> DamageModifier;
 
+        // Set when a counter negates a direct hit. A hit's status effects (stun, slow...) arrive over the network just
+        // after its damage, so the victim's machine drops hostile statuses until this time.
+        public float CounterNegateUntil;
+        public const float CounterNegateWindow = 0.5f;
+        public bool CounterNegatingStatuses => Time.time < CounterNegateUntil;
+
         // A shield: soaks up incoming damage (AoE and damage over time included, unlike DamageModifier) and returns
         // whatever is left over to go through to health. Receives (amount, source).
         public Func<float, GameObject, float> Absorber;

@@ -14,7 +14,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         const float RotBonusSeconds = 1f;
 
         [SerializeField] float damage = 5f;
-        [SerializeField] float rotDamagePerSecond = 1.5f;
+        [SerializeField] float rotDamagePerSecond = 2f;
         [SerializeField] float range = 13f;
         [SerializeField] float projectileSpeed = 22f;
         [SerializeField] float projectileRadius = 0.3f;

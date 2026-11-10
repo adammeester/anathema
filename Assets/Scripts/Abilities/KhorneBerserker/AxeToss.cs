@@ -16,7 +16,7 @@ namespace Anathema.Abilities.KhorneBerserker
     public class AxeToss : Ability
     {
         [SerializeField] float damage = 12f;
-        [SerializeField] float bleedDamagePerSecond = 3f;
+        [SerializeField] float bleedDamagePerSecond = 3.5f;
         [SerializeField] float bleedDuration = 5f;
         [SerializeField] float projectileSpeed = 24f;
         [SerializeField] float range = 12f;
@@ -37,7 +37,7 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float cleaveCooldown = 7f;
         [SerializeField] float cleaveKnockbackDistance = 3.5f;
         [SerializeField] float cleaveKnockbackDuration = 0.25f;
-        [SerializeField] float cleaveBleedDamagePerSecond = 4f;
+        [SerializeField] float cleaveBleedDamagePerSecond = 5f;
         [SerializeField] float cleaveBleedDuration = 4f;
 
         [Header("Executioner's Descent (Eviscerator)")]

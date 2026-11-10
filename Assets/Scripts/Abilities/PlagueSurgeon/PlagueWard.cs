@@ -14,7 +14,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         // The rupture: a much heavier rot than the basic attack's single stacks.
         public const float SpreadRadius = 6f;
         public const int SpreadStacks = 4;
-        public const float SpreadDamagePerSecond = 3f;
+        public const float SpreadDamagePerSecond = 3.5f;
         public const float SpreadDuration = 5f;
 
         const float ShellRadius = 1.5f;
@@ -26,6 +26,22 @@ namespace Anathema.Abilities.PlagueSurgeon
         float maxStrength;
         Transform shell;
         Material shellMaterial;
+        bool replica; // another machine's holder: shows the shell only, the holder's own machine does the absorbing
+
+        // Online: draws the ward on a replica of the holder (driven by NetPlayer's published status mask).
+        public static void ShowReplica(GameObject target)
+        {
+            if (target.TryGetComponent(out PlagueWard _)) return;
+            var holder = target.GetComponent<Health>();
+            if (holder == null) return;
+            var ward = target.AddComponent<PlagueWard>();
+            ward.health = holder;
+            ward.replica = true;
+            ward.maxStrength = ward.remaining = 1f;
+            ward.endTime = float.MaxValue;
+        }
+
+        public static bool IsWarded(GameObject target) => target.TryGetComponent(out PlagueWard w) && !w.replica;
 
         public static PlagueWard Apply(GameObject target, GameObject wardSource, float strength, float duration)
         {
@@ -128,7 +144,9 @@ namespace Anathema.Abilities.PlagueSurgeon
 
         void OnDestroy()
         {
-            if (health != null && health.Absorber == (System.Func<float, GameObject, float>)Absorb) health.Absorber = null;
+            // The holder's machine ruptured (or lost) the ward: show the burst here too.
+            if (replica && health != null && !health.IsDead && !ruptured) Infestation.BurstEffect.Spawn(transform.position, SpreadRadius);
+            if (!replica && health != null && health.Absorber == (System.Func<float, GameObject, float>)Absorb) health.Absorber = null;
             if (shell != null) Destroy(shell.gameObject);
             if (shellMaterial != null) Destroy(shellMaterial);
         }

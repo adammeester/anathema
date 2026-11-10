@@ -46,6 +46,25 @@ namespace Anathema.Player
             return null;
         }
 
+        // For components added after spawn (e.g. an upgrade's armament): applies abilities[<its class name>] from this
+        // character's JSON to `target`. Safe to call when the file or section is missing.
+        public static void ApplyTo(GameObject player, object target)
+        {
+            string key = Identify(player);
+            if (key == null || target == null) return;
+            var asset = Resources.Load<TextAsset>(ResourcePath + key);
+            if (asset == null) return;
+            Dictionary<string, object> root;
+            try { root = MiniJson.Parse(asset.text) as Dictionary<string, object>; }
+            catch (FormatException) { return; }
+            var abilities = root != null && root.TryGetValue("abilities", out var a) ? a as Dictionary<string, object> : null;
+            if (abilities == null || !abilities.TryGetValue(target.GetType().Name, out var v)) return;
+            var values = v as Dictionary<string, object>;
+            var helper = player.GetComponent<CharacterStats>();
+            if (values == null || helper == null) return;
+            foreach (var field in values) helper.SetField(key, target, field.Key, field.Value);
+        }
+
         string Identify() => Identify(gameObject);
 
         void Awake()
@@ -116,6 +135,7 @@ namespace Anathema.Player
 
             foreach (var entry in abilities)
             {
+                if (entry.Key == nameof(GreyKnightArmament)) continue; // not an Ability; applied by ApplyTo when the weapon upgrade is added
                 Ability target = null;
                 foreach (Ability a in GetComponents<Ability>())
                     if (a.GetType().Name == entry.Key) { target = a; break; }

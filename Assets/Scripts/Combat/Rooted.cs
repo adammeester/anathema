@@ -34,6 +34,13 @@ namespace Anathema.Combat
             return rooted;
         }
 
+        // Online: draws this on a replica (driven by NetPlayer's published status mask); lasts until the mask clears.
+        public static void ShowReplica(GameObject target)
+        {
+            if (target == null || target.TryGetComponent(out Rooted _)) return;
+            target.AddComponent<Rooted>().endTime = float.MaxValue;
+        }
+
         public static bool IsRooted(GameObject target)
         {
             return target.TryGetComponent(out Rooted _);

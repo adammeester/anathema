@@ -134,8 +134,8 @@ namespace Anathema.Net
 
             var nm = go.AddComponent<NetworkManager>();
             var utp = go.AddComponent<UnityTransport>();
-            utp.MaxConnectAttempts = 4;
-            utp.ConnectTimeoutMS = 1000;
+            utp.MaxConnectAttempts = 10;
+            utp.ConnectTimeoutMS = 3000;
             nm.NetworkConfig = new NetworkConfig
             {
                 NetworkTransport = utp,

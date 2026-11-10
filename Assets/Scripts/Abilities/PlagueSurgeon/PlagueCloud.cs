@@ -13,7 +13,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         [SerializeField] float range = 10f;
         [SerializeField] float radius = 3f;
         [SerializeField] float lifetime = 5f;
-        [SerializeField] float damagePerSecond = 9f;
+        [SerializeField] float damagePerSecond = 11f;
         [UnityEngine.Serialization.FormerlySerializedAs("exDamageMultiplier")]
         [SerializeField] float healCloudDamageMultiplier = 0.5f;
         [UnityEngine.Serialization.FormerlySerializedAs("exHealPerSecond")]

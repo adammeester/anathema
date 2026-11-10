@@ -10,7 +10,7 @@ namespace Anathema.Abilities.KhorneBerserker
     [DefaultExecutionOrder(50)] // after ProceduralWalk, which also writes the arms every LateUpdate
     public class WhirlingCarnage : Ability
     {
-        [SerializeField] float damagePerTick = 9f;
+        [SerializeField] float damagePerTick = 11f;
         [SerializeField] float range = 3f;
         [SerializeField] int ticks = 3;
         [SerializeField] float spinDuration = 0.7f;

@@ -13,12 +13,12 @@ namespace Anathema.Abilities.SkitariiRanger
         [SerializeField] float fieldRange = 12f;
         [SerializeField] float fieldRadius = 3.5f;
         [SerializeField] float fieldDuration = 4.5f;
-        [SerializeField] float fieldDamagePerSecond = 14f;
+        [SerializeField] float fieldDamagePerSecond = 11f;
         [SerializeField] float fieldSlow = 0.35f;
         [SerializeField] float exEnergyCost = 35f;
         [SerializeField] float blastRange = 7f;
         [SerializeField] float blastHalfAngle = 38f;
-        [SerializeField] float blastDamage = 32f;
+        [SerializeField] float blastDamage = 26f;
         [SerializeField] float blastKnockback = 5f;
         [SerializeField] float blastKnockbackTime = 0.25f;
         [SerializeField] float blastSlow = 0.4f;

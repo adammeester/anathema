@@ -63,7 +63,13 @@ namespace Anathema.Combat
         void Respawn()
         {
             // Colliders (including a CharacterController) are disabled here, so the teleport isn't overridden.
+            // A living player (the round winner) still has an enabled CharacterController, which would override the teleport.
+            CharacterController controller = GetComponent<CharacterController>();
+            bool controllerWasEnabled = controller != null && controller.enabled;
+            if (controllerWasEnabled) controller.enabled = false;
             transform.SetPositionAndRotation(startPosition, startRotation);
+            if (controllerWasEnabled) controller.enabled = true;
+            Physics.SyncTransforms();
             health.ResetHealth();
             SetAlive(true);
         }

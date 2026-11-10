@@ -20,7 +20,7 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float hitRadius = 1.7f;
         [SerializeField] float damage = 38f;
         [SerializeField] float stunDuration = 1.5f;
-        [SerializeField] float bleedDamagePerSecond = 3f; // same bleed as the axe toss
+        [SerializeField] float bleedDamagePerSecond = 3.5f; // same bleed as the axe toss
         [SerializeField] float bleedDuration = 5f;
         [SerializeField] float fissureWidth = 1.6f;
         [SerializeField] Color telegraphColor = new Color(1f, 0.1f, 0.05f, 0.15f);

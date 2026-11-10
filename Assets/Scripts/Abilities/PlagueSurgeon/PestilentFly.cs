@@ -16,7 +16,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         [SerializeField] float projectileRadius = 0.45f;
         [SerializeField] float muzzleHeight = 1.1f;
         [SerializeField] float attachDuration = 4f;
-        [SerializeField] float enemyDamagePerSecond = 6f;
+        [SerializeField] float enemyDamagePerSecond = 7f;
         [SerializeField] float allyHealPerSecond = 7f;
         [SerializeField] float exEnergyCost = 40f;
         [SerializeField] float burstRadius = 3.5f;

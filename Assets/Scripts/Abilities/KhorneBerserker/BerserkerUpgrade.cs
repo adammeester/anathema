@@ -46,7 +46,7 @@ namespace Anathema.Abilities.KhorneBerserker
 
         // Tunables shared with the code that applies them.
         public const float AblativeArmour = 0.15f;
-        public const float GorehoundHealth = 40f;
+        public const float GorehoundHealth = 50f;
         public const float CommunionHealFraction = 0.15f;      // of damage dealt, as recoverable health
         public const float DefiantThreshold = 0.3f;            // of max health
         public const float DefiantHealFraction = 0.15f;        // of max health
@@ -67,7 +67,7 @@ namespace Anathema.Abilities.KhorneBerserker
         public const float PursuitMovePerStack = 0.03f;
         public const float SkulltakerThreshold = 0.4f;         // target health fraction
         public const float SkulltakerBonus = 0.3f;
-        public const float UpgradeBleedPerSecond = 3f;         // Hamstring and Gore Rush bleed
+        public const float UpgradeBleedPerSecond = 3.5f;         // Hamstring and Gore Rush bleed
         public const float UpgradeBleedSeconds = 4f;
         public const float HeadsmanCooldownScale = 0.7f;
         public const float HeadsmanThresholdScale = 1.4f;      // Descent's bonus starts at 70% instead of 50% health
