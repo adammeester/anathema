@@ -133,6 +133,27 @@ namespace Anathema.Abilities.KhorneBerserker
             aura.SetActive(true);
         }
 
+        // Online: the owner publishes the charge; other machines show the aura and swing the next chop empowered.
+        public override bool ShowsEmpowered => empowered;
+
+        // The owner spends the charge in the same frame it sends the chop's cue, and the two can arrive in either
+        // order, so a replica keeps the charge briefly after hiding the aura for the replayed chop to use.
+        const float ReplicaChargeGrace = 0.5f;
+        float replicaChargeExpiry = float.PositiveInfinity;
+
+        public override void ShowReplicaEmpowered(bool on)
+        {
+            if (!IsReplica) return;
+            if (on)
+            {
+                Empower();
+                replicaChargeExpiry = float.PositiveInfinity;
+                return;
+            }
+            aura.SetActive(false);
+            if (empowered) replicaChargeExpiry = Time.time + ReplicaChargeGrace;
+        }
+
         // Each weapon has its own swing speed; the cooldown follows it. `cooldown` itself (prefab/JSON) is the dual
         // chainaxes' value and is never overwritten: the other weapons scale it through CooldownScale.
         float WeaponCooldown()
@@ -154,6 +175,12 @@ namespace Anathema.Abilities.KhorneBerserker
             base.Update();
 
             if (strikePending && !IsReplica && IsDisabled) InterruptSelf();
+
+            if (IsReplica && empowered && Time.time >= replicaChargeExpiry)
+            {
+                empowered = false;
+                replicaChargeExpiry = float.PositiveInfinity;
+            }
 
             if (empowered)
             {
@@ -266,16 +293,15 @@ namespace Anathema.Abilities.KhorneBerserker
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, Aim.AimDirection, reach, curArc))
             {
                 float dealt = baseDamage * BerserkerUpgradeEffects.DamageScale(gameObject, target);
-                if (!target.TakeDamage(dealt, gameObject, false, pierce, shieldBreak)) continue;
-
-                if (energy != null) energy.Gain(energyPerHit);
-                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
-                BloodImpact.Play(target.transform.position + Vector3.up, Aim.AimDirection, strikeEmpowered ? 1f : 0.7f);
+                Hit chop = Hit.Direct(dealt).WithPierce(pierce).WithShieldBreak(shieldBreak);
                 // The Reaver's passive: heavy hits inflict Bleed.
-                if (weapon == BerserkerWeapon.HeavyChainaxe && !target.IsDead)
-                    Bleeding.Apply(target.gameObject, gameObject,
+                if (weapon == BerserkerWeapon.HeavyChainaxe)
+                    chop = chop.WithBleed(
                         rending ? heavyBleedDamagePerSecond * BerserkerUpgrade.RendingBleedScale : heavyBleedDamagePerSecond,
                         rending ? heavyBleedDuration + BerserkerUpgrade.RendingExtraSeconds : heavyBleedDuration);
+
+                target.Strike(chop, gameObject, BerserkerUpgradeEffects.OnMeleeResult(gameObject, energy, energyPerHit, dealt,
+                    target, Aim.AimDirection, strikeEmpowered ? 1f : 0.7f));
             }
         }
 

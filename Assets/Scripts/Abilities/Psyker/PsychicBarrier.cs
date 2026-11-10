@@ -109,7 +109,8 @@ namespace Anathema.Abilities.Psyker
             s.transform.localScale = Vector3.one * (ShellRadius * 2f);
             shell = s.transform;
 
-            if (!IsReplica) Health.Absorber = Absorb;
+            // Damage is resolved where Health is the authority (the server online), so that copy does the absorbing.
+            if (Health.IsAuthority) Health.Absorber = Absorb;
             PsykerFx.Ring(transform.position, 0.3f, 1.8f, 0.3f, PsykerFx.Cyan);
         }
 
@@ -139,9 +140,16 @@ namespace Anathema.Abilities.Psyker
         {
             float taken = Mathf.Min(amount, remaining);
             remaining -= taken;
-            if (remaining <= 0f) Drop(true);
+            if (remaining <= 0f)
+            {
+                Drop(true);
+                if (Health.Net != null && Health.Net.IsSpawned) Health.Net.ServerShieldBroken(Anathema.Net.NetPlayer.ShieldKind.Kine);
+            }
             return amount - taken;
         }
+
+        // Online: the server's copy ran the shield out; drop this machine's copy with the break effect.
+        public void BreakFromServer() => Drop(true);
 
         protected override void Update()
         {
@@ -154,8 +162,8 @@ namespace Anathema.Abilities.Psyker
                 return;
             }
 
-            // Thins as it soaks damage (owner only) and flickers when about to expire.
-            float strength01 = IsReplica || strength <= 0f ? 1f : Mathf.Clamp01(remaining / strength);
+            // Thins as it soaks damage (where it absorbs) and flickers when about to expire.
+            float strength01 = !Health.IsAuthority || strength <= 0f ? 1f : Mathf.Clamp01(remaining / strength);
             float timeLeft = endTime - Time.time;
             float flicker = timeLeft < 1.5f ? 0.5f + 0.5f * Mathf.Sin(Time.time * 18f) : 1f;
             Color c = shellColor;

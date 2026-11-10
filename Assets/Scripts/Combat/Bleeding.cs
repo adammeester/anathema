@@ -17,12 +17,17 @@ namespace Anathema.Combat
         float nextDripTime;
         GameObject source;
         Health health;
-        bool visualOnly; // attacker's copy of a remote victim: shows the blood, the victim's own machine takes the damage
+        bool visualOnly; // a copy drawn from the server's published state: shows the blood, the server takes the damage
 
+        // The bleed lives on the server's copy of the victim (it deals the damage there); everyone else draws it from
+        // the server's published state (NetPlayer.SyncServerFx).
         public static Bleeding Apply(GameObject target, GameObject damageSource, float damagePerSecond, float duration)
         {
-            bool remote = Anathema.Net.NetPlayer.TryGetRemote(target, out var remotePlayer);
-            if (remote) remotePlayer.SendStatus(Anathema.Net.NetPlayer.StatusKind.Bleed, damagePerSecond, duration, Vector3.zero, damageSource);
+            if (target.TryGetComponent(out Health targetHealth) && !targetHealth.IsAuthority)
+            {
+                targetHealth.Net.SendStatus(Anathema.Net.NetPlayer.StatusKind.Bleed, damagePerSecond, duration, Vector3.zero, damageSource);
+                return null;
+            }
 
             var bleeding = target.GetComponent<Bleeding>();
             if (bleeding == null)
@@ -30,11 +35,24 @@ namespace Anathema.Combat
                 bleeding = target.AddComponent<Bleeding>();
                 bleeding.nextTickTime = Time.time + TickInterval;
             }
-            bleeding.visualOnly = remote;
+            bleeding.visualOnly = false;
             bleeding.source = damageSource;
             bleeding.endTime = Time.time + duration;
             bleeding.damagePerSecond = Mathf.Max(bleeding.damagePerSecond, damagePerSecond);
             return bleeding;
+        }
+
+        // A bleed that is really doing damage here (not a drawn copy).
+        public static bool IsBleedingForReal(GameObject target) => target.TryGetComponent(out Bleeding b) && !b.visualOnly;
+
+        // Online: draws a bleed the server reports; lasts until the server says it has stopped.
+        public static void ShowReplica(GameObject target)
+        {
+            if (target == null || target.TryGetComponent(out Bleeding _)) return;
+            var bleeding = target.AddComponent<Bleeding>();
+            bleeding.visualOnly = true;
+            bleeding.endTime = float.MaxValue;
+            bleeding.nextTickTime = float.MaxValue;
         }
 
         void Awake()

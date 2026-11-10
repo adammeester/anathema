@@ -17,7 +17,7 @@ namespace Anathema.Combat
         System.Func<Health, float> damageScale;
 
         // `damageScaleFor` (optional) is asked for a multiplier on the damage when the projectile reaches a target.
-        public void Init(GameObject ownerObject, int team, float damageAmount, float moveSpeed, float range, float hitRadius, Vector3 moveDirection, System.Action<Health> onHitCallback = null, System.Func<Health, float> damageScaleFor = null)
+        public Projectile Init(GameObject ownerObject, int team, float damageAmount, float moveSpeed, float range, float hitRadius, Vector3 moveDirection, System.Action<Health> onHitCallback = null, System.Func<Health, float> damageScaleFor = null)
         {
             onHit = onHitCallback;
             damageScale = damageScaleFor;
@@ -30,9 +30,32 @@ namespace Anathema.Combat
             direction = moveDirection.normalized;
             transform.rotation = Quaternion.LookRotation(direction);
             spawnPoint = transform.position;
+            return this;
         }
 
         Vector3 spawnPoint;
+
+        // Status effects the projectile carries (stun, bleed...). They travel with its damage as one Hit, so they only
+        // land if the damage does. Build with Hit.Direct(0).With...(); the damage is filled in on impact.
+        Hit riders;
+        bool hasRiders;
+
+        public Projectile WithRiders(Hit carried)
+        {
+            riders = carried;
+            hasRiders = true;
+            return this;
+        }
+
+        // Optional: allies (never the shooter) stop the projectile too, and are handed to this instead of being hit
+        // (e.g. Tonic Spit heals them). Without it the projectile passes through allies.
+        System.Action<Health> onAllyHit;
+
+        public Projectile WithAllyHit(System.Action<Health> onAlly)
+        {
+            onAllyHit = onAlly;
+            return this;
+        }
 
         // An enemy dome turns the projectile around, back to where it was fired from. It now belongs to the dome's
         // owner, so it can hit the original shooter (and no longer reports hits to the original shooter's ability).
@@ -49,7 +72,9 @@ namespace Anathema.Combat
                 owner = dome.Owner;
                 ownerTeam = dome.Team;
                 onHit = null;
+                onAllyHit = null;
                 damageScale = null;
+                hasRiders = false; // the shooter's effects don't come back at them
                 return;
             }
         }
@@ -63,7 +88,17 @@ namespace Anathema.Combat
             {
                 Health target = hit.collider.GetComponentInParent<Health>();
                 float scale = target != null && damageScale != null ? damageScale(target) : 1f;
-                if (target != null && target.TakeDamage(damage * scale, owner)) onHit?.Invoke(target);
+                if (target != null && target.Team == ownerTeam)
+                {
+                    onAllyHit?.Invoke(target);
+                }
+                else if (target != null)
+                {
+                    System.Action<Health> hitCallback = onHit; // the reflect branch above may clear it later
+                    Hit strike = hasRiders ? riders : Hit.Direct(0f);
+                    strike.Damage = damage * scale;
+                    target.Strike(strike, owner, landed => { if (landed) hitCallback?.Invoke(target); });
+                }
                 Destroy(gameObject);
                 return;
             }
@@ -86,7 +121,7 @@ namespace Anathema.Combat
             {
                 RaycastHit h = Hits[i];
                 Health health = h.collider.GetComponentInParent<Health>();
-                if (health != null && (health.Team == ownerTeam || health.IsDead)) continue;
+                if (health != null && (health.IsDead || (health.Team == ownerTeam && (onAllyHit == null || health.gameObject == owner)))) continue;
                 if (h.distance < bestDistance)
                 {
                     bestDistance = h.distance;

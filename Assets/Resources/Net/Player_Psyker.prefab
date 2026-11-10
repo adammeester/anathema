@@ -87,7 +87,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fb8b7a76ab003be4a80b01073c0118a3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Health
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Health
   maxHealth: 145
   team: 1
   recoverableDecayDelay: 4
@@ -104,7 +104,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5c486fe249312fb4284cb54138eca904, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.HealthBar
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.HealthBar
   height: 2.3
   width: 1.6
   thickness: 0.16
@@ -119,7 +119,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1b891849688edf41ae382c760671a5f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Energy
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Energy
   maxEnergy: 100
   startingEnergy: 0
 --- !u!114 &8557206841007336913
@@ -133,7 +133,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aad082e899eb23a45bba94183514dfbb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.EnergyBar
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.EnergyBar
   height: 2.1
   width: 1.6
   thickness: 0.1
@@ -148,7 +148,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 310d721b8c688ae4a8721f557dbc141f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Respawner
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Respawner
   delay: 3
 --- !u!114 &5555797694109250182
 MonoBehaviour:
@@ -161,7 +161,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: da002b6d6640a9c4790ad411519d406e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.MouseAim
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.MouseAim
 --- !u!114 &6718889239421477003
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -173,7 +173,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f96c27d7c6c15984fbf83864441b4db9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.PlayerMovement
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.PlayerMovement
   moveSpeed: 6.5
   gravity: -25
 --- !u!114 &6677596520718113654
@@ -187,7 +187,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4658f0590cb526e4cb05b0e083078e7d, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.WarpBolt
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Psyker.WarpBolt
   cooldown: 0.55
   damage: 9
   range: 14
@@ -219,7 +219,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f7a3332eef07e8c46ba411a5a7641082, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.Cripple
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Psyker.Cripple
   cooldown: 8
   damage: 5
   stunDuration: 1.5
@@ -247,7 +247,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b2c338a06ec8d484586a9ec082714907, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.ChainLightning
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Psyker.ChainLightning
   cooldown: 5
   damage: 16
   range: 12
@@ -284,7 +284,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 51e95454bcf17a84f8d25fefbbf7f0b9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.PsychicBarrier
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Psyker.PsychicBarrier
   cooldown: 10
   strength: 50
   duration: 5
@@ -303,7 +303,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 74ba700e42ea21748bbc5162812ddd21, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.WarpStep
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Psyker.WarpStep
   cooldown: 6
   range: 8
   fireRadius: 2.2
@@ -320,7 +320,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8e16bc6f5445a7a4ebb6deb20e4c0e60, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.PsychicBlast
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Psyker.PsychicBlast
   cooldown: 1
   energyCost: 100
   gatherDuration: 0.4
@@ -328,7 +328,7 @@ MonoBehaviour:
   range: 15
   beamRadius: 0.45
   tickInterval: 0.25
-  damagePerTick: 7
+  damagePerTick: 8
   turnRate: 110
   originHeight: 1.2
 --- !u!114 &4687864249785004690
@@ -342,7 +342,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4cf620fdf76aceb459465136a8368afb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.AimIndicator
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.AimIndicator
   lineHeight: 0.1
   maxLength: 14
   color: {r: 1, g: 1, b: 1, a: 0.35}
@@ -357,7 +357,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 71dca0e14b933df49b60635d333e3a4f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.PlayerHud
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.PlayerHud
 --- !u!136 &211242061425868260
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -419,7 +419,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3e587042fc420dd4db2d759c9350e464, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Net.NetPlayer
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Net.NetPlayer
   ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1001 &3924161670642519597
 PrefabInstance:
@@ -502,7 +502,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fcbcca4c79d1c1b429006218b5a1c260, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.ProceduralWalk
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.ProceduralWalk
   strideLength: 2.3
   referenceSpeed: 0
   responsiveness: 14

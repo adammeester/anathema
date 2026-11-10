@@ -116,15 +116,16 @@ namespace Anathema.Abilities.Psyker
             trail.sharedMaterial = haloMaterial;
             trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
-            go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit);
+            // The stun rides on the bolt's hit, so a countered bolt stuns nobody.
+            go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit)
+                .WithRiders(Hit.Direct(0f).WithStun(stunDuration));
         }
 
-        // Only reached for real hits that dealt damage (a replica's visual bolt never gets here).
+        // Only reached for real hits that landed (a replica's visual bolt never gets here).
         void OnHit(Health target)
         {
             HitMarkerSound.Play();
             if (energy != null) energy.Gain(energyPerHit);
-            if (!target.IsDead) Stunned.Apply(target.gameObject, stunDuration);
         }
 
         protected override void Cancel()

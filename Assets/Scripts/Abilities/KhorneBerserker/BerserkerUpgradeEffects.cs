@@ -38,6 +38,13 @@ namespace Anathema.Abilities.KhorneBerserker
 
         void Update()
         {
+            // Defiant Roar is once per round: it rearms in the prep phase before each round (healing back to full
+            // mid-round must not rearm it). It fires where damage is resolved (see OnDamaged), so it rearms there.
+            if (health.IsAuthority && Anathema.Net.NetGame.InPrep) defiantUsed = false;
+
+            // Relentless Pursuit's speed per Rage stack: every copy needs it, since the server simulates movement too.
+            rage.MovePerStack = upgrades.Has(BerserkerUpgrade.RelentlessPursuit) ? BerserkerUpgrade.PursuitMovePerStack : 0f;
+
             if (health.IsReplica) return;
 
             if (rush != null) rush.CooldownScale = upgrades.Has(BerserkerUpgrade.GoreRush) ? BerserkerUpgrade.GoreRushCooldownScale : 1f;
@@ -48,16 +55,13 @@ namespace Anathema.Abilities.KhorneBerserker
             // Rage is the dual chainaxes' passive; the Eviscerator and Heavy Chainaxe replace it with their own.
             rage.Suppressed = BerserkerWeapons.Of(gameObject) != BerserkerWeapon.DualChainaxes;
             rage.ExtraAttackSpeed = furious ? BerserkerUpgrade.FuryAttackSpeed : 0f;
-            rage.MovePerStack = upgrades.Has(BerserkerUpgrade.RelentlessPursuit) ? BerserkerUpgrade.PursuitMovePerStack : 0f;
-
-            // Defiant Roar is once per round: it rearms in the prep phase before each round (healing back to full
-            // mid-round must not rearm it).
-            if (Anathema.Net.NetGame.InPrep) defiantUsed = false;
         }
 
+        // Runs where damage is resolved (the server's copy online): Feel No Pain's armour must be there to count, and
+        // Defiant Roar's heal and enrage are decided there (the enrage is forwarded to the Berserker's own machine).
         void OnDamaged(Health _, float amount, GameObject source)
         {
-            if (health.IsReplica || health.IsDead) return;
+            if (!health.IsAuthority || health.IsDead) return;
 
             if (upgrades.Has(BerserkerUpgrade.FeelNoPain) && amount >= BerserkerUpgrade.FeelNoPainHit)
                 health.GrantTemporaryArmor(BerserkerUpgrade.FeelNoPainReduction, BerserkerUpgrade.FeelNoPainSeconds);
@@ -103,10 +107,23 @@ namespace Anathema.Abilities.KhorneBerserker
             return UpgradeState.Has(berserker, BerserkerUpgrade.WhettedEdge) ? BerserkerUpgrade.WhettedShieldBreak : baseShieldBreak;
         }
 
-        // Hamstring and Gore Rush leave the target bleeding.
-        public static void ApplyUpgradeBleed(GameObject berserker, Health target)
+        // Hamstring and Gore Rush leave the target bleeding (only if the hit lands).
+        public static Hit WithUpgradeBleed(Hit hit)
         {
-            Bleeding.Apply(target.gameObject, berserker, BerserkerUpgrade.UpgradeBleedPerSecond, BerserkerUpgrade.UpgradeBleedSeconds);
+            return hit.WithBleed(BerserkerUpgrade.UpgradeBleedPerSecond, BerserkerUpgrade.UpgradeBleedSeconds);
+        }
+
+        // What every landed Berserker melee hit does for its owner: energy, Rage, Crimson Communion and the blood spray.
+        public static System.Action<bool> OnMeleeResult(GameObject berserker, Energy energy, float energyGain, float dealt,
+            Health target, Vector3 direction, float bloodScale, bool squelchy = false)
+        {
+            return landed =>
+            {
+                if (!landed) return;
+                if (energy != null) energy.Gain(energyGain);
+                RegisterHit(berserker, dealt);
+                if (target != null) BloodImpact.Play(target.transform.position + Vector3.up, direction, bloodScale, squelchy);
+            };
         }
 
         // Skulltaker: finishing the wounded hurts more.

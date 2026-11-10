@@ -28,6 +28,7 @@ namespace Anathema.Abilities.SkitariiRanger
         Vector3 dashVelocity, dashOrigin, dashAway;
 
         public override string DisplayName => "Disengage";
+        public override float MovementRange => distance;
         public override string KeyLabel => "E";
         public override bool RootsMovement => dashing;
         public override float ExCost => caltropBurstEnabled ? exEnergyCost : 0f;

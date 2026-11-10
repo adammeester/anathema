@@ -72,6 +72,18 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             if (psychicEffect != null && Halberd) psychicEffect.SetActive(true); // no halberd, no glowing blade
         }
 
+        // Online: the owner publishes the charge; other machines show the glowing blade and swing it empowered.
+        public override bool ShowsEmpowered => IsEmpowered;
+
+        public override void ShowReplicaEmpowered(bool on)
+        {
+            if (!IsReplica) return;
+            if (on) Empower(ReplicaHold); // held until the owner says it is gone (or the replayed swing uses it)
+            else EndEmpowerment();
+        }
+
+        const float ReplicaHold = 3600f;
+
         void EndEmpowerment()
         {
             empoweredUntil = 0f;
@@ -278,10 +290,12 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 to.y = 0f;
                 if (to.sqrMagnitude > 0.0001f && Vector3.Angle(Aim.AimDirection, to) > currentArc * 0.5f) continue;
 
-                if (!target.TakeDamage(damage * damageMultiplier, gameObject)) continue;
+                // Counted when sent (for the impact sound); energy only for hits that land.
                 hits++;
-                if (energy != null) energy.Gain(energyPerHit);
-                GreyKnightUpgrade.Ignite(gameObject, target);
+                target.Strike(GreyKnightUpgrade.Ignited(gameObject, Hit.Direct(damage * damageMultiplier)), gameObject, landed =>
+                {
+                    if (landed && energy != null) energy.Gain(energyPerHit);
+                });
             }
 
             return hits;

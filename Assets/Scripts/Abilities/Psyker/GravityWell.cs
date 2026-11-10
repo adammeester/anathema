@@ -114,7 +114,7 @@ namespace Anathema.Abilities.Psyker
 
             // Every machine marks whoever is caught in the blast as Charged (so everyone sees the rune), but only the
             // owner's copy deals damage. The detonation itself never gets the Charged bonus: it is applied as a plain hit.
-            bool hitAny = false;
+            bool marked = false;
             foreach (Collider col in Physics.OverlapSphere(center + Vector3.up, blast + 1f, ~0, QueryTriggerInteraction.Ignore))
             {
                 Health target = col.GetComponentInParent<Health>();
@@ -124,11 +124,15 @@ namespace Anathema.Abilities.Psyker
                 to.y = 0f;
                 if (to.magnitude > blast) continue;
 
-                if (pulls && detonationDamage > 0f && target.TakeDamage(detonationDamage, owner, true)) hitAny = true;
+                if (pulls && detonationDamage > 0f)
+                    target.Strike(Hit.Direct(detonationDamage).AsAoe(), owner, landed =>
+                    {
+                        if (!landed || marked) return;
+                        marked = true;
+                        HitMarkerSound.Play();
+                    });
                 if (!target.IsDead) Charged.Apply(target.gameObject, Charged.DefaultDuration);
             }
-
-            if (hitAny) HitMarkerSound.Play();
         }
 
         void Pull()

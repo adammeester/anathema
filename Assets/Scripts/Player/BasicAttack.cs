@@ -160,7 +160,8 @@ namespace Anathema.Player
                 to.y = 0f;
                 if (to.sqrMagnitude > 0.0001f && Vector3.Angle(Aim.AimDirection, to) > meleeArcDegrees * 0.5f) continue;
 
-                if (target.TakeDamage(damage, gameObject)) OnHit(target);
+                Health struckTarget = target;
+                target.Strike(Hit.Direct(damage), gameObject, landed => { if (landed) OnHit(struckTarget); });
             }
         }
     }

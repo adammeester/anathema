@@ -6,6 +6,8 @@ namespace Anathema.Abilities
 {
     // Generic counter every character has: press Space to raise a guard for a short window. The first hit taken in
     // that window is negated, then OnCounterSuccess runs. Press C to drop the guard early.
+    // Online the server decides: its copy of the character raises the guard when the owner's cue arrives, negates the
+    // hit, and tells everyone (NetPlayer.ServerCounterTriggered -> ResolveFromServer).
     // Characters subclass this (in Abilities/<Character>/) to supply their own response to a successful counter.
     [DefaultExecutionOrder(100)] // after the walk cycle and other abilities have posed the skeleton this frame
     public abstract class Counter : Ability
@@ -153,14 +155,35 @@ namespace Anathema.Abilities
             if (Health.DamageModifier == (Func<float, GameObject, float>)OnIncomingDamage) Health.DamageModifier = null;
         }
 
+        // Runs where damage is resolved: the server's copy online (it replays the guard from the owner's cue), or
+        // locally offline. The hit is negated there; online, every machine is then told (ResolveFromServer).
         float OnIncomingDamage(float amount, GameObject source)
         {
             Cancel();
-            Health.CounterNegateUntil = Time.time + Health.CounterNegateWindow;
+            if (Health.Net != null && Health.Net.IsSpawned)
+            {
+                OnServerCounterTriggered();
+                Health.Net.ServerCounterTriggered(source);
+                return 0f;
+            }
+
             AbilityFx.CounterTriggered(transform.position, guardRadius);
             OnCounterSuccess(source);
             return 0f;
         }
+
+        // Online: the server's copy caught a hit with this counter. Every machine drops the guard and shows the burst;
+        // the owner's machine runs the payoff (its riposte and other hits go back through the server as usual).
+        public void ResolveFromServer(GameObject attacker, bool isOwner)
+        {
+            Cancel();
+            AbilityFx.CounterTriggered(transform.position, guardRadius);
+            if (isOwner) OnCounterSuccess(attacker);
+        }
+
+        // Online, on the server's copy, as the counter catches a hit: anything the server must allow for the payoff
+        // that the owner's machine is about to run (e.g. a teleport).
+        protected virtual void OnServerCounterTriggered() { }
 
         // The character-specific payoff. `attacker` is whoever dealt the negated hit (may be null).
         protected abstract void OnCounterSuccess(GameObject attacker);

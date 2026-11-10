@@ -127,16 +127,12 @@ namespace Anathema.Abilities.KhorneBerserker
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, transform.position, Aim.AimDirection, range, arcDegrees))
             {
                 float dealt = damage * BerserkerUpgradeEffects.DamageScale(gameObject, target);
-                if (!target.TakeDamage(dealt, gameObject)) continue;
-                if (energy != null) energy.Gain(energyPerHit);
-                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
-                BloodImpact.Play(target.transform.position + Vector3.up, Aim.AimDirection);
-                if (target.IsDead) continue;
-
                 // Hamstring: a deeper slow, and the wound bleeds.
                 bool hamstring = UpgradeState.Has(gameObject, BerserkerUpgrade.Hamstring);
-                Maimed.Apply(target.gameObject, maimDuration, hamstring ? Mathf.Max(slowFraction, BerserkerUpgrade.HamstringSlowFraction) : slowFraction);
-                if (hamstring) BerserkerUpgradeEffects.ApplyUpgradeBleed(gameObject, target);
+                Hit maim = Hit.Direct(dealt).WithMaim(maimDuration, hamstring ? Mathf.Max(slowFraction, BerserkerUpgrade.HamstringSlowFraction) : slowFraction);
+                if (hamstring) maim = BerserkerUpgradeEffects.WithUpgradeBleed(maim);
+                target.Strike(maim, gameObject, BerserkerUpgradeEffects.OnMeleeResult(gameObject, energy, energyPerHit, dealt,
+                    target, Aim.AimDirection, 1f));
             }
         }
 

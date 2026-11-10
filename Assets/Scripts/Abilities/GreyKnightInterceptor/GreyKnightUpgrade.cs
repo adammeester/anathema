@@ -48,12 +48,10 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         public const float GroundFireSeconds = 4f;
         public const float GroundFirePerSecond = 8f;
 
-        // Owner machine only: under the Purifier Order, set `target` alight.
-        public static void Ignite(GameObject attacker, Health target)
+        // Under the Purifier Order, the hit also sets its target alight (only if it lands).
+        public static Hit Ignited(GameObject attacker, Hit hit)
         {
-            if (attacker == null || target == null || target.IsDead || !HasPurifier(attacker)) return;
-            if (attacker.TryGetComponent(out Health mine) && mine.IsReplica) return;
-            Burning.Apply(target.gameObject, attacker, BurnPerSecond, BurnSeconds);
+            return attacker != null && HasPurifier(attacker) ? hit.WithBurn(BurnPerSecond, BurnSeconds) : hit;
         }
 
         // Pick 0 is offered after round 1, pick 1 after round 2, and so on. A weapon already taken (or the Purifier Order)

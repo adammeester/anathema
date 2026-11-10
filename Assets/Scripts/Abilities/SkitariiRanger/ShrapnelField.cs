@@ -107,7 +107,7 @@ namespace Anathema.Abilities.SkitariiRanger
 
             if (IsReplica) return;
 
-            bool hitAny = false;
+            bool marked = false;
             Vector3 centre = transform.position;
             foreach (Collider col in Physics.OverlapSphere(centre + Vector3.up, blastRange + 1f, ~0, QueryTriggerInteraction.Ignore))
             {
@@ -119,14 +119,18 @@ namespace Anathema.Abilities.SkitariiRanger
                 if (to.magnitude > blastRange || to.sqrMagnitude < 0.0001f) continue;
                 if (Vector3.Angle(dir, to) > blastHalfAngle) continue;
 
-                if (!target.TakeDamage(blastDamage, gameObject)) continue;
-                hitAny = true;
-                if (energy != null) energy.Gain(energyPerHit);
-                if (target.IsDead) continue;
-                Knockback.Apply(target.gameObject, to.normalized, blastKnockback, blastKnockbackTime);
-                Slowed.Apply(target.gameObject, blastSlowDuration, blastSlow);
+                Hit blast = Hit.Direct(blastDamage)
+                    .WithKnockback(to.normalized, blastKnockback, blastKnockbackTime)
+                    .WithSlow(blastSlowDuration, blastSlow);
+                target.Strike(blast, gameObject, landed =>
+                {
+                    if (!landed) return;
+                    if (energy != null) energy.Gain(energyPerHit);
+                    if (marked) return;
+                    marked = true;
+                    HitMarkerSound.Play();
+                });
             }
-            if (hitAny) HitMarkerSound.Play();
         }
 
         protected override void Cancel()

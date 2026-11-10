@@ -83,6 +83,14 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             CloseWindow(); // C (or death) also forfeits the teleport
         }
 
+        // Server: the owner may now teleport up to teleportRange within the window.
+        protected override void OnServerCounterTriggered()
+        {
+            if (sweep == null) return;
+            var movement = GetComponent<Anathema.Player.PlayerMovement>();
+            if (movement != null) movement.GrantAbilityMove(teleportRange, teleportWindow + 0.5f);
+        }
+
         protected override void OnCounterSuccess(GameObject attacker)
         {
             SlashEffect.Spawn(transform.position, Aim.AimDirection, riposteRadius, 360f, 0.4f, riposteColor);
@@ -91,10 +99,13 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             if (attacker != null)
             {
                 Health target = attacker.GetComponentInParent<Health>();
-                if (target != null && target.Team != Health.Team && target.TakeDamage(riposteDamage, gameObject))
+                if (target != null && target.Team != Health.Team)
                 {
                     Energy energy = GetComponent<Energy>();
-                    if (energy != null) energy.Gain(energyPerHit);
+                    target.Strike(Hit.Direct(riposteDamage), gameObject, landed =>
+                    {
+                        if (landed && energy != null) energy.Gain(energyPerHit);
+                    });
                 }
             }
 

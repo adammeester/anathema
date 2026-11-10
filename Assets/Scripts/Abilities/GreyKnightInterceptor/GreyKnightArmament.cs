@@ -284,11 +284,13 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 to.y = 0f;
                 if (to.sqrMagnitude > 0.0001f && Vector3.Angle(aim.AimDirection, to) > arc * 0.5f) continue;
 
-                if (!target.TakeDamage(damage, gameObject)) continue;
-                hits++;
-                if (energy != null) energy.Gain(energyGain);
-                GreyKnightUpgrade.Ignite(gameObject, target);
-                if (knockback > 0f && !target.IsDead) Knockback.Apply(target.gameObject, to.sqrMagnitude > 0.0001f ? to : aim.AimDirection, knockback, knockbackTime);
+                Hit hit = GreyKnightUpgrade.Ignited(gameObject, Hit.Direct(damage));
+                if (knockback > 0f) hit = hit.WithKnockback(to.sqrMagnitude > 0.0001f ? to : aim.AimDirection, knockback, knockbackTime);
+                hits++; // counted when sent, for the impact sound
+                target.Strike(hit, gameObject, landed =>
+                {
+                    if (landed && energy != null) energy.Gain(energyGain);
+                });
             }
             if (hits > 0) HitMarkerSound.Play();
             return hits;
@@ -328,11 +330,12 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                     if (to.magnitude > SlamRadius) continue;
 
                     struck.Add(target);
-                    if (!target.TakeDamage(SlamDamage * damageScale, gameObject, true)) continue;
-                    hits++;
-                    if (energy != null) energy.Gain(SlamEnergy);
-                    GreyKnightUpgrade.Ignite(gameObject, target);
-                    if (!target.IsDead) Stunned.Apply(target.gameObject, SlamStun);
+                    Hit slam = GreyKnightUpgrade.Ignited(gameObject, Hit.Direct(SlamDamage * damageScale).AsAoe().WithStun(SlamStun));
+                    hits++; // counted when sent, for the impact sound
+                    target.Strike(slam, gameObject, landed =>
+                    {
+                        if (landed && energy != null) energy.Gain(SlamEnergy);
+                    });
                 }
                 if (hits > 0) HitMarkerSound.Play();
             }

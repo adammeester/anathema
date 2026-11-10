@@ -168,11 +168,11 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                     if (to.magnitude > flameRange) continue;
                     if (to.sqrMagnitude > 0.0001f && Vector3.Angle(dir, to) > flameHalfAngle) continue;
 
-                    if (target.TakeDamage(perTick, gameObject, true, 0f, 1f, true))
+                    Hit flame = GreyKnightUpgrade.Ignited(gameObject, Hit.Direct(perTick).AsAoe().AsDot());
+                    target.Strike(flame, gameObject, landed =>
                     {
-                        if (energy != null) energy.Gain(energyPerHit * 0.1f);
-                        GreyKnightUpgrade.Ignite(gameObject, target);
-                    }
+                        if (landed && energy != null) energy.Gain(energyPerHit * 0.1f);
+                    });
                 }
                 struck.Clear();
             }
@@ -221,11 +221,10 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             {
                 Health target = hit.collider.GetComponentInParent<Health>();
                 if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
-                if (target.TakeDamage(damage, gameObject))
+                target.Strike(GreyKnightUpgrade.Ignited(gameObject, Hit.Direct(damage)), gameObject, landed =>
                 {
-                    if (energy != null) energy.Gain(energyPerHit);
-                    GreyKnightUpgrade.Ignite(gameObject, target);
-                }
+                    if (landed && energy != null) energy.Gain(energyPerHit);
+                });
                 hitPoints.Add(target.transform.position + Vector3.up * originHeight);
             }
 

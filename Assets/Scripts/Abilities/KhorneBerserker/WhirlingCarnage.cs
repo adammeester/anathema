@@ -156,9 +156,9 @@ namespace Anathema.Abilities.KhorneBerserker
                 if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
 
                 float dealt = damagePerTick * BerserkerUpgradeEffects.DamageScale(gameObject, target);
-                if (!target.TakeDamage(dealt, gameObject, true)) continue;
-                if (energy != null) energy.Gain(energyPerHit);
-                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
+                // No blood spray per tick (target null): the spin is a stream of small hits.
+                target.Strike(Hit.Direct(dealt).AsAoe(), gameObject,
+                    BerserkerUpgradeEffects.OnMeleeResult(gameObject, energy, energyPerHit, dealt, null, Vector3.zero, 0f));
             }
         }
     }

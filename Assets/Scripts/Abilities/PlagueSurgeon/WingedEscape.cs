@@ -33,6 +33,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         protected override void OnWindupCancel() => PlagueSurgeonPose.For(gameObject).Release();
 
         public override string DisplayName => "Winged Escape";
+        public override float MovementRange => range;
         public override string KeyLabel => "Space";
 
         // Applied only when added in the editor.
@@ -173,7 +174,8 @@ namespace Anathema.Abilities.PlagueSurgeon
             PlagueSurgeonPose.For(gameObject).Wings(flightDuration + 0.15f);
             flying = true;
 
-            if (!IsReplica) Health.Invulnerable = true;
+            // Damage is resolved where Health is the authority (the server online), so that copy is the one made untouchable.
+            if (Health.IsAuthority) Health.Invulnerable = true;
             wingLeft.gameObject.SetActive(true);
             wingRight.gameObject.SetActive(true);
         }
@@ -189,6 +191,11 @@ namespace Anathema.Abilities.PlagueSurgeon
             Health.Invulnerable = false;
             wingLeft.gameObject.SetActive(false);
             wingRight.gameObject.SetActive(false);
+
+            // Chitinous Wings: he lands behind a hardened shell (held on the server online, like every shield).
+            if (!IsReplica && !Health.IsDead && PlagueSurgeonUpgradeEffects.Has(gameObject, PlagueSurgeonUpgrade.ChitinousWings))
+                Barrier.Grant(gameObject, PlagueSurgeonUpgrade.WingsBarrier, PlagueSurgeonUpgrade.WingsBarrierSeconds,
+                    PlagueSurgeonUpgrade.WingsBarrier, gameObject);
         }
     }
 }

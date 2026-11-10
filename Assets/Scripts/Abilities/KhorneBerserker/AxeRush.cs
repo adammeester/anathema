@@ -68,6 +68,8 @@ namespace Anathema.Abilities.KhorneBerserker
             pose = new LimbPose(transform.Find("Model"), BoneNames);
         }
 
+        public override float MovementRange => dashDistance;
+
         protected override void Update()
         {
             base.Update();
@@ -129,13 +131,11 @@ namespace Anathema.Abilities.KhorneBerserker
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, transform.position, dashDirection, range, arcDegrees))
             {
                 float dealt = damage * BerserkerUpgradeEffects.DamageScale(gameObject, target);
-                if (!target.TakeDamage(dealt, gameObject)) continue;
-                if (energy != null) energy.Gain(energyPerHit);
-                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
-                BloodImpact.Play(target.transform.position + Vector3.up, dashDirection);
+                Hit sweep = Hit.Direct(dealt);
                 // Gore Rush: the sweep leaves targets bleeding.
-                if (!target.IsDead && UpgradeState.Has(gameObject, BerserkerUpgrade.GoreRush))
-                    BerserkerUpgradeEffects.ApplyUpgradeBleed(gameObject, target);
+                if (UpgradeState.Has(gameObject, BerserkerUpgrade.GoreRush)) sweep = BerserkerUpgradeEffects.WithUpgradeBleed(sweep);
+                target.Strike(sweep, gameObject, BerserkerUpgradeEffects.OnMeleeResult(gameObject, energy, energyPerHit, dealt,
+                    target, dashDirection, 1f));
             }
         }
 

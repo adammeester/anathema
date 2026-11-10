@@ -86,7 +86,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fb8b7a76ab003be4a80b01073c0118a3, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Health
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Health
   maxHealth: 175
   team: 1
   recoverableDecayDelay: 4
@@ -103,7 +103,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5c486fe249312fb4284cb54138eca904, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.HealthBar
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.HealthBar
   height: 2.7
   width: 1.6
   thickness: 0.16
@@ -118,7 +118,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b1b891849688edf41ae382c760671a5f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Energy
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Energy
   maxEnergy: 100
   startingEnergy: 0
 --- !u!114 &3498923717920987030
@@ -132,7 +132,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aad082e899eb23a45bba94183514dfbb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.EnergyBar
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.EnergyBar
   height: 2.5
   width: 1.6
   thickness: 0.1
@@ -147,7 +147,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 310d721b8c688ae4a8721f557dbc141f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Combat.Respawner
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Respawner
   delay: 3
 --- !u!114 &8069376456712288108
 MonoBehaviour:
@@ -160,7 +160,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: da002b6d6640a9c4790ad411519d406e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.MouseAim
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.MouseAim
 --- !u!114 &5599149733977541847
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -172,7 +172,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f96c27d7c6c15984fbf83864441b4db9, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.PlayerMovement
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.PlayerMovement
   moveSpeed: 6.5
   gravity: -25
 --- !u!114 &8610875842569332576
@@ -186,10 +186,10 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4dd5488fc6cb722419e7f3fff738b5eb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.PlagueSurgeon.PlagueSpit
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.PlagueSurgeon.PlagueSpit
   cooldown: 0.7
   damage: 5
-  rotDamagePerSecond: 1.5
+  rotDamagePerSecond: 2
   range: 13
   projectileSpeed: 22
   projectileRadius: 0.3
@@ -208,12 +208,12 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 305aa9251612fe14a984ce83a6ae1f2a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.PlagueSurgeon.PlagueCloud
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.PlagueSurgeon.PlagueCloud
   cooldown: 7
   range: 10
   radius: 3
   lifetime: 5
-  damagePerSecond: 9
+  damagePerSecond: 11
   healCloudDamageMultiplier: 0.5
   healPerSecond: 10
   exEnergyCost: 35
@@ -229,14 +229,14 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 485c676ff9b224e4ab46fdf79f2c0454, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.PlagueSurgeon.PestilentFly
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.PlagueSurgeon.PestilentFly
   cooldown: 6
   projectileSpeed: 18
   range: 13
   projectileRadius: 0.45
   muzzleHeight: 1.1
   attachDuration: 4
-  enemyDamagePerSecond: 6
+  enemyDamagePerSecond: 7
   allyHealPerSecond: 7
   exEnergyCost: 40
   burstRadius: 3.5
@@ -255,7 +255,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 177487177fcb9b946a67a9cbabbd1168, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.PlagueSurgeon.WingedEscape
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.PlagueSurgeon.WingedEscape
   cooldown: 8
   range: 9
   flightDuration: 0.4
@@ -272,7 +272,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: aecc53de87e88764da92be24e1b41c4e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.PlagueSurgeon.WardOfPlague
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.PlagueSurgeon.WardOfPlague
   cooldown: 1
   energyCost: 100
   range: 14
@@ -290,7 +290,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4cf620fdf76aceb459465136a8368afb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.AimIndicator
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.AimIndicator
   lineHeight: 0.1
   maxLength: 14
   color: {r: 1, g: 1, b: 1, a: 0.35}
@@ -305,7 +305,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 71dca0e14b933df49b60635d333e3a4f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.PlayerHud
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.PlayerHud
 --- !u!136 &8926327992001819489
 CapsuleCollider:
   m_ObjectHideFlags: 0
@@ -367,7 +367,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3e587042fc420dd4db2d759c9350e464, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Net.NetPlayer
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Net.NetPlayer
   ShowTopMostFoldoutHeaderGroup: 1
 --- !u!1001 &1291447389958649262
 PrefabInstance:
@@ -450,7 +450,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fcbcca4c79d1c1b429006218b5a1c260, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Anathema.Player.ProceduralWalk
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.ProceduralWalk
   strideLength: 2.3
   referenceSpeed: 0
   responsiveness: 14

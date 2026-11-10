@@ -201,17 +201,20 @@ namespace Anathema.Abilities.Psyker
         {
             Vector3 direction = (end - start).normalized;
             float length = Vector3.Distance(start, end);
-            bool hitAny = false;
+            bool marked = false;
             struck.Clear();
 
             foreach (RaycastHit hit in Physics.SphereCastAll(start, beamRadius, direction, length, ~0, QueryTriggerInteraction.Ignore))
             {
                 Health target = hit.collider.GetComponentInParent<Health>();
                 if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
-                if (target.TakeDamage(damagePerTick, gameObject, true)) hitAny = true;
+                target.Strike(Hit.Direct(damagePerTick).AsAoe(), gameObject, landed =>
+                {
+                    if (!landed || marked) return;
+                    marked = true;
+                    HitMarkerSound.Play();
+                });
             }
-
-            if (hitAny) HitMarkerSound.Play();
         }
 
         // ---- visuals: layered, re-jittered line renderers, all white ----------------------------------------------------

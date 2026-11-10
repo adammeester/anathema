@@ -153,14 +153,16 @@ namespace Anathema.Abilities.SkitariiRanger
 
             if (IsReplica) return;
 
-            bool hitAny = false;
+            bool marked = false;
             foreach (Health target in hits)
             {
-                if (!target.TakeDamage(damage, gameObject)) continue;
-                hitAny = true;
-                if (!target.IsDead) Slowed.Apply(target.gameObject, slowDuration, slow);
+                target.Strike(Hit.Direct(damage).WithSlow(slowDuration, slow), gameObject, landed =>
+                {
+                    if (!landed || marked) return;
+                    marked = true;
+                    HitMarkerSound.Play();
+                });
             }
-            if (hitAny) HitMarkerSound.Play();
         }
 
         void End()

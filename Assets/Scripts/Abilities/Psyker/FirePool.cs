@@ -144,7 +144,7 @@ namespace Anathema.Abilities.Psyker
         void Burn()
         {
             Vector3 center = transform.position;
-            var hitAny = false;
+            bool marked = false;
             foreach (Collider col in Physics.OverlapSphere(center + Vector3.up, radius + 1f, ~0, QueryTriggerInteraction.Ignore))
             {
                 Health target = col.GetComponentInParent<Health>();
@@ -154,10 +154,13 @@ namespace Anathema.Abilities.Psyker
                 to.y = 0f;
                 if (to.magnitude > radius) continue;
 
-                if (target.TakeDamage(damagePerTick, owner, true)) hitAny = true;
+                target.Strike(Hit.Direct(damagePerTick).AsAoe(), owner, landed =>
+                {
+                    if (!landed || marked) return;
+                    marked = true;
+                    HitMarkerSound.Play();
+                });
             }
-
-            if (hitAny) HitMarkerSound.Play();
         }
     }
 }

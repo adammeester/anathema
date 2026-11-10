@@ -19,6 +19,7 @@ namespace Anathema.Abilities.Psyker
         protected override Color WindupColor => PsykerFx.Cyan;
 
         public override string DisplayName => "Warp Step";
+        public override float MovementRange => range;
         public override string KeyLabel => "Space";
 
         // Applied only when added in the editor.
@@ -66,7 +67,7 @@ namespace Anathema.Abilities.Psyker
             else PsykerFx.Ring(to, 0.2f, 1.6f, 0.3f, PsykerFx.Cyan);
             // Warp Ward upgrade: arriving through the warp wraps her in a shield (every machine shows it).
             if (Anathema.Upgrades.UpgradeState.Has(gameObject, PsykerUpgrade.WarpWard))
-                WarpWardShield.Grant(gameObject, !IsReplica, PsykerUpgrade.WarpWardStrength, PsykerUpgrade.WarpWardSeconds);
+                WarpWardShield.Grant(gameObject, Health.IsAuthority, PsykerUpgrade.WarpWardStrength, PsykerUpgrade.WarpWardSeconds);
 
             FirePool.Spawn(gameObject, Health.Team, to, fireRadius, fireDuration, fireDamagePerSecond, !IsReplica);
         }

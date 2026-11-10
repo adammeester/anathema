@@ -20,6 +20,14 @@ namespace Anathema.Combat
 
         public static Enraged Apply(GameObject target, float duration)
         {
+            // Online: decided on the server (e.g. Defiant Roar, triggered by damage resolved there), run by the
+            // character's own machine.
+            if (Anathema.Net.NetPlayer.TryGetRemote(target, out var remote))
+            {
+                if (remote.IsServer) remote.ForwardStatusToOwner(Anathema.Net.NetPlayer.StatusKind.Enrage, duration, 0f, Vector3.zero, null);
+                return null;
+            }
+
             var enraged = target.GetComponent<Enraged>();
             if (enraged == null)
             {

@@ -30,7 +30,8 @@ namespace Anathema.Combat
             startRotation = rotation;
         }
 
-        // Instantly puts the character back at its spawn with full health (used for rematches).
+        // Instantly puts the character back at its spawn with full health (used for rematches). Online the server
+        // restores the health; this machine just moves the character and shows it once the server says it lives.
         public void ResetNow()
         {
             CancelInvoke(nameof(Respawn));
@@ -49,8 +50,9 @@ namespace Anathema.Combat
 
         void Update()
         {
-            // Replica: the owner respawned, so show the character again.
-            if (hidden && health.IsReplica && !health.IsDead) SetAlive(true);
+            // Online: the server brought the character back, so show it again.
+            // (Offline the death timer's Respawn does this; a character is never hidden while alive.)
+            if (hidden && !health.IsDead) SetAlive(true);
         }
 
         void OnDied(Health _, GameObject killer)
@@ -70,8 +72,10 @@ namespace Anathema.Combat
             transform.SetPositionAndRotation(startPosition, startRotation);
             if (controllerWasEnabled) controller.enabled = true;
             Physics.SyncTransforms();
-            health.ResetHealth();
-            SetAlive(true);
+            if (health.IsAuthority) health.ResetHealth();
+            // Online the health comes back from the server; until then the character stays hidden (see Update), so a
+            // late "still dead" update can't kill it again.
+            if (!health.IsDead) SetAlive(true);
         }
 
         void SetAlive(bool alive)

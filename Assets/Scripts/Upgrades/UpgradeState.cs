@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Abilities.KhorneBerserker;
+using Anathema.Abilities.PlagueSurgeon;
 using Anathema.Combat;
 using Anathema.Net;
 using Anathema.Player;
@@ -63,6 +64,8 @@ namespace Anathema.Upgrades
                 gameObject.AddComponent<BerserkerWeaponVisual>();
             if (character == "GreyKnight" && GetComponent<GreyKnightArmament>() == null)
                 gameObject.AddComponent<GreyKnightArmament>();
+            if (character == "PlagueSurgeon" && GetComponent<PlagueSurgeonUpgradeEffects>() == null)
+                gameObject.AddComponent<PlagueSurgeonUpgradeEffects>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!NetGame.Online && GetComponent<UpgradeTestPanel>() == null) gameObject.AddComponent<UpgradeTestPanel>();
 #endif
@@ -175,7 +178,7 @@ namespace Anathema.Upgrades
         // Passive stat upgrades (health, armour) are data on the catalog entries; add them up.
         void Recompute()
         {
-            float bonusHealth = 0f, armor = 0f, ccScale = 1f;
+            float bonusHealth = 0f, armor = 0f, ccScale = 1f, areaResist = 0f;
             bool lastStand = false;
             UpgradeDef[] all = UpgradeCatalog.For(character);
             if (all != null)
@@ -185,6 +188,7 @@ namespace Anathema.Upgrades
                     if ((Mask & def.Mask) == 0) continue;
                     bonusHealth += def.BonusHealth;
                     armor += def.Armor;
+                    areaResist += def.AreaResistance;
                     ccScale *= def.CrowdControlScale;
                     lastStand |= def.GrantsLastStand;
                 }
@@ -194,6 +198,7 @@ namespace Anathema.Upgrades
             {
                 health.SetBonusMaxHealth(bonusHealth);
                 health.Armor = armor;
+                health.AreaResistance = areaResist;
                 health.CrowdControlScale = ccScale;
                 health.LastStand = lastStand;
             }

@@ -35,6 +35,17 @@ namespace Anathema.Abilities
         // full energy bar). Only affects how the HUD draws the slot.
         public virtual bool Available => true;
 
+        // Online: a charge this ability is holding that everyone should see (e.g. an empowered next swing). The owner
+        // reports it here, NetPlayer publishes it, and other machines are told through ShowReplicaEmpowered.
+        public virtual bool ShowsEmpowered => false;
+        public virtual void ShowReplicaEmpowered(bool on) { }
+
+        // Abilities that move their own caster (dash, leap, teleport): how far one use can carry them, and for how long
+        // after the cast the movement may still be happening. The server lets the owner report that movement up to this
+        // range (PlayerMovement.GrantAbilityMove). 0 = the ability never moves its caster.
+        public virtual float MovementRange => 0f;
+        public virtual float MovementWindow => 3f;
+
         // True while this ability holds the character in place (PlayerMovement stops walking; gravity still applies).
         public virtual bool RootsMovement => false;
 

@@ -4,8 +4,8 @@ using UnityEngine;
 namespace Anathema.Abilities.Psyker
 {
     // The Warp Ward upgrade's shield: soaks damage for a few seconds after a Warp Step. It uses Health.BonusAbsorber so
-    // it stacks with the Kine Shield instead of replacing it. Only the owner's copy absorbs (damage is resolved on the
-    // owner's machine); every machine shows the shell. Re-granting refreshes the shield.
+    // it stacks with the Kine Shield instead of replacing it. Only the authority's copy absorbs (damage is resolved on
+    // the server online); every machine shows the shell. Re-granting refreshes the shield.
     public class WarpWardShield : MonoBehaviour
     {
         const float ShellRadius = 1.0f;
@@ -54,8 +54,19 @@ namespace Anathema.Abilities.Psyker
         {
             float taken = Mathf.Min(amount, remaining);
             remaining -= taken;
-            if (remaining <= 0f) End(true);
+            if (remaining <= 0f)
+            {
+                End(true);
+                if (health != null && health.Net != null && health.Net.IsSpawned)
+                    health.Net.ServerShieldBroken(Anathema.Net.NetPlayer.ShieldKind.WarpWard);
+            }
             return amount - taken;
+        }
+
+        // Online: the server's copy ran the shield out; remove this machine's copy with the break effect.
+        public static void Break(GameObject player)
+        {
+            if (player != null && player.TryGetComponent(out WarpWardShield ward)) ward.End(true);
         }
 
         void Update()

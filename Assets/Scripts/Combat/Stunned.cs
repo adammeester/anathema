@@ -15,13 +15,9 @@ namespace Anathema.Combat
 
         public static Stunned Apply(GameObject target, float duration)
         {
-            // Online: a remote player's status is applied on their own machine.
-            if (Anathema.Net.NetPlayer.TryGetRemote(target, out var remote))
-            {
-                remote.SendStatus(Anathema.Net.NetPlayer.StatusKind.Stun, duration, 0f, Vector3.zero);
-                StunFx.Show(target, duration); // the victim's machine does the real stun; show the effect here too
-                return null;
-            }
+            // Online: a client asks the server; the server holds the stun (it stops the character there) and tells the
+            // victim's machine, which publishes it so every screen draws it.
+            if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Stun, duration, 0f, Vector3.zero)) return null;
 
             if (Enraged.IsEnraged(target)) return null;
             duration *= Health.CrowdControlScaleOf(target);
@@ -31,6 +27,14 @@ namespace Anathema.Combat
             stunned.endTime = Mathf.Max(stunned.endTime, Time.time + duration);
             StunFx.Show(target, duration);
             return stunned;
+        }
+
+        // Online: draws a stun on a replica (driven by NetPlayer's published status mask); lasts until the mask clears.
+        public static void ShowReplica(GameObject target)
+        {
+            if (target == null || target.TryGetComponent(out Stunned _)) return;
+            target.AddComponent<Stunned>().endTime = float.MaxValue;
+            StunFx.Show(target, float.MaxValue);
         }
 
         public static bool IsStunned(GameObject target)
