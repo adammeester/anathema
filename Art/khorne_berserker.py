@@ -23,6 +23,8 @@ from mathutils import Vector  # noqa: E402
 OUT_FBX = os.path.normpath(os.path.join(HERE, "..", "Assets", "Models", "KhorneBerserker.fbx"))
 argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 RENDER_DIR = argv[argv.index("--render") + 1] if "--render" in argv else None
+ONLY = argv[argv.index("--only") + 1] if "--only" in argv else None  # dual | heavy | evisc (previews)
+OUT_FBX = argv[argv.index("--out") + 1] if "--out" in argv else OUT_FBX
 
 c.configure(0.95)
 
@@ -38,14 +40,14 @@ mat("eye", (1.0, 0.25, 0.05), emit=(1.0, 0.25, 0.05), emit_strength=5.0)
 mat("rune", (1.0, 0.1, 0.05), emit=(1.0, 0.1, 0.05), emit_strength=2.0)
 
 
-def skull(loc, size, bone, rot=(0, 0, 0)):
+def skull(loc, size, bone, rot=(0, 0, 0), xf=None):
     """Small trophy skull facing -Y: cranium, eye sockets, jaw."""
     x, y, z = loc
-    prim("sphere", (x, y, z), (size, size * 1.05, size), "bone", bone, rot=rot, verts=14)
-    prim("cube", (x, y - size * 0.3, z - size * 0.45), (size * 0.55, size * 0.4, size * 0.3), "bone", bone, bevel=0.01)
+    prim("sphere", (x, y, z), (size, size * 1.05, size), "bone", bone, rot=rot, verts=14, xf=xf)
+    prim("cube", (x, y - size * 0.3, z - size * 0.45), (size * 0.55, size * 0.4, size * 0.3), "bone", bone, bevel=0.01, xf=xf)
     for dx in (-0.22, 0.22):
         prim("sphere", (x + dx * size, y - size * 0.42, z + size * 0.05), (size * 0.26, size * 0.2, size * 0.28),
-             "iron", bone, verts=8)
+             "iron", bone, verts=8, xf=xf)
 
 
 def spike(a, b, r, bone, material="bone", xf=None):
@@ -227,6 +229,126 @@ def chain_axe(side):
     spike((px - 0.14 * s, py, pz + 0.95), (px - 0.4 * s, py, pz + 1.0), 0.06, bone, "brass", xf=xf)
 
 
+def _right_grip():
+    wr = Vector(ARMS["R"]["wr"])
+    el = Vector(ARMS["R"]["el"])
+    return tuple(wr + (wr - el).normalized() * 0.05)
+
+
+def _teeth(px, py, pz, xs, z0, z1, count, bone, xf):
+    """Rows of chain teeth running along the haft (local Z) at each outward offset in xs, alternately angled."""
+    for x in xs:
+        for i in range(count):
+            z = z0 + (z1 - z0) * i / (count - 1)
+            prim("cube", (px + x, py, pz + z), (0.07, 0.11, 0.06), "steel", bone, xf=xf,
+                 rot=(0, 35 if i % 2 else -35, 0), bevel=0.006)
+
+
+def _spiked_ball(center, r, bone, xf, n=7):
+    cx, cy, cz = center
+    prim("sphere", center, (r * 2, r * 2, r * 2), "iron", bone, xf=xf, verts=14)
+    dirs = [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1), (0.7, -0.7, 0.2)]
+    for d in dirs[:n]:
+        dv = Vector(d).normalized()
+        spike((cx + dv.x * r * 0.8, cy + dv.y * r * 0.8, cz + dv.z * r * 0.8),
+              (cx + dv.x * r * 1.8, cy + dv.y * r * 1.8, cz + dv.z * r * 1.8), 0.045, bone, "brass", xf=xf)
+
+
+def eviscerator():
+    """The Eviscerator: a very long frame, a chainsaw bar on top of a crimson motor housing, a spiked ball with a skull
+    behind the housing, and a spiked pommel. Held two-handed; here it rides in the right hand."""
+    px, py, pz = _right_grip()
+    bone = "Eviscerator"
+    xf = pivot_rotation((px, py, pz), (36, 6, 0))  # leans forward, blade up
+
+    D = 0.65  # how far the housing and bar sit below the original, long design: a shorter handle
+    pz2 = pz - D
+    prim("cyl", (px, py, pz + 0.25), (0.08, 0.08, 1.3), "iron", bone, xf=xf, verts=10)  # shaft
+    prim("cyl", (px, py, pz), (0.12, 0.12, 0.5), "leather", bone, xf=xf, verts=10)  # rear grip
+    prim("cyl", (px, py, pz + 0.5), (0.12, 0.12, 0.35), "leather", bone, xf=xf, verts=10)  # front grip
+    for z in (-0.28, 0.27, 0.45, 0.68):
+        prim("cyl", (px, py, pz + z), (0.15, 0.15, 0.06), "brass", bone, xf=xf, verts=12)
+    prim("sphere", (px, py, pz - 0.4), (0.22, 0.22, 0.22), "brass", bone, xf=xf, verts=10)
+    spike((px, py, pz - 0.45), (px, py, pz - 0.75), 0.06, bone, "brass", xf=xf)  # pommel spike
+
+    # Motor housing (compact, so the blade carries the length).
+    H = 1.4  # housing centre height
+    prim("cube", (px, py, pz2 + H), (0.26, 0.24, 0.2), "armor", bone, xf=xf, bevel=0.03)
+    prim("cube", (px, py, pz2 + H), (0.3, 0.18, 0.08), "brass", bone, xf=xf, bevel=0.015)
+    prim("cyl", (px + 0.1, py + 0.13, pz2 + H + 0.03), (0.06, 0.06, 0.18), "iron", bone, xf=xf, verts=8)  # exhaust
+    prim("sphere", (px, py - 0.125, pz2 + H), (0.07, 0.03, 0.07), "rune", bone, xf=xf, verts=10)
+
+    # Chainsaw bar and teeth: base sits lower and the tip reaches well past the old length.
+    B0, B1 = 1.5, 4.3  # bar base and tip
+    bar = [(-0.14, B0), (0.14, B0), (0.16, B1 - 0.23), (0.09, B1), (-0.09, B1), (-0.16, B1 - 0.23)]
+    flat_poly([(px + u, pz2 + z) for u, z in bar], py, 0.1, "iron", bone, xf=xf)
+    inner = [(-0.1, B0 + 0.1), (0.1, B0 + 0.1), (0.11, B1 - 0.28), (0.05, B1 - 0.11), (-0.05, B1 - 0.11),
+             (-0.11, B1 - 0.28)]
+    flat_poly([(px + u, pz2 + z) for u, z in inner], py - 0.01, 0.13, "steel", bone, xf=xf)
+    _teeth(px, py, pz2, (-0.185, 0.185), B0 + 0.1, B1 - 0.13, 20, bone, xf)
+    prim("sphere", (px, py, pz2 + B1 - 0.03), (0.17, 0.12, 0.17), "steel", bone, xf=xf, verts=10)  # nose roller
+    spike((px, py, pz2 + B1 + 0.05), (px, py, pz2 + B1 + 0.29), 0.05, bone, "brass", xf=xf)
+
+    # Spiked ball and skull trailing from the housing.
+    ball = (px - 0.34, py + 0.05, pz2 + H + 0.05)
+    limb((px - 0.13, py, pz2 + H), (px - 0.26, py + 0.04, pz2 + H + 0.05), 0.04, 0.04, "iron", bone, xf=xf, verts=8)
+    _spiked_ball(ball, 0.15, bone, xf)
+    skull((ball[0], ball[1] - 0.02, ball[2] + 0.27), 0.17, bone, xf=xf)
+    return xf
+
+
+def heavy_chainaxe():
+    """The Heavy Chainaxe: a stout haft with a huge double-bitted chain axe head and a spiked ball counterweight."""
+    px, py, pz = _right_grip()
+    bone = "Heavy_Chainaxe"
+    xf = pivot_rotation((px, py, pz), (34, 6, 0))
+
+    prim("cyl", (px, py, pz + 0.55), (0.09, 0.09, 2.2), "iron", bone, xf=xf, verts=10)
+    prim("cyl", (px, py, pz), (0.13, 0.13, 0.5), "leather", bone, xf=xf, verts=10)
+    prim("cyl", (px, py, pz + 0.45), (0.13, 0.13, 0.35), "leather", bone, xf=xf, verts=10)
+    for z in (-0.28, 0.28, 0.55, 0.97):
+        prim("cyl", (px, py, pz + z), (0.16, 0.16, 0.06), "brass", bone, xf=xf, verts=12)
+    _spiked_ball((px, py, pz - 0.62), 0.13, bone, xf, n=6)  # counterweight
+
+    # Head collar and a big double-bitted blade: horns sweep up and down, cutting edges outward on both sides.
+    prim("cube", (px, py, pz + 1.55), (0.3, 0.2, 0.5), "brass", bone, xf=xf, bevel=0.04)
+    K = 0.42
+    def _k(pts):
+        return [(u * K, 1.55 + (z - 1.55) * K) for u, z in pts]
+
+    outline = [(0.1, 1.15), (0.1, 1.95), (0.5, 2.3), (0.95, 2.4), (1.15, 2.0), (1.22, 1.55), (1.15, 1.1), (0.95, 0.7),
+               (0.5, 0.8)]
+    inner = [(0.2, 1.3), (0.2, 1.85), (0.55, 2.1), (0.88, 2.2), (1.0, 1.95), (1.06, 1.55), (1.0, 1.2), (0.88, 0.92),
+             (0.55, 1.0)]
+    outline, inner = _k(outline), _k(inner)
+    for sd in (1, -1):
+        def P(pt, sd=sd):
+            return (px + pt[0] * sd, pz + pt[1])
+        o = [P(p) for p in outline]
+        i = [P(p) for p in inner]
+        if sd < 0:
+            o.reverse()
+            i.reverse()
+        flat_poly(o, py, 0.12, "iron", bone, xf=xf)
+        flat_poly(i, py - 0.01, 0.15, "armor", bone, xf=xf)
+        flat_poly([P(_k([(0.3, 1.45)])[0]), P(_k([(0.75, 1.95)])[0]), P(_k([(0.85, 1.85)])[0]), P(_k([(0.4, 1.35)])[0])][::sd], py - 0.08, 0.03, "brass",
+                  bone, xf=xf)
+        prim("sphere", (px + 0.33 * sd, py - 0.085, pz + 1.56), (0.09, 0.03, 0.09), "rune", bone, xf=xf, verts=10)
+        edge = outline[3:8]
+        for (u0, z0), (u1, z1) in zip(edge, edge[1:]):
+            for k in range(4):
+                t = k / 4.0
+                u, z = u0 + (u1 - u0) * t, z0 + (z1 - z0) * t
+                du, dz = u1 - u0, z1 - z0
+                ln = math.hypot(du, dz)
+                nu, nz = -dz / ln, du / ln
+                ang = math.degrees(math.atan2(-nz, sd * nu))
+                prim("cube", (px + (u + nu * 0.05) * sd, py, pz + z + nz * 0.05), (0.07, 0.08, 0.04), "steel", bone,
+                     xf=xf, rot=(0, ang, 0), bevel=0.006)
+    spike((px, py, pz + 1.85), (px, py, pz + 2.3), 0.07, bone, "brass", xf=xf)  # top spike
+    return xf
+
+
 BONES = [
     ("Root", None, (0, 0, 0), (0, 0, 0.2)),
     ("Hips", "Root", (0, 0, 1.0), (0, 0, 1.2)),
@@ -257,8 +379,31 @@ torso()
 pauldrons()
 arms()
 head_and_pack()
-chain_axe("L")
-chain_axe("R")
+if ONLY in (None, "dual"):
+    chain_axe("L")
+    chain_axe("R")
+if ONLY in (None, "heavy"):
+    XF_HEAVY = heavy_chainaxe()
+if ONLY in (None, "evisc"):
+    XF_EVISC = eviscerator()
+
+# Two-handed weapons ride in the right hand; the game scales away whichever weapons are not wielded.
+_g = _right_grip()
+BONES += [
+    ("Heavy_Chainaxe", "Hand_R", _g, (_g[0], _g[1], _g[2] + 0.4)),
+    ("Eviscerator", "Hand_R", _g, (_g[0], _g[1], _g[2] + 0.4)),
+]
+
+# Grip markers: where the two hands hold each two-handed weapon (rear hand A, front hand B). The game solves both arms
+# onto these, so they must sit on the shaft. They are unweighted helper bones that ride on the weapon bone.
+for _prefix, _bone, _xf in (("Heavy", "Heavy_Chainaxe", globals().get("XF_HEAVY")),
+                            ("Evisc", "Eviscerator", globals().get("XF_EVISC"))):
+    if _xf is None:
+        continue
+    for _name, _dz in (("GripA", 0.0), ("GripB", 0.42)):
+        _p = _xf @ c.v(_g[0], _g[1], _g[2] + _dz)
+        _p = Vector((_p.x, _p.y, _p.z)) / c.S
+        BONES.append((f"{_prefix}_{_name}", _bone, tuple(_p), tuple(_p + Vector((0, 0, 0.05)))))
 
 armature = c.build_armature(BONES)
 mesh = c.assemble("KhorneBerserker", armature)

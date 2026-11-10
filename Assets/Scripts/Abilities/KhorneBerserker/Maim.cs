@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Combat;
+using Anathema.Upgrades;
 using UnityEngine;
 
 namespace Anathema.Abilities.KhorneBerserker
@@ -45,7 +46,6 @@ namespace Anathema.Abilities.KhorneBerserker
         float recoverFromArms;
         float lastLean;
         float lastArms;
-        readonly HashSet<Health> struck = new HashSet<Health>();
 
         public override string DisplayName => "Maim";
         public override string KeyLabel => "E";
@@ -124,23 +124,19 @@ namespace Anathema.Abilities.KhorneBerserker
 
         void DealDamage()
         {
-            struck.Clear();
-            Vector3 origin = transform.position;
-            Collider[] colliders = Physics.OverlapSphere(origin + Vector3.up, range, ~0, QueryTriggerInteraction.Ignore);
-
-            foreach (Collider c in colliders)
+            foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, transform.position, Aim.AimDirection, range, arcDegrees))
             {
-                Health target = c.GetComponentInParent<Health>();
-                if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
-
-                Vector3 to = c.ClosestPoint(origin) - origin;
-                to.y = 0f;
-                if (to.sqrMagnitude > 0.0001f && Vector3.Angle(Aim.AimDirection, to) > arcDegrees * 0.5f) continue;
-
-                if (!target.TakeDamage(damage, gameObject)) continue;
+                float dealt = damage * BerserkerUpgradeEffects.DamageScale(gameObject, target);
+                if (!target.TakeDamage(dealt, gameObject)) continue;
                 if (energy != null) energy.Gain(energyPerHit);
+                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
                 BloodImpact.Play(target.transform.position + Vector3.up, Aim.AimDirection);
-                if (!target.IsDead) Maimed.Apply(target.gameObject, maimDuration, slowFraction);
+                if (target.IsDead) continue;
+
+                // Hamstring: a deeper slow, and the wound bleeds.
+                bool hamstring = UpgradeState.Has(gameObject, BerserkerUpgrade.Hamstring);
+                Maimed.Apply(target.gameObject, maimDuration, hamstring ? Mathf.Max(slowFraction, BerserkerUpgrade.HamstringSlowFraction) : slowFraction);
+                if (hamstring) BerserkerUpgradeEffects.ApplyUpgradeBleed(gameObject, target);
             }
         }
 

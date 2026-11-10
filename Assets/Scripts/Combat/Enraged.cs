@@ -35,16 +35,16 @@ namespace Anathema.Combat
             return target.TryGetComponent(out Enraged _);
         }
 
-        // 1.2 while enraged, otherwise 1.
+        // 1.2 while enraged, times whatever the Rage passive has built up (see Rage); otherwise 1.
         public static float AttackSpeedMultiplier(GameObject target)
         {
-            return IsEnraged(target) ? 1f + AttackSpeedBonus : 1f;
+            return (IsEnraged(target) ? 1f + AttackSpeedBonus : 1f) * Rage.AttackSpeedMultiplier(target);
         }
 
-        // 1.1 while enraged, otherwise 1.
+        // 1.1 while enraged, times Rage's movement bonus (Relentless Pursuit); otherwise 1.
         public static float MoveSpeedMultiplier(GameObject target)
         {
-            return IsEnraged(target) ? 1f + MoveSpeedBonus : 1f;
+            return (IsEnraged(target) ? 1f + MoveSpeedBonus : 1f) * Rage.MoveSpeedMultiplier(target);
         }
 
         void BreakCrowdControl()

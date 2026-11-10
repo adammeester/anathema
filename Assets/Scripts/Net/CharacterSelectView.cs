@@ -115,7 +115,7 @@ namespace Anathema.Net
                         "Damage 16 (x0.7 per jump)  |  Cooldown 5s  |  Range 12  |  2 jumps  |  +6 energy per hit"),
                     A("Q", "Cripple", "Fire a slow, heavy bolt of crippling warp force at the first enemy in its path. It does a little damage and stuns the target. C during the wind-up cancels it.",
                         "Damage 5  |  Stun 1.5s  |  Cooldown 8s  |  Range 14  |  +12 energy per hit"),
-                    A("E", "Psychic Barrier", "Wrap yourself in a psychic shield that soaks damage, area and over-time damage included. It fades if unused, and recasting replaces it. C drops it.",
+                    A("E", "Kine Shield", "Wrap yourself in a telekinetic shield that soaks damage, area and over-time damage included. It fades if unused, and recasting replaces it. C drops it.",
                         "Absorbs 50  |  Lasts 5s  |  Cooldown 10s"),
                     A("Space", "Warp Step", "You have no counter. Step through the warp, vanishing and reappearing at the cursor (stopped short of walls). A pool of warp-fire is left where you land, burning enemies inside it.",
                         "Cooldown 6s  |  Range 8  |  Fire 12/s  |  Radius 2.2  |  Lasts 4s"),
@@ -123,7 +123,9 @@ namespace Anathema.Net
                         "Damage 7 per 0.25s  |  Channel 3s  |  Range 15  |  Costs 100 energy", true),
                     EX("Shift+Q", "Gravity Well", "Instead of the bolt, a singularity opens at the cursor and drags every enemy inside to its centre, then collapses in a burst that damages whoever is left near it.",
                         "Detonation 25  |  Range 12  |  Radius 4  |  Lasts 1.8s  |  Costs 35 energy"),
-                    EX("Shift+E", "Mind Leech", "Instead of the shield, tether yourself to the enemy nearest the cursor. It interrupts and silences them at once, then drains their health, healing you and feeding your energy. Breaks if the target dies or strays out of range, or if you are disrupted.",
+                    EX("Shift+E", "Psychic Scream", "Lost if you take the Force Stave. Instead of the shield, a wail of fear rolls out from you. Every enemy in range is gripped by panic and runs from you, unable to attack or use abilities. It does no damage.",
+                        "Panic 2s  |  Radius 4.2  |  Costs 40 energy"),
+                    EX("Shift+RMB", "Mind Leech", "Force Stave only. Instead of Kine Slam, tether yourself to the enemy nearest the cursor. It interrupts and silences them at once, then drains their health, healing you and feeding your energy. Breaks if the target dies or strays out of range, or if you are disrupted.",
                         "Drain 16/s  |  Heal 16/s  |  Silence 2s  |  Range 11  |  Lasts 2s  |  Costs 40 energy")
                 }
             },

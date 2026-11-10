@@ -26,6 +26,7 @@ namespace Anathema.Combat
             }
 
             if (Enraged.IsEnraged(target)) return null;
+            duration *= Health.CrowdControlScaleOf(target);
 
             var slowed = target.GetComponent<Slowed>();
             if (slowed == null)

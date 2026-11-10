@@ -47,6 +47,61 @@ Uses the legacy Input Manager (`Input.GetAxis`), so keep Active Input Handling o
 Models are generated in Blender: `blender -b --python Art/khorne_berserker.py` writes `Assets/Models/KhorneBerserker.fbx`
 (add `-- --render DIR` for preview PNGs). Abilities live in `Scripts/Abilities/<Character>/`.
 
+## Between-round upgrades (Khorne Berserker first)
+
+After every round except the last the match goes through the **prep phase** (Battlerite style):
+
+1. **Report** (5s, frozen): the round result and damage report.
+2. **Prep**: everyone is put back at their spawn at full health and may walk around inside a glowing barrier ring (`NetGame.PrepRadius`, 7m)
+   but cannot leave it or fight (abilities are disabled, everyone is invulnerable, the gas and orbs wait). The **upgrade menu** opens: pick one of
+   three (click a card or press 1-3). The sets are **fixed and identical for every player** (no randomness), defined per character
+   (`BerserkerUpgrade.Sets`), and each is one **Armament**, one **Endurance** and one **Ferocity** card. Berserker:
+
+   | Pick | Armament slot | Endurance | Ferocity |
+   | --- | --- | --- | --- |
+   | after round 1 | Eviscerator (Executioner) | Feel No Pain | Berserker's Fury |
+   | after round 2 | Heavy Chainaxe (Reaver), **or Headsman's Mark if you hold the Eviscerator** | Blood-Fuelled Regeneration | Relentless Pursuit |
+   | after round 3 | Whetted Edge (Eviscerator) / Rending Gouges (Heavy) / Chain Frenzy (no weapon) | Unstoppable | Skulltaker |
+   | after round 4 | Earthshaker (Heavy) / Keep the Dual Chainaxes (no weapon) / Gore Rush (Eviscerator, filler) | Defiant Roar | Crimson Momentum |
+
+   **The Armament slot is weapon-aware, so nobody can take a weapon every round:** until you hold a transformed weapon it offers the next weapon
+   in the progression; once you hold one (they replace each other, one per match) it offers **upgrades unique to that weapon** instead:
+   Eviscerator: Headsman's Mark (Descent recharges 30% faster, execute bonus from 70% health), Whetted Edge (20% faster wind-up, ignores 70% of armour, 2x vs shields);
+   Heavy Chainaxe: Rending Gouges (bleeds 60% harder, 2s longer), Earthshaker (Gorecleave +25% reach, +50% knockback);
+   dual chainaxes: Chain Frenzy (Axe Toss recharges 30% faster, each landed axe adds a Rage stack).
+   The other two cards are never weapons, so a Berserker can also skip every weapon and build from them. Upgrades in no set
+   (Hamstring, Skullthrone's Favour, Vengeful Blood, Gorehound's Vigour) stay in the catalog for the test panel and future sets.
+   A character past its last set, or with no sets, falls back to a random draw.
+3. **Lock-in**: once everyone has chosen (the menu stays at least 3s) or after 20s (undecided players get a random offer), picks are locked and a
+   3s countdown runs, then the barrier drops and the round begins.
+
+Upgrades last the rest of the match and reset on a rematch. Characters without an upgrade list skip the pick.
+
+Khorne Berserker:
+
+| | Dual chainaxes (default) | Heavy Chainaxe - The Reaver | Eviscerator - The Executioner |
+| --- | --- | --- | --- |
+| LMB | alternating chops | slow heavy sweep, greater reach, 150 degree arc | slow strike with a 0.55s wind-up, big single-target hit |
+| RMB | Axe Toss | Gorecleave: wide frontal sweep, knockback + bleed | Executioner's Descent: overhead blow, up to +100% damage on low-health targets |
+| Passive | Rage: consecutive hits stack attack speed (5 stacks, 3s window) | heavy hits inflict Bleed | attacks ignore 40% of armour and deal 1.5x damage to shields |
+
+Weapons are optional and exclusive (the Heavy Chainaxe and Eviscerator replace each other; one weapon per match); the random pick for idle players never gives a weapon: a Berserker who never takes one stays competitive. Other upgrades: Ablative Plating, Gorehound's Vigour,
+Blood-Fuelled Regeneration, Defiant Roar, Feel No Pain, Unstoppable (Endurance); Crimson Momentum, Gore Rush, Hamstring, Twin Axes,
+Vengeful Blood, Skullthrone's Favour, Berserker's Fury, Relentless Pursuit, Skulltaker (Ferocity).
+
+- Code: `Scripts/Upgrades` (`UpgradeDef`, `UpgradeCatalog`, `UpgradeState`, `UpgradePickerView`); the Berserker list and numbers are in
+  `Abilities/KhorneBerserker/BerserkerUpgrade.cs`, passives/effects in `BerserkerUpgradeEffects.cs`, `Combat/Rage.cs`. Weapon variants live inside
+  `AxeChop` (LMB) and `AxeToss` (RMB) so the HUD slots, network cues and prefabs are unchanged. Weapon tuning fields are also in `Resources/Stats/KhorneBerserker.json`.
+- Online, the owned-upgrade mask is a `NetPlayer` network variable, so replicas show the right weapon; damage is still resolved by the owner's machine.
+  `Health` gained armour, bonus max health and armour-piercing and shield-breaking multipliers on `TakeDamage`. Both machines must run the same build.
+- To add upgrades for another character: add a list like `BerserkerUpgrade.All` (and `Sets`) and register both in `UpgradeCatalog` (bit numbers are append-only).
+- **Testing offline (editor / dev builds):** build the training arena with **Anathema > Rebuild Arena Scene (Khorne Berserker)**, press Play, and press
+  **F1** for the upgrade test panel: click any upgrade to toggle it, **Next pick** runs the real picker with the next fixed set (click or 1-3), **Clear all** resets.
+  Hit the dummies to try weapons, Rage (shown above the ability bar), bleed, armour, etc. F6 / F7 equip the Heavy Chainaxe / Eviscerator, F8 clears.
+  **F2** (or the panel's button) restarts the "round" into the **prep phase** right in the training arena: you're put back at your spawn inside the
+  barrier ring (can't leave it or fight), the three-card menu opens, and after you pick a 3s countdown drops the barrier. Upgrades picked this way persist, like in a match.
+  The network sync and the multi-player lock-in need a real online match (host + join `127.0.0.1`, see Online).
+
 ## Online (2-6 players)
 
 Menu flow: **Menu scene → Host / Join → character select → Versus scene** (best of 3 or 5 rounds, then Rematch or Main Menu).

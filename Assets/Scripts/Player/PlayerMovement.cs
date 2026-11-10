@@ -29,6 +29,9 @@ namespace Anathema.Player
             // Tuning values (health, speed, ability numbers) come from Resources/Stats/<Character>.json.
             CharacterStats.EnsureOn(gameObject);
 
+            // Between-round upgrades (only for characters that have an upgrade list).
+            Anathema.Upgrades.UpgradeState.EnsureOn(gameObject);
+
             // Scenes built before the walk cycle existed don't have it on the model; add it so they still animate.
             Transform model = transform.Find("Model");
             if (model != null && model.GetComponent<ProceduralWalk>() == null) model.gameObject.AddComponent<ProceduralWalk>();
@@ -72,6 +75,15 @@ namespace Anathema.Player
             if (!guarding && Panicked.TryGetFleeDirection(gameObject, out Vector3 flee)) velocity = flee * speed;
             velocity.y = verticalVelocity;
             controller.Move(velocity * Time.deltaTime);
+
+            // Prep area between rounds: you can walk about, but not out of your spawn zone.
+            if (Anathema.Net.NetGame.InPrep && TryGetComponent(out Respawner spawn))
+            {
+                Vector3 offset = transform.position - spawn.SpawnPosition;
+                offset.y = 0f;
+                float limit = Anathema.Net.NetGame.PrepRadius;
+                if (offset.magnitude > limit) controller.Move(-offset.normalized * (offset.magnitude - limit));
+            }
         }
     }
 }

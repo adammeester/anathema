@@ -145,7 +145,7 @@ namespace Anathema.Combat
             transform.position = basePosition + Vector3.up * (Mathf.Sin(phase * 2.2f) * 0.1f);
             transform.Rotate(0f, 90f * Time.deltaTime, 0f);
 
-            if (NetGame.Frozen || Time.time < nextClaimTime) return;
+            if (NetGame.Frozen || NetGame.InPrep || Time.time < nextClaimTime) return;
 
             Health h = LocalPlayerHealth();
             if (h == null || h.IsDead) return;

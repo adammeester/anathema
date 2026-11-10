@@ -22,6 +22,8 @@ namespace Anathema.Combat
             delay = respawnDelay;
         }
 
+        public Vector3 SpawnPosition => startPosition;
+
         public void SetSpawn(Vector3 position, Quaternion rotation)
         {
             startPosition = position;

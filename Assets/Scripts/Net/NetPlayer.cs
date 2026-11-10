@@ -4,6 +4,7 @@ using Anathema.Abilities.PlagueSurgeon;
 using Anathema.CameraRig;
 using Anathema.Combat;
 using Anathema.Player;
+using Anathema.Upgrades;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -50,7 +51,19 @@ namespace Anathema.Net
         // Team id (1-based, matches Health.Team). Free-for-all gives every seat its own team.
         readonly NetworkVariable<int> team = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
+        // Between-round upgrades: the owned-upgrade bitmask (see UpgradeState) and the last round-end whose pick this
+        // fighter has settled. The server compares the latter with the rounds played to know when everyone has chosen.
+        readonly NetworkVariable<int> netUpgradeMask = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+        readonly NetworkVariable<int> netUpgradeRound = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+        // Attack speed bonus from the Rage passive (owner machine). Synced so replicas replay swings at the same speed.
+        readonly NetworkVariable<float> netRageAttackBonus = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+        // Rage display state (see Rage.NetState), so every client can draw the dots and rune.
+        readonly NetworkVariable<int> netRageState = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
         Health health;
+        UpgradeState upgrades;
         Respawner respawner;
         MouseAim aim;
         Energy energy;
@@ -70,6 +83,14 @@ namespace Anathema.Net
         public float RoundHealed => IsOwner ? health.RoundHealed : netHealed.Value;
         public float RoundDamageDealt => netDamageDealt.Value;
         public float RoundHealingDone => netHealingDone.Value;
+        public int UpgradeMask => netUpgradeMask.Value;
+        // Highest round-end this fighter has finished choosing an upgrade for (0 = none yet).
+        public int UpgradeRound => netUpgradeRound.Value;
+        public float RageAttackBonus => netRageAttackBonus.Value;
+        // Rage display state published by the owner: stacks | max << 4 | expiring << 8 (0 = none).
+        public int RageState => netRageState.Value;
+        // This fighter's upgrade state (cached; null for characters without upgrades).
+        public UpgradeState Upgrades => upgrades != null ? upgrades : (upgrades = GetComponent<UpgradeState>());
 
         // Server only: this fighter has died this round (cleared when the next round starts).
         public bool ServerDead { get; set; }
@@ -223,10 +244,16 @@ namespace Anathema.Net
                 if (!Mathf.Approximately(netHealed.Value, health.RoundHealed)) netHealed.Value = health.RoundHealed;
                 if (aim == null) aim = GetComponent<MouseAim>();
                 if (aim != null && (netAim.Value - aim.AimPoint).sqrMagnitude > 0.0004f) netAim.Value = aim.AimPoint;
+                float rageBonus = Rage.AttackSpeedMultiplier(gameObject) - 1f;
+                if (!Mathf.Approximately(netRageAttackBonus.Value, rageBonus)) netRageAttackBonus.Value = rageBonus;
+                int rageState = Rage.NetState(gameObject);
+                if (netRageState.Value != rageState) netRageState.Value = rageState;
                 return;
             }
 
             health.SyncFromNetwork(netHealth.Value, netRecoverable.Value);
+            if (upgrades == null) upgrades = GetComponent<UpgradeState>();
+            if (upgrades != null) upgrades.SetMaskFromNetwork(netUpgradeMask.Value);
 
             float dt = Time.deltaTime;
             if (hasRemoteState)
@@ -265,6 +292,43 @@ namespace Anathema.Net
             netPosition.Value = transform.position;
         }
 
+        // --- Between-round upgrades ------------------------------------------------------------------------------
+
+        // Owner: a round just ended (round number `round`). Offer the upgrade pick, or settle straight away when this
+        // character has nothing to offer.
+        public void OnRoundEnded(int round)
+        {
+            if (!IsOwner) return;
+            if (upgrades == null) upgrades = GetComponent<UpgradeState>();
+            if (upgrades != null) upgrades.BeginPick(round);
+            else netUpgradeRound.Value = round;
+        }
+
+        // Owner: publish the owned mask and the round whose pick is now settled.
+        public void PublishUpgrades(int mask, int round)
+        {
+            if (!IsOwner) return;
+            netUpgradeMask.Value = mask;
+            netUpgradeRound.Value = round;
+        }
+
+        // Owner: the next round is starting; anyone who has not chosen gets a random offer.
+        public void SettleUpgradePick()
+        {
+            if (!IsOwner) return;
+            if (upgrades == null) upgrades = GetComponent<UpgradeState>();
+            if (upgrades != null) upgrades.AutoPickIfPending();
+        }
+
+        // Owner: new match, upgrades are forgotten.
+        public void ResetUpgrades()
+        {
+            if (!IsOwner) return;
+            if (upgrades == null) upgrades = GetComponent<UpgradeState>();
+            if (upgrades != null) upgrades.ResetAll();
+            else { netUpgradeMask.Value = 0; netUpgradeRound.Value = 0; }
+        }
+
         // --- Ability visuals -------------------------------------------------------------------------------------
 
         public void SendCue(int abilityIndex, Vector3 aimPoint)
@@ -299,7 +363,7 @@ namespace Anathema.Net
 
         // --- Damage and status effects (aimed at a replica, applied on its owner) ---------------------------------
 
-        public void SendDamage(float amount, GameObject source, bool aoe = false)
+        public void SendDamage(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f)
         {
             NetworkObjectReference reference = default;
             bool hasSource = false;
@@ -308,25 +372,25 @@ namespace Anathema.Net
                 reference = no;
                 hasSource = true;
             }
-            DamageServerRpc(amount, reference, hasSource, aoe);
+            DamageServerRpc(amount, reference, hasSource, aoe, pierce, shieldBreak);
         }
 
         ClientRpcParams ToOwner => new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { OwnerClientId } } };
 
         [ServerRpc(RequireOwnership = false)]
-        void DamageServerRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe)
+        void DamageServerRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, float pierce, float shieldBreak)
         {
-            DamageClientRpc(amount, source, hasSource, aoe, ToOwner);
+            DamageClientRpc(amount, source, hasSource, aoe, pierce, shieldBreak, ToOwner);
         }
 
         [ClientRpc]
-        void DamageClientRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, ClientRpcParams rpcParams = default)
+        void DamageClientRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, float pierce, float shieldBreak, ClientRpcParams rpcParams = default)
         {
             if (!IsOwner || NetGame.Frozen) return;
 
             GameObject attacker = null;
             if (hasSource && source.TryGet(out NetworkObject no)) attacker = no.gameObject;
-            health.ApplyDamageLocal(amount, attacker, aoe);
+            health.ApplyDamageLocal(amount, attacker, aoe, pierce, shieldBreak);
         }
 
         public void SendStatus(StatusKind kind, float a, float b, Vector3 direction, GameObject source = null)

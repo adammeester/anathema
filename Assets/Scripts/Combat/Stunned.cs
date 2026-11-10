@@ -24,6 +24,7 @@ namespace Anathema.Combat
             }
 
             if (Enraged.IsEnraged(target)) return null;
+            duration *= Health.CrowdControlScaleOf(target);
 
             var stunned = target.GetComponent<Stunned>();
             if (stunned == null) stunned = target.AddComponent<Stunned>();

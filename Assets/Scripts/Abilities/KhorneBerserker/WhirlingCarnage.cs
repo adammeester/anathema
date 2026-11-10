@@ -155,7 +155,10 @@ namespace Anathema.Abilities.KhorneBerserker
                 Health target = c.GetComponentInParent<Health>();
                 if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
 
-                if (target.TakeDamage(damagePerTick, gameObject, true) && energy != null) energy.Gain(energyPerHit);
+                float dealt = damagePerTick * BerserkerUpgradeEffects.DamageScale(gameObject, target);
+                if (!target.TakeDamage(dealt, gameObject, true)) continue;
+                if (energy != null) energy.Gain(energyPerHit);
+                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
             }
         }
     }

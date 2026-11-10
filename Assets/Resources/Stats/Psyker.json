@@ -9,7 +9,13 @@
       "range": 14,
       "projectileSpeed": 26,
       "projectileRadius": 0.28,
-      "energyPerHit": 8
+      "energyPerHit": 8,
+      "staveDamage": 12,
+      "staveRange": 3.4,
+      "staveArc": 110,
+      "staveWindup": 0.2,
+      "staveCooldown": 0.7,
+      "staveKnockback": 1.2
     },
     "ChainLightning": {
       "cooldown": 5,
@@ -19,7 +25,20 @@
       "maxJumps": 2,
       "jumpRange": 5,
       "falloff": 0.7,
-      "energyPerHit": 6
+      "energyPerHit": 6,
+      "slamDamage": 18,
+      "slamRadius": 4,
+      "slamWindup": 0.5,
+      "slamCooldown": 6,
+      "slamKnockback": 2.5,
+      "slamEnergyPerHit": 6,
+      "exEnergyCost": 40,
+      "leechRange": 11,
+      "leechDuration": 2,
+      "silenceDuration": 2,
+      "leechDamagePerSecond": 16,
+      "leechHealPerSecond": 16,
+      "leechEnergyPerSecond": 12
     },
     "Cripple": {
       "cooldown": 8,
@@ -41,12 +60,8 @@
       "strength": 50,
       "duration": 5,
       "exEnergyCost": 40,
-      "leechRange": 11,
-      "leechDuration": 2,
-      "silenceDuration": 2,
-      "leechDamagePerSecond": 16,
-      "leechHealPerSecond": 16,
-      "leechEnergyPerSecond": 12
+      "screamRadius": 4.2,
+      "screamPanicSeconds": 2
     },
     "WarpStep": {
       "cooldown": 6,

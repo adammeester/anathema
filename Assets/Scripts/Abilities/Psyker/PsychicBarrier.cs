@@ -3,21 +3,20 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Psyker
 {
-    // E: wraps the Psyker in a psychic shield that soaks up to `strength` damage (AoE and damage over time included)
+    // E: Kine Shield. Wraps the Psyker in a telekinetic shield that soaks up to `strength` damage (AoE and damage over time included)
     // and fades after `duration` seconds if it isn't used up. It is purely defensive: nothing comes out of it.
     // Damage is resolved on the owner's machine, so only the owner's copy absorbs; replicas show the shell for the same
     // duration. Recasting replaces the old shield. C (or dying) drops it.
+    // EX (Shift+E): Psychic Scream instead of the shield. A wail of fear rolls out from the Psyker and panics every
+    // enemy in range: they drop everything and run from her. It does no damage. A Psyker holding the Force Stave
+    // loses the scream (she gets Mind Leech instead).
     public class PsychicBarrier : Ability
     {
         [SerializeField] float strength = 50f;
         [SerializeField] float duration = 5f;
         [SerializeField] float exEnergyCost = 40f;
-        [SerializeField] float leechRange = 11f;
-        [SerializeField] float leechDuration = 2f;
-        [SerializeField] float silenceDuration = 2f;
-        [SerializeField] float leechDamagePerSecond = 16f;
-        [SerializeField] float leechHealPerSecond = 16f;
-        [SerializeField] float leechEnergyPerSecond = 12f;
+        [SerializeField] float screamRadius = 4.2f;
+        [SerializeField] float screamPanicSeconds = 2f;
         [SerializeField] Color shellColor = new Color(0.35f, 0.85f, 1f, 0.3f);
 
         const float ShellRadius = 1.1f;
@@ -35,7 +34,7 @@ namespace Anathema.Abilities.Psyker
         // The EX energy is spent when the wind-up starts and given back if it is cancelled.
         protected override void OnWindupStart()
         {
-            if (!IsReplica) ExActivation = TrySpendEx(energy, exEnergyCost);
+            if (!IsReplica && !HoldsStave) ExActivation = TrySpendEx(energy, exEnergyCost);
         }
 
         protected override void OnWindupCancel()
@@ -43,11 +42,13 @@ namespace Anathema.Abilities.Psyker
             if (ExActivation && !IsReplica && energy != null) energy.Gain(exEnergyCost);
         }
 
-        public override string DisplayName => "Barrier";
+        public override string DisplayName => "Kine Shield";
         public override string KeyLabel => "E";
-        public override float ExCost => exEnergyCost;
-        public override string ExDescription => "Mind Leech";
-        public override string ExName => "Mind Leech";
+        // The Force Stave trades the scream away for Mind Leech (on RMB): no EX version of this key while it is held.
+        bool HoldsStave => PsykerUpgrade.HoldsStave(gameObject);
+        public override float ExCost => HoldsStave ? 0f : exEnergyCost;
+        public override string ExDescription => "Psychic Scream";
+        public override string ExName => "Psychic Scream";
 
         // Applied only when added in the editor.
         void Reset()
@@ -76,10 +77,7 @@ namespace Anathema.Abilities.Psyker
         {
             if (ExActivation)
             {
-                // EX: Mind Leech instead of the shield. If there is nobody in range the energy is given back.
-                bool started = MindLeech.Begin(gameObject, Health, energy, Aim.AimPoint, !IsReplica, leechRange, leechDuration,
-                    silenceDuration, leechDamagePerSecond, leechHealPerSecond, leechEnergyPerSecond);
-                if (!started && !IsReplica && energy != null) energy.Gain(exEnergyCost);
+                Scream();
                 return;
             }
 
@@ -91,7 +89,7 @@ namespace Anathema.Abilities.Psyker
 
             if (shellMaterial == null) shellMaterial = VisualUtil.UnlitMaterial(shellColor, 3000);
             GameObject s = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            s.name = "Psychic Barrier";
+            s.name = "Kine Shield";
             Destroy(s.GetComponent<Collider>());
             s.GetComponent<Renderer>().sharedMaterial = shellMaterial;
             s.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
@@ -102,6 +100,28 @@ namespace Anathema.Abilities.Psyker
 
             if (!IsReplica) Health.Absorber = Absorb;
             PsykerFx.Ring(transform.position, 0.3f, 1.8f, 0.3f, PsykerFx.Cyan);
+        }
+
+        // EX: every enemy within the radius is gripped by panic. Every machine draws the rings; only the owner's copy
+        // applies the panic (Panicked.Apply forwards it to a remote victim's machine).
+        void Scream()
+        {
+            Vector3 centre = transform.position;
+            Color wail = new Color(0.75f, 0.45f, 1f, 0.9f);
+            PsykerFx.Ring(centre, 0.4f, screamRadius, 0.45f, wail, 0.28f);
+            PsykerFx.Ring(centre, 0.2f, screamRadius * 0.65f, 0.35f, new Color(1f, 1f, 1f, 0.7f), 0.16f);
+            if (IsReplica) return;
+
+            foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+            {
+                if (h.IsDead || h.Team == Health.Team) continue;
+
+                Vector3 offset = h.transform.position - centre;
+                offset.y = 0f;
+                if (offset.magnitude > screamRadius) continue;
+
+                Panicked.Apply(h.gameObject, gameObject, screamPanicSeconds);
+            }
         }
 
         float Absorb(float amount, GameObject damageSource)
@@ -147,8 +167,6 @@ namespace Anathema.Abilities.Psyker
 
         protected override void Cancel()
         {
-            var running = GetComponent<MindLeech>();
-            if (running != null) running.Stop();
             Drop(false);
         }
     }

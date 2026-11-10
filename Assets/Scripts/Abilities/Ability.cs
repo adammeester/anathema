@@ -38,9 +38,16 @@ namespace Anathema.Abilities
         // True while this ability holds the character in place (PlayerMovement stops walking; gravity still applies).
         public virtual bool RootsMovement => false;
 
-        public float CooldownRemaining => IsCasting ? 0f : Mathf.Max(0f, nextUseTime - Time.time);
+        // Upgrades shorten (or lengthen) this ability's cooldown by setting this; 1 = as authored.
+        public float CooldownScale { get; set; } = 1f;
+        float EffectiveCooldown => cooldown * CooldownScale;
+
+        public virtual float CooldownRemaining => IsCasting ? 0f : Mathf.Max(0f, nextUseTime - Time.time);
         // 1 = just used, 0 = ready.
-        public float CooldownNormalized => cooldown > 0f ? Mathf.Clamp01(CooldownRemaining / cooldown) : 0f;
+        // For multi-charge abilities: while the slot is usable but a spent charge is still recharging, how much of that
+        // recharge is left (1 = just spent, 0 = back). 0 when nothing is recharging. Drawn as a faint curtain behind the name.
+        public virtual float ChargeRechargeNormalized => 0f;
+        public virtual float CooldownNormalized => EffectiveCooldown > 0f ? Mathf.Clamp01(CooldownRemaining / EffectiveCooldown) : 0f;
 
         protected virtual void Awake()
         {
@@ -209,7 +216,7 @@ namespace Anathema.Abilities
             bool cancelPressed = Input.GetKeyDown(CancelKey);
             if (Health.IsDead || cancelPressed) CancelCast();
             if (cancelPressed && Health.Net != null && Health.Net.IsSpawned) Health.Net.SendCue(-1, Aim.AimPoint);
-            if (Health.IsDead || Anathema.Net.NetGame.Frozen) return;
+            if (Health.IsDead || Anathema.Net.NetGame.Frozen || Anathema.Net.NetGame.InPrep) return;
 
             TickWindup();
 
@@ -222,14 +229,14 @@ namespace Anathema.Abilities
                 awaitRelease = false;
             }
 
-            if (windingUp || Time.time < nextUseTime || !triggered || Silenced.IsSilenced(gameObject) || Stunned.IsStunned(gameObject)
+            if (windingUp || (Time.time < nextUseTime && !HasSpareCharge) || !triggered || Silenced.IsSilenced(gameObject) || Stunned.IsStunned(gameObject)
                 || Panicked.IsPanicked(gameObject) || IsGuardingOtherAbility) return;
 
             if (ExBlocked) return;
 
             // Wind-up abilities hold the cooldown back until their effect lands (they call StartCooldown()).
             float cooldownScale = ScalesWithAttackSpeed ? Enraged.AttackSpeedMultiplier(gameObject) : 1f;
-            nextUseTime = CooldownStartsOnStrike ? float.PositiveInfinity : Time.time + cooldown / cooldownScale;
+            nextUseTime = CooldownStartsOnStrike ? float.PositiveInfinity : Time.time + EffectiveCooldown / cooldownScale;
             ExActivation = false;
             BeginCast();
 
@@ -258,7 +265,7 @@ namespace Anathema.Abilities
 
         protected void StartCooldown()
         {
-            nextUseTime = Time.time + cooldown;
+            nextUseTime = Time.time + EffectiveCooldown;
         }
 
         // Call from Cancel() when the ability is stopped before its effect lands (e.g. during a wind-up):
@@ -268,6 +275,9 @@ namespace Anathema.Abilities
             nextUseTime = 0f;
             awaitRelease = true;
         }
+
+        // True when a spare charge lets the ability be used although its main cooldown is still running.
+        protected virtual bool HasSpareCharge => false;
 
         protected abstract bool IsTriggered();
         protected abstract void Activate();

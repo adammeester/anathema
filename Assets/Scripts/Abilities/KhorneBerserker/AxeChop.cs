@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Combat;
+using Anathema.Upgrades;
 using UnityEngine;
 
 namespace Anathema.Abilities.KhorneBerserker
@@ -19,6 +20,32 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float recoverDuration = 0.3f;
         [SerializeField] float energyPerHit = 8f;
         [SerializeField] Color slashColor = new Color(1f, 0.25f, 0.15f, 0.8f);
+
+        [Header("Heavy Chainaxe - The Reaver (Armament upgrade)")]
+        [SerializeField] float heavyDamage = 16f;
+        [SerializeField] float heavyRange = 3.5f;
+        [SerializeField] float heavyArcDegrees = 150f;
+        [SerializeField] float heavyWindupDuration = 0.22f;
+        [SerializeField] float heavySwingDuration = 0.14f;
+        [SerializeField] float heavyRecoverDuration = 0.5f;
+        [SerializeField] float heavyCooldown = 1.3f;
+        [SerializeField] float heavyBleedDamagePerSecond = 2.5f;   // heavy hits inflict Bleed
+        [SerializeField] float heavyBleedDuration = 3f;
+        [SerializeField] float heavySpineTwist = 42f;
+        [SerializeField] float heavyArmRaise = 85f;
+
+        [Header("Eviscerator - The Executioner (Armament upgrade)")]
+        [SerializeField] float eviscDamage = 30f;
+        [SerializeField] float eviscRange = 2.8f;
+        [SerializeField] float eviscArcDegrees = 70f;
+        [SerializeField] float eviscWindupDuration = 0.55f;        // the pronounced wind-up is the risk
+        [SerializeField] float eviscSwingDuration = 0.1f;
+        [SerializeField] float eviscRecoverDuration = 0.6f;
+        [SerializeField] float eviscCooldown = 1.8f;
+        [SerializeField] float eviscArmorPierce = 0.4f;            // share of armour ignored (passive)
+        [SerializeField] float eviscShieldBreak = 1.5f;            // damage multiplier against shields (passive)
+        [SerializeField] float eviscSpineTwist = 10f;
+        [SerializeField] float eviscArmRaise = 115f;
 
         [Header("Empowered (after a successful counter)")]
         [SerializeField] float empoweredDamageMultiplier = 2f;
@@ -49,13 +76,29 @@ namespace Anathema.Abilities.KhorneBerserker
         float recoverFromArm;
         float lastTwist;
         float lastArm;
-        readonly HashSet<Health> struck = new HashSet<Health>();
 
         float chopSpeed = 1f;   // attack speed multiplier the current chop started with
 
+        // The chop in flight, resolved from the wielded weapon when it started.
+        BerserkerWeapon weapon;
+        float curDamage, curRange, curArc, curWindup, curSwing, curRecover, curTwist, curRaise, curFollow;
+        AxeToss toss;
+        TwoHandedGrip grip;
+
         protected override bool ScalesWithAttackSpeed => true;
 
-        public override string DisplayName => "Chop";
+        public override string DisplayName
+        {
+            get
+            {
+                switch (BerserkerWeapons.Of(gameObject))
+                {
+                    case BerserkerWeapon.HeavyChainaxe: return "Sweep";
+                    case BerserkerWeapon.Eviscerator: return "Strike";
+                    default: return "Chop";
+                }
+            }
+        }
         public override string KeyLabel => "LMB";
 
         // Applied only when added in the editor.
@@ -90,8 +133,24 @@ namespace Anathema.Abilities.KhorneBerserker
             aura.SetActive(true);
         }
 
+        // Each weapon has its own swing speed; the cooldown follows it. `cooldown` itself (prefab/JSON) is the dual
+        // chainaxes' value and is never overwritten: the other weapons scale it through CooldownScale.
+        float WeaponCooldown()
+        {
+            switch (BerserkerWeapons.Of(gameObject))
+            {
+                case BerserkerWeapon.HeavyChainaxe: return heavyCooldown;
+                case BerserkerWeapon.Eviscerator: return eviscCooldown;
+                default: return cooldown;
+            }
+        }
+
+        // True while this chop still holds the arm/spine pose (swing and recovery).
+        public bool PoseBusy => active || Time.time < recoverEndTime;
+
         protected override void Update()
         {
+            CooldownScale = cooldown > 0f ? WeaponCooldown() / cooldown : 1f;
             base.Update();
 
             if (strikePending && !IsReplica && IsDisabled) InterruptSelf();
@@ -107,8 +166,8 @@ namespace Anathema.Abilities.KhorneBerserker
             {
                 strikePending = false;
                 DealDamage();
-                float reach = strikeEmpowered ? range * empoweredRangeMultiplier : range;
-                SlashEffect.Spawn(transform.position, Aim.AimDirection, reach, arcDegrees, swingDuration * 2f,
+                float reach = strikeEmpowered ? curRange * empoweredRangeMultiplier : curRange;
+                SlashEffect.Spawn(transform.position, Aim.AimDirection, reach, curArc, curSwing * 2f,
                     strikeEmpowered ? empoweredColor : slashColor);
                 strikeEmpowered = false;
             }
@@ -121,12 +180,17 @@ namespace Anathema.Abilities.KhorneBerserker
 
         protected override bool IsTriggered()
         {
+            // The heavy weapons' secondary drives the spine and both arms, so the two attacks may not overlap.
+            if (toss == null) toss = GetComponent<AxeToss>();
+            if (toss != null && toss.PoseBusy && (BerserkerWeapons.Of(gameObject) != BerserkerWeapon.DualChainaxes || toss.UsesFullBody)) return false;
             return Input.GetMouseButton(0);
         }
 
         protected override void Activate()
         {
-            leftArm = !leftArm;
+            // The dual chainaxes alternate hands; the two-handed weapons always swing with both.
+            leftArm = BerserkerWeapons.Of(gameObject) == BerserkerWeapon.DualChainaxes && !leftArm;
+            ResolveWeapon();
             strikeEmpowered = empowered;
             empowered = false;
             aura.SetActive(false);
@@ -134,11 +198,36 @@ namespace Anathema.Abilities.KhorneBerserker
             active = true;
             // Enraged swings faster: every phase of the chop shrinks with attack speed.
             chopSpeed = Enraged.AttackSpeedMultiplier(gameObject);
-            windupEndTime = Time.time + windupDuration / chopSpeed;
-            swingEndTime = windupEndTime + swingDuration / chopSpeed;
-            recoverEndTime = swingEndTime + recoverDuration / chopSpeed;
+            windupEndTime = Time.time + curWindup / chopSpeed;
+            swingEndTime = windupEndTime + curSwing / chopSpeed;
+            recoverEndTime = swingEndTime + curRecover / chopSpeed;
             recoverFromTwist = SwingTwist();
-            recoverFromArm = armFollowThrough;
+            recoverFromArm = curFollow;
+        }
+
+        // Pins this chop's numbers to the weapon in hand.
+        void ResolveWeapon()
+        {
+            weapon = BerserkerWeapons.Of(gameObject);
+            switch (weapon)
+            {
+                case BerserkerWeapon.HeavyChainaxe:
+                    curDamage = heavyDamage; curRange = heavyRange; curArc = heavyArcDegrees;
+                    curWindup = heavyWindupDuration; curSwing = heavySwingDuration; curRecover = heavyRecoverDuration;
+                    curTwist = heavySpineTwist; curRaise = heavyArmRaise; curFollow = armFollowThrough;
+                    break;
+                case BerserkerWeapon.Eviscerator:
+                    curDamage = eviscDamage; curRange = eviscRange; curArc = eviscArcDegrees;
+                    curWindup = eviscWindupDuration; curSwing = eviscSwingDuration; curRecover = eviscRecoverDuration;
+                    curTwist = eviscSpineTwist; curRaise = eviscArmRaise; curFollow = armFollowThrough * 2f;
+                    if (UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge)) curWindup *= BerserkerUpgrade.WhettedWindupScale;
+                    break;
+                default:
+                    curDamage = damage; curRange = range; curArc = arcDegrees;
+                    curWindup = windupDuration; curSwing = swingDuration; curRecover = recoverDuration;
+                    curTwist = spineTwist; curRaise = armRaise; curFollow = armFollowThrough;
+                    break;
+            }
         }
 
         protected override void Cancel()
@@ -155,61 +244,65 @@ namespace Anathema.Abilities.KhorneBerserker
             recoverFromTwist = lastTwist;
             recoverFromArm = lastArm;
             chopSpeed = 1f;
-            recoverEndTime = Time.time + recoverDuration;
+            recoverEndTime = Time.time + curRecover;
         }
 
         // Left axe chops across to the right and vice versa, so the spine winds toward the working side first.
         float SwingTwist()
         {
-            return spineTwist * (leftArm ? -1f : 1f);
+            return curTwist * (leftArm ? -1f : 1f);
         }
 
         void DealDamage()
         {
-            struck.Clear();
             Vector3 origin = transform.position;
-            float reach = strikeEmpowered ? range * empoweredRangeMultiplier : range;
-            float dealt = strikeEmpowered ? damage * empoweredDamageMultiplier : damage;
-            Collider[] colliders = Physics.OverlapSphere(origin + Vector3.up, reach, ~0, QueryTriggerInteraction.Ignore);
+            float reach = strikeEmpowered ? curRange * empoweredRangeMultiplier : curRange;
+            float baseDamage = strikeEmpowered ? curDamage * empoweredDamageMultiplier : curDamage;
+            // The Eviscerator's passive: its blows partly ignore armour and shields.
+            float pierce = weapon == BerserkerWeapon.Eviscerator ? BerserkerUpgradeEffects.Pierce(gameObject, eviscArmorPierce) : 0f;
+            float shieldBreak = weapon == BerserkerWeapon.Eviscerator ? BerserkerUpgradeEffects.ShieldBreak(gameObject, eviscShieldBreak) : 1f;
+            bool rending = UpgradeState.Has(gameObject, BerserkerUpgrade.RendingGouges);
 
-            foreach (Collider c in colliders)
+            foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, Aim.AimDirection, reach, curArc))
             {
-                Health target = c.GetComponentInParent<Health>();
-                if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
+                float dealt = baseDamage * BerserkerUpgradeEffects.DamageScale(gameObject, target);
+                if (!target.TakeDamage(dealt, gameObject, false, pierce, shieldBreak)) continue;
 
-                Vector3 to = c.ClosestPoint(origin) - origin;
-                to.y = 0f;
-                if (to.sqrMagnitude > 0.0001f && Vector3.Angle(Aim.AimDirection, to) > arcDegrees * 0.5f) continue;
-
-                if (!target.TakeDamage(dealt, gameObject)) continue;
                 if (energy != null) energy.Gain(energyPerHit);
+                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
                 BloodImpact.Play(target.transform.position + Vector3.up, Aim.AimDirection, strikeEmpowered ? 1f : 0.7f);
+                // The Reaver's passive: heavy hits inflict Bleed.
+                if (weapon == BerserkerWeapon.HeavyChainaxe && !target.IsDead)
+                    Bleeding.Apply(target.gameObject, gameObject,
+                        rending ? heavyBleedDamagePerSecond * BerserkerUpgrade.RendingBleedScale : heavyBleedDamagePerSecond,
+                        rending ? heavyBleedDuration + BerserkerUpgrade.RendingExtraSeconds : heavyBleedDuration);
             }
         }
 
         void ApplyPose()
         {
+            if (grip == null) grip = GetComponent<TwoHandedGrip>();
             float now = Time.time;
             float twist;
             float arm;
 
             if (active && now < windupEndTime)
             {
-                float t = Mathf.SmoothStep(0f, 1f, 1f - (windupEndTime - now) * chopSpeed / windupDuration);
+                float t = Mathf.SmoothStep(0f, 1f, 1f - (windupEndTime - now) * chopSpeed / curWindup);
                 twist = Mathf.Lerp(0f, -SwingTwist(), t);
-                arm = Mathf.Lerp(0f, -armRaise, t);
+                arm = Mathf.Lerp(0f, -curRaise, t);
             }
             else if (active && now < swingEndTime)
             {
-                float t = 1f - (swingEndTime - now) * chopSpeed / swingDuration;
+                float t = 1f - (swingEndTime - now) * chopSpeed / curSwing;
                 t = 1f - (1f - t) * (1f - t);
                 twist = Mathf.Lerp(-SwingTwist(), SwingTwist(), t);
-                arm = Mathf.Lerp(-armRaise, armFollowThrough, t);
+                arm = Mathf.Lerp(-curRaise, curFollow, t);
             }
             else if (now < recoverEndTime)
             {
                 active = false;
-                float t = Mathf.SmoothStep(0f, 1f, 1f - (recoverEndTime - now) * chopSpeed / recoverDuration);
+                float t = Mathf.SmoothStep(0f, 1f, 1f - (recoverEndTime - now) * chopSpeed / curRecover);
                 twist = Mathf.Lerp(recoverFromTwist, 0f, t);
                 arm = Mathf.Lerp(recoverFromArm, 0f, t);
             }
@@ -223,6 +316,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 }
                 lastTwist = 0f;
                 lastArm = 0f;
+                if (grip != null) grip.ChopPitch = 0f;
                 return;
             }
 
@@ -233,7 +327,9 @@ namespace Anathema.Abilities.KhorneBerserker
             // Parent bones first: the arm's world rotation already includes the spine's.
             pose.Reset();
             pose.Rotate("Spine", Vector3.up, twist);
-            pose.Rotate(leftArm ? "UpperArm_L" : "UpperArm_R", transform.right, arm);
+            // Two-handed weapons swing as one piece (TwoHandedGrip drives both arms); otherwise one axe arm swings.
+            if (grip != null && grip.Engaged) grip.ChopPitch = arm;
+            else pose.Rotate(leftArm ? "UpperArm_L" : "UpperArm_R", transform.right, arm);
         }
     }
 }

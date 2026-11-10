@@ -70,6 +70,10 @@ namespace Anathema.Abilities.Psyker
 
             if (distance >= 0.5f) AbilityFx.Teleport(from, to, PsykerFx.Cyan);
             else PsykerFx.Ring(to, 0.2f, 1.6f, 0.3f, PsykerFx.Cyan);
+            // Warp Ward upgrade: arriving through the warp wraps her in a shield (every machine shows it).
+            if (Anathema.Upgrades.UpgradeState.Has(gameObject, PsykerUpgrade.WarpWard))
+                WarpWardShield.Grant(gameObject, !IsReplica, PsykerUpgrade.WarpWardStrength, PsykerUpgrade.WarpWardSeconds);
+
             FirePool.Spawn(gameObject, Health.Team, to, fireRadius, fireDuration, fireDamagePerSecond, !IsReplica);
         }
 
