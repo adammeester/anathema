@@ -42,9 +42,12 @@ namespace Anathema.Abilities
         public float CooldownScale { get; set; } = 1f;
         float EffectiveCooldown => cooldown * CooldownScale;
 
-        public float CooldownRemaining => IsCasting ? 0f : Mathf.Max(0f, nextUseTime - Time.time);
+        public virtual float CooldownRemaining => IsCasting ? 0f : Mathf.Max(0f, nextUseTime - Time.time);
         // 1 = just used, 0 = ready.
-        public float CooldownNormalized => EffectiveCooldown > 0f ? Mathf.Clamp01(CooldownRemaining / EffectiveCooldown) : 0f;
+        // For multi-charge abilities: while the slot is usable but a spent charge is still recharging, how much of that
+        // recharge is left (1 = just spent, 0 = back). 0 when nothing is recharging. Drawn as a faint curtain behind the name.
+        public virtual float ChargeRechargeNormalized => 0f;
+        public virtual float CooldownNormalized => EffectiveCooldown > 0f ? Mathf.Clamp01(CooldownRemaining / EffectiveCooldown) : 0f;
 
         protected virtual void Awake()
         {
@@ -226,7 +229,7 @@ namespace Anathema.Abilities
                 awaitRelease = false;
             }
 
-            if (windingUp || Time.time < nextUseTime || !triggered || Silenced.IsSilenced(gameObject) || Stunned.IsStunned(gameObject)
+            if (windingUp || (Time.time < nextUseTime && !HasSpareCharge) || !triggered || Silenced.IsSilenced(gameObject) || Stunned.IsStunned(gameObject)
                 || Panicked.IsPanicked(gameObject) || IsGuardingOtherAbility) return;
 
             if (ExBlocked) return;
@@ -272,6 +275,9 @@ namespace Anathema.Abilities
             nextUseTime = 0f;
             awaitRelease = true;
         }
+
+        // True when a spare charge lets the ability be used although its main cooldown is still running.
+        protected virtual bool HasSpareCharge => false;
 
         protected abstract bool IsTriggered();
         protected abstract void Activate();

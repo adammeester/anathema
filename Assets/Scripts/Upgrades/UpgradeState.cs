@@ -55,6 +55,11 @@ namespace Anathema.Upgrades
             character = CharacterStats.Identify(gameObject);
             if (character == "KhorneBerserker" && GetComponent<BerserkerUpgradeEffects>() == null)
                 gameObject.AddComponent<BerserkerUpgradeEffects>();
+            // The grip records the weapons' rest pose, so it must come before the visual hides the unwielded ones.
+            if (character == "KhorneBerserker" && GetComponent<TwoHandedGrip>() == null)
+                gameObject.AddComponent<TwoHandedGrip>();
+            if (character == "KhorneBerserker" && GetComponent<BerserkerWeaponVisual>() == null)
+                gameObject.AddComponent<BerserkerWeaponVisual>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!NetGame.Online && GetComponent<UpgradeTestPanel>() == null) gameObject.AddComponent<UpgradeTestPanel>();
 #endif
@@ -114,7 +119,14 @@ namespace Anathema.Upgrades
         {
             if (index < 0 || index >= offers.Count) return false;
 
-            Mask |= offers[index].Mask;
+            UpgradeDef chosen = offers[index];
+            if (chosen.Group != null)
+            {
+                // Taking a weapon replaces the one already held.
+                UpgradeDef[] all = UpgradeCatalog.For(character);
+                if (all != null) foreach (UpgradeDef other in all) if (other.Group == chosen.Group) Mask &= ~other.Mask;
+            }
+            if (!chosen.Instant) Mask |= chosen.Mask;
             offers.Clear();
             Recompute();
             Publish(pendingRound);

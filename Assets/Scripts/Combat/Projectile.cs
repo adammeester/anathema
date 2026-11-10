@@ -14,10 +14,13 @@ namespace Anathema.Combat
         Vector3 direction;
         GameObject owner;
         System.Action<Health> onHit;
+        System.Func<Health, float> damageScale;
 
-        public void Init(GameObject ownerObject, int team, float damageAmount, float moveSpeed, float range, float hitRadius, Vector3 moveDirection, System.Action<Health> onHitCallback = null)
+        // `damageScaleFor` (optional) is asked for a multiplier on the damage when the projectile reaches a target.
+        public void Init(GameObject ownerObject, int team, float damageAmount, float moveSpeed, float range, float hitRadius, Vector3 moveDirection, System.Action<Health> onHitCallback = null, System.Func<Health, float> damageScaleFor = null)
         {
             onHit = onHitCallback;
+            damageScale = damageScaleFor;
             owner = ownerObject;
             ownerTeam = team;
             damage = damageAmount;
@@ -46,6 +49,7 @@ namespace Anathema.Combat
                 owner = dome.Owner;
                 ownerTeam = dome.Team;
                 onHit = null;
+                damageScale = null;
                 return;
             }
         }
@@ -58,7 +62,8 @@ namespace Anathema.Combat
             if (TryFindHit(step, out RaycastHit hit))
             {
                 Health target = hit.collider.GetComponentInParent<Health>();
-                if (target != null && target.TakeDamage(damage, owner)) onHit?.Invoke(target);
+                float scale = target != null && damageScale != null ? damageScale(target) : 1f;
+                if (target != null && target.TakeDamage(damage * scale, owner)) onHit?.Invoke(target);
                 Destroy(gameObject);
                 return;
             }

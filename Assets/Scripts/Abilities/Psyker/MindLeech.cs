@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Psyker
 {
-    // The EX version of the barrier: a psychic tether to the enemy nearest the cursor. It interrupts and silences the
+    // The Force Stave's EX (Shift+RMB, in place of Kine Slam): a psychic tether to the enemy nearest the cursor. It interrupts and silences the
     // victim at once, then drains their health, healing the Psyker and feeding her energy, until it runs its course.
     // It breaks if the target dies or gets too far away, or if the Psyker is stunned, panicked, silenced, knocked back,
     // dies or presses C. Every machine draws the tether; only the owner's copy drains, heals and applies the silence.

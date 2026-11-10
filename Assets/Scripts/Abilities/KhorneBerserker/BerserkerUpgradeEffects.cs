@@ -45,11 +45,14 @@ namespace Anathema.Abilities.KhorneBerserker
 
             bool furious = upgrades.Has(BerserkerUpgrade.BerserkersFury) && !health.IsDead
                            && health.Normalized < BerserkerUpgrade.FuryHealthThreshold;
+            // Rage is the dual chainaxes' passive; the Eviscerator and Heavy Chainaxe replace it with their own.
+            rage.Suppressed = BerserkerWeapons.Of(gameObject) != BerserkerWeapon.DualChainaxes;
             rage.ExtraAttackSpeed = furious ? BerserkerUpgrade.FuryAttackSpeed : 0f;
             rage.MovePerStack = upgrades.Has(BerserkerUpgrade.RelentlessPursuit) ? BerserkerUpgrade.PursuitMovePerStack : 0f;
 
-            // Defiant Roar rearms when the next round restores full health.
-            if (health.Normalized >= 0.99f) defiantUsed = false;
+            // Defiant Roar is once per round: it rearms in the prep phase before each round (healing back to full
+            // mid-round must not rearm it).
+            if (Anathema.Net.NetGame.InPrep) defiantUsed = false;
         }
 
         void OnDamaged(Health _, float amount, GameObject source)
@@ -89,6 +92,23 @@ namespace Anathema.Abilities.KhorneBerserker
                 momentum ? BerserkerUpgrade.MomentumWindow : Rage.DefaultWindow);
         }
 
+        // The Eviscerator's armour piercing / shield breaking: its base value, or Whetted Edge's stronger one.
+        public static float Pierce(GameObject berserker, float basePierce)
+        {
+            return UpgradeState.Has(berserker, BerserkerUpgrade.WhettedEdge) ? BerserkerUpgrade.WhettedPierce : basePierce;
+        }
+
+        public static float ShieldBreak(GameObject berserker, float baseShieldBreak)
+        {
+            return UpgradeState.Has(berserker, BerserkerUpgrade.WhettedEdge) ? BerserkerUpgrade.WhettedShieldBreak : baseShieldBreak;
+        }
+
+        // Hamstring and Gore Rush leave the target bleeding.
+        public static void ApplyUpgradeBleed(GameObject berserker, Health target)
+        {
+            Bleeding.Apply(target.gameObject, berserker, BerserkerUpgrade.UpgradeBleedPerSecond, BerserkerUpgrade.UpgradeBleedSeconds);
+        }
+
         // Skulltaker: finishing the wounded hurts more.
         public static float DamageScale(GameObject berserker, Health target)
         {
@@ -117,12 +137,19 @@ namespace Anathema.Abilities.KhorneBerserker
         }
 
         // Every living enemy whose body lies within `reach` of `origin` and inside the `arc` around `aim`.
+        // The returned list and the collider buffer are reused between calls (no allocation per swing), so enumerate
+        // the result straight away and do not keep it.
+        static readonly Collider[] hitBuffer = new Collider[64];
+        static readonly List<Health> foundBuffer = new List<Health>();
+
         public static List<Health> EnemiesInCone(GameObject attacker, Health self, Vector3 origin, Vector3 aim, float reach, float arc)
         {
-            var found = new List<Health>();
-            Collider[] colliders = Physics.OverlapSphere(origin + Vector3.up, reach, ~0, QueryTriggerInteraction.Ignore);
-            foreach (Collider c in colliders)
+            var found = foundBuffer;
+            found.Clear();
+            int count = Physics.OverlapSphereNonAlloc(origin + Vector3.up, reach, hitBuffer, ~0, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
             {
+                Collider c = hitBuffer[i];
                 Health target = c.GetComponentInParent<Health>();
                 if (target == null || target.Team == self.Team || target.IsDead || found.Contains(target)) continue;
 

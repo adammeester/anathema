@@ -46,6 +46,10 @@ namespace Anathema.Upgrades
         public UpgradeDef CrowdControl(float scale) { CrowdControlScale = scale; return this; }
         public UpgradeDef Requires(Func<int, bool> requirement) { Requirement = requirement; return this; }
 
+        // A choice that is applied on the spot and not kept in the mask (e.g. returning to the starting weapon).
+        public bool Instant { get; private set; }
+        public UpgradeDef AsInstant() { Instant = true; return this; }
+
         public int Mask => 1 << Bit;
 
         public static Color CategoryColor(UpgradeCategory category)

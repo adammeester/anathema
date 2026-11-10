@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Anathema.Abilities.KhorneBerserker;
+using Anathema.Abilities.Psyker;
 
 namespace Anathema.Upgrades
 {
@@ -14,12 +15,20 @@ namespace Anathema.Upgrades
         static readonly Dictionary<string, UpgradeDef[]> ByCharacter = new Dictionary<string, UpgradeDef[]>
         {
             { "KhorneBerserker", BerserkerUpgrade.All },
+            { "Psyker", PsykerUpgrade.All },
+        };
+
+        // The pick on which a character may trade its weapon for another (weapon-group exclusivity is lifted for that pick).
+        static readonly Dictionary<string, int> SwapRounds = new Dictionary<string, int>
+        {
+            { "KhorneBerserker", 4 },
         };
 
         // Predefined offers per character: Sets[pick][slot] lists alternative upgrade bits for one card (pick 0 = after round 1).
         static readonly Dictionary<string, int[][][]> SetsByCharacter = new Dictionary<string, int[][][]>
         {
             { "KhorneBerserker", BerserkerUpgrade.Sets },
+            { "Psyker", PsykerUpgrade.Sets },
         };
 
         // The offers for the pick after round `round` (1-based). Characters with fixed sets get exactly those (minus
@@ -30,13 +39,14 @@ namespace Anathema.Upgrades
             if (all != null && SetsByCharacter.TryGetValue(character, out int[][][] sets) && round >= 1 && round <= sets.Length)
             {
                 var offers = new List<UpgradeDef>();
+                bool swap = SwapRounds.TryGetValue(character, out int swapRound) && swapRound == round;
                 foreach (int[] slot in sets[round - 1])
                 {
                     // The first alternative still available (a blocked weapon falls back to its backup card).
                     foreach (int bit in slot)
                     {
                         UpgradeDef def = Array.Find(all, d => d.Bit == bit);
-                        if (def == null || !IsAvailable(def, all, ownedMask) || offers.Contains(def)) continue;
+                        if (def == null || !IsAvailable(def, all, ownedMask, swap) || offers.Contains(def)) continue;
                         offers.Add(def);
                         break;
                     }
@@ -54,11 +64,11 @@ namespace Anathema.Upgrades
         public static bool HasUpgrades(string character) => For(character) != null;
 
         // True if `def` can still be offered given what is already owned.
-        public static bool IsAvailable(UpgradeDef def, UpgradeDef[] all, int ownedMask)
+        public static bool IsAvailable(UpgradeDef def, UpgradeDef[] all, int ownedMask, bool allowGroupSwap = false)
         {
             if ((ownedMask & def.Mask) != 0) return false;
             if (def.Requirement != null && !def.Requirement(ownedMask)) return false;
-            if (def.Group != null)
+            if (def.Group != null && !allowGroupSwap)
                 foreach (UpgradeDef other in all)
                     if (other != def && other.Group == def.Group && (ownedMask & other.Mask) != 0) return false;
             return true;

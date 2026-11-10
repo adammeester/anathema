@@ -82,7 +82,8 @@ namespace Anathema.Abilities.KhorneBerserker
         // The chop in flight, resolved from the wielded weapon when it started.
         BerserkerWeapon weapon;
         float curDamage, curRange, curArc, curWindup, curSwing, curRecover, curTwist, curRaise, curFollow;
-        float dualCooldown;     // the prefab/JSON cooldown, used by the default dual chainaxes
+        AxeToss toss;
+        TwoHandedGrip grip;
 
         protected override bool ScalesWithAttackSpeed => true;
 
@@ -132,25 +133,24 @@ namespace Anathema.Abilities.KhorneBerserker
             aura.SetActive(true);
         }
 
-        void Start()
-        {
-            dualCooldown = cooldown; // after CharacterStats has applied its JSON
-        }
-
-        // Each weapon has its own swing speed; the cooldown follows it.
+        // Each weapon has its own swing speed; the cooldown follows it. `cooldown` itself (prefab/JSON) is the dual
+        // chainaxes' value and is never overwritten: the other weapons scale it through CooldownScale.
         float WeaponCooldown()
         {
             switch (BerserkerWeapons.Of(gameObject))
             {
                 case BerserkerWeapon.HeavyChainaxe: return heavyCooldown;
                 case BerserkerWeapon.Eviscerator: return eviscCooldown;
-                default: return dualCooldown;
+                default: return cooldown;
             }
         }
 
+        // True while this chop still holds the arm/spine pose (swing and recovery).
+        public bool PoseBusy => active || Time.time < recoverEndTime;
+
         protected override void Update()
         {
-            if (dualCooldown > 0f) cooldown = WeaponCooldown();
+            CooldownScale = cooldown > 0f ? WeaponCooldown() / cooldown : 1f;
             base.Update();
 
             if (strikePending && !IsReplica && IsDisabled) InterruptSelf();
@@ -180,12 +180,16 @@ namespace Anathema.Abilities.KhorneBerserker
 
         protected override bool IsTriggered()
         {
+            // The heavy weapons' secondary drives the spine and both arms, so the two attacks may not overlap.
+            if (toss == null) toss = GetComponent<AxeToss>();
+            if (toss != null && toss.PoseBusy && (BerserkerWeapons.Of(gameObject) != BerserkerWeapon.DualChainaxes || toss.UsesFullBody)) return false;
             return Input.GetMouseButton(0);
         }
 
         protected override void Activate()
         {
-            leftArm = !leftArm;
+            // The dual chainaxes alternate hands; the two-handed weapons always swing with both.
+            leftArm = BerserkerWeapons.Of(gameObject) == BerserkerWeapon.DualChainaxes && !leftArm;
             ResolveWeapon();
             strikeEmpowered = empowered;
             empowered = false;
@@ -255,12 +259,8 @@ namespace Anathema.Abilities.KhorneBerserker
             float reach = strikeEmpowered ? curRange * empoweredRangeMultiplier : curRange;
             float baseDamage = strikeEmpowered ? curDamage * empoweredDamageMultiplier : curDamage;
             // The Eviscerator's passive: its blows partly ignore armour and shields.
-            float pierce = weapon == BerserkerWeapon.Eviscerator
-                ? (UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge) ? BerserkerUpgrade.WhettedPierce : eviscArmorPierce)
-                : 0f;
-            float shieldBreak = weapon == BerserkerWeapon.Eviscerator
-                ? (UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge) ? BerserkerUpgrade.WhettedShieldBreak : eviscShieldBreak)
-                : 1f;
+            float pierce = weapon == BerserkerWeapon.Eviscerator ? BerserkerUpgradeEffects.Pierce(gameObject, eviscArmorPierce) : 0f;
+            float shieldBreak = weapon == BerserkerWeapon.Eviscerator ? BerserkerUpgradeEffects.ShieldBreak(gameObject, eviscShieldBreak) : 1f;
             bool rending = UpgradeState.Has(gameObject, BerserkerUpgrade.RendingGouges);
 
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, Aim.AimDirection, reach, curArc))
@@ -281,6 +281,7 @@ namespace Anathema.Abilities.KhorneBerserker
 
         void ApplyPose()
         {
+            if (grip == null) grip = GetComponent<TwoHandedGrip>();
             float now = Time.time;
             float twist;
             float arm;
@@ -315,6 +316,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 }
                 lastTwist = 0f;
                 lastArm = 0f;
+                if (grip != null) grip.ChopPitch = 0f;
                 return;
             }
 
@@ -325,7 +327,9 @@ namespace Anathema.Abilities.KhorneBerserker
             // Parent bones first: the arm's world rotation already includes the spine's.
             pose.Reset();
             pose.Rotate("Spine", Vector3.up, twist);
-            pose.Rotate(leftArm ? "UpperArm_L" : "UpperArm_R", transform.right, arm);
+            // Two-handed weapons swing as one piece (TwoHandedGrip drives both arms); otherwise one axe arm swings.
+            if (grip != null && grip.Engaged) grip.ChopPitch = arm;
+            else pose.Rotate(leftArm ? "UpperArm_L" : "UpperArm_R", transform.right, arm);
         }
     }
 }

@@ -29,7 +29,6 @@ namespace Anathema.Player
         Health health;
         Energy energy;
         Ability[] abilities;
-        Rage rage;
         UpgradeState upgrades;
         Texture2D pixel;
         Texture2D sheen;        // white, alpha fading top (bright) to bottom (clear)
@@ -92,18 +91,9 @@ namespace Anathema.Player
 
         // ---------- Passives and upgrades ----------
 
-        // The Rage passive's stacks above the ability bar, and the upgrades taken this match at the bottom-left.
+        // The upgrades taken this match at the bottom-left.
         void DrawPassives(float centerX, float slotY, float abilityWidth)
         {
-            if (rage == null) rage = GetComponent<Rage>();
-            if (rage != null && rage.Stacks > 0)
-            {
-                float bonus = Rage.AttackSpeedMultiplier(gameObject) - 1f;
-                var r = new Rect(centerX - abilityWidth * 0.5f, slotY - 54f * scale, abilityWidth, 34f * scale);
-                DrawText(r, $"RAGE  {new string('|', rage.Stacks)}   +{Mathf.RoundToInt(bonus * 100f)}% attack speed",
-                    Mathf.RoundToInt(22f * scale), FontStyle.Bold, new Color(1f, 0.35f, 0.25f));
-            }
-
             if (upgrades == null) upgrades = GetComponent<UpgradeState>();
             if (upgrades == null || upgrades.Mask == 0) return;
 
@@ -177,16 +167,27 @@ namespace Anathema.Player
             // While Shift is held (EX mode) abilities without an EX version are greyed out and the EX ones are highlighted.
             bool exMode = Input.GetKey(KeyCode.LeftShift);
             bool hasEx = ability.ExCost > 0f;
-            bool exLit = exMode && hasEx && !ability.ExBlocked;
-            bool exDim = exMode && !exLit;
+            bool exShow = exMode && hasEx;                 // EX version always visible while EX is open
+            bool exLit = exShow && !ability.ExBlocked;     // ...but only lit when affordable
+            bool exDim = exMode && !hasEx;
+            bool exLocked = exShow && !exLit;              // EX ability visible but can't afford: greyed out
 
             DrawFrame(r, f, exLit ? EnergyColor : (ready && !exDim ? Gold : DarkGold));
             DrawRect(r, exLit ? new Color(0.10f, 0.22f, 0.36f, 1f) : new Color(0.12f, 0.14f, 0.20f, 1f));
             GUI.DrawTexture(new Rect(r.x, r.y, r.width, r.height * 0.5f), sheen);
 
+            // Partial recharge (e.g. one of two axes spent): a faint curtain with a thin leading edge, behind the name.
+            float recharge = ability.ChargeRechargeNormalized;
+            if (recharge > 0f && !exDim)
+            {
+                float rh = r.height * recharge;
+                DrawRect(new Rect(r.x, r.y, r.width, rh), new Color(0f, 0f, 0f, 0.38f));
+                DrawRect(new Rect(r.x, r.y + rh - 2f * scale, r.width, 2f * scale), new Color(Gold.r, Gold.g, Gold.b, 0.45f));
+            }
+
             // Ability name, wrapped inside the slot.
-            DrawText(new Rect(r.x, r.y + r.height * 0.18f, r.width, r.height * 0.64f), exLit ? ability.ExName : ability.DisplayName,
-                Mathf.RoundToInt(19f * scale), FontStyle.Bold, ready ? Color.white : new Color(1f, 1f, 1f, 0.55f));
+            DrawText(new Rect(r.x, r.y + r.height * 0.18f, r.width, r.height * 0.64f), exShow ? ability.ExName : ability.DisplayName,
+                Mathf.RoundToInt(19f * scale), FontStyle.Bold, ready && !exLocked ? Color.white : new Color(1f, 1f, 1f, 0.55f));
 
             if (!ready && cd <= 0f && !ability.IsCasting)
             {
@@ -216,8 +217,9 @@ namespace Anathema.Player
             {
                 DrawRect(new Rect(r.x - f, r.y - f, r.width + 2f * f, r.height + 2f * f), new Color(0f, 0f, 0f, 0.65f));
             }
-            else if (exLit)
+            else if (exShow)
             {
+                if (exLocked) DrawRect(r, new Color(0f, 0f, 0f, 0.5f));
                 // Energy cost at the top of the slot; dimmed when the surgeon can't afford it.
                 bool affordable = energy != null && energy.Current >= ability.ExCost;
                 DrawText(new Rect(r.x, r.y + 2f * scale, r.width, 22f * scale), $"EX {Mathf.CeilToInt(ability.ExCost)}",

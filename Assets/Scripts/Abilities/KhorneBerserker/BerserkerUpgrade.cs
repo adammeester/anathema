@@ -6,6 +6,8 @@ namespace Anathema.Abilities.KhorneBerserker
     // append new ones; never renumber.
     //
     //   Armament  - weapon transformations. They replace the chop (LMB), the secondary (RMB) and the passive.
+    //               A weapon's own passive replaces Rage (Rage is the dual chainaxes' passive; the Rage-based
+    //               Ferocity upgrades are dual-chainaxes only and fall back to others in the offer sets).
     //               Optional: a Berserker with the default dual chainaxes stays fully competitive.
     //   Endurance - defensive upgrades.
     //   Ferocity  - enhancements to the abilities the weapon swap leaves alone (Rush, Maim, Counter, ultimate, Rage).
@@ -32,6 +34,7 @@ namespace Anathema.Abilities.KhorneBerserker
         public const int RendingGouges = 19;       // Heavy Chainaxe
         public const int Earthshaker = 20;         // Heavy Chainaxe
         public const int ChainFrenzy = 21;         // dual chainaxes
+        public const int RevertToDual = 22;        // final-pick card: give the weapon back and return to the dual chainaxes
 
         public const int FeelNoPain = 12;
         public const int Unstoppable = 13;
@@ -49,7 +52,7 @@ namespace Anathema.Abilities.KhorneBerserker
         public const float DefiantHealFraction = 0.15f;        // of max health
         public const float DefiantEnrageSeconds = 4f;
         public const int MomentumExtraStacks = 2;
-        public const float MomentumWindow = 5f;
+        public const float MomentumWindow = 3.5f;
         public const float GoreRushCooldownScale = 0.65f;
         public const float HamstringSlowFraction = 0.45f;
         public const float VengefulCooldownScale = 0.65f;
@@ -64,6 +67,8 @@ namespace Anathema.Abilities.KhorneBerserker
         public const float PursuitMovePerStack = 0.03f;
         public const float SkulltakerThreshold = 0.4f;         // target health fraction
         public const float SkulltakerBonus = 0.3f;
+        public const float UpgradeBleedPerSecond = 3f;         // Hamstring and Gore Rush bleed
+        public const float UpgradeBleedSeconds = 4f;
         public const float HeadsmanCooldownScale = 0.7f;
         public const float HeadsmanThresholdScale = 1.4f;      // Descent's bonus starts at 70% instead of 50% health
         public const float WhettedWindupScale = 0.8f;
@@ -89,71 +94,19 @@ namespace Anathema.Abilities.KhorneBerserker
         //   - a Berserker who never takes a weapon is offered the dual chainaxes' own upgrades later on.
         // The other two cards are never weapons, so a Berserker can also skip every weapon and build from them.
         //
-        //   after round 1   Armament: Eviscerator                                   Endurance: Feel No Pain         Ferocity: Berserker's Fury
+        //   after round 1   Armament: Eviscerator or Keep the Dual Chainaxes (two cards)   Endurance: Feel No Pain   Ferocity: Berserker's Fury
         //   after round 2   Armament: Heavy Chainaxe, or Headsman's Mark (Evisc.)   Endurance: Blood-Fuelled Regen  Ferocity: Relentless Pursuit
         //   after round 3   Armament: Whetted Edge / Rending Gouges / Chain Frenzy  Endurance: Unstoppable          Ferocity: Skulltaker
-        //   after round 4   Armament: Earthshaker / Keep the Dual Chainaxes / Gore Rush   Endurance: Defiant Roar   Ferocity: Crimson Momentum
+        //   after round 4   Armament (two cards): swap weapon - the two weapons you do not hold, the dual chainaxes counting as one   Endurance: Defiant Roar   Ferocity: Crimson Momentum
         //
         // Upgrades in no set (Hamstring, Skullthrone's Favour, Vengeful Blood, Gorehound's Vigour) stay in the catalog for the
         // F1 test panel and for future sets.
         public static readonly int[][][] Sets =
         {
-            new[] { new[] { Eviscerator },                                   new[] { FeelNoPain },       new[] { BerserkersFury } },
-            new[] { new[] { HeadsmansMark, HeavyChainaxe, RendingGouges },   new[] { CrimsonCommunion }, new[] { RelentlessPursuit } },
+            new[] { new[] { Eviscerator }, new[] { TwinAxes }, new[] { FeelNoPain }, new[] { BerserkersFury } },
+            new[] { new[] { HeadsmansMark, HeavyChainaxe, RendingGouges },   new[] { CrimsonCommunion }, new[] { RelentlessPursuit, Hamstring } },
             new[] { new[] { WhettedEdge, RendingGouges, ChainFrenzy },       new[] { Unstoppable },      new[] { Skulltaker } },
-            new[] { new[] { Earthshaker, TwinAxes, GoreRush },               new[] { DefiantRoar },      new[] { CrimsonMomentum } },
-        };
-
-        static bool Wields(int mask, int weapon) => (mask & (1 << weapon)) != 0;
-        static bool NoWeapon(int mask) => (mask & ((1 << HeavyChainaxe) | (1 << Eviscerator))) == 0;
-
-        // The fixed offers: Sets[pick][slot] is a list of alternatives for one card; the first one that is still available is
-        // shown. Pick 0 is offered after round 1, pick 1 after round 2, and so on. Everyone sees the same sets, so the pick
-        // has no luck in it. Every set is Armament / Endurance / Ferocity.
-        //
-        // The Armament slot is weapon-aware, so nobody can take a weapon every round:
-        //   - until you hold a transformed weapon it offers the next weapon in the progression
-        //     (round 1 dual chainaxes -> round 2 Eviscerator -> round 3 Heavy Chainaxe);
-        //   - once you hold one, it offers upgrades unique to that weapon instead (they only exist for that weapon).
-        // The other two cards are never weapons, so a Berserker can also skip every weapon and build from them.
-        //
-        //   after round 1   Armament: Keep the Dual Chainaxes          Endurance: Feel No Pain         Ferocity: Berserker's Fury
-        //   after round 2   Armament: Eviscerator                      Endurance: Blood-Fuelled Regen  Ferocity: Relentless Pursuit
-        //   after round 3   Armament: Heavy Chainaxe, or Headsman's Mark if you hold the Eviscerator   Endurance: Unstoppable   Ferocity: Skulltaker
-        //   after round 4   Armament: Whetted Edge (Eviscerator) / Rending Gouges (Heavy) / Chain Frenzy (no weapon)   Endurance: Defiant Roar   Ferocity: Crimson Momentum
-        //
-        // Upgrades in no set (Hamstring, Skullthrone's Favour, Vengeful Blood, Earthshaker) stay in the catalog for the
-        // F1 test panel and for future sets.
-        public static readonly int[][][] Sets =
-        {
-            new[] { new[] { TwinAxes },                                      new[] { FeelNoPain },       new[] { BerserkersFury } },
-            new[] { new[] { Eviscerator, GoreRush },                         new[] { CrimsonCommunion }, new[] { RelentlessPursuit } },
-            new[] { new[] { HeadsmansMark, HeavyChainaxe, RendingGouges },   new[] { Unstoppable },      new[] { Skulltaker } },
-            new[] { new[] { WhettedEdge, RendingGouges, ChainFrenzy },       new[] { DefiantRoar },      new[] { CrimsonMomentum } },
-        };
-
-        static bool Wields(int mask, int weapon) => (mask & (1 << weapon)) != 0;
-        static bool NoWeapon(int mask) => (mask & ((1 << HeavyChainaxe) | (1 << Eviscerator))) == 0;
-
-        // The fixed offers: Sets[pick][slot] is a list of alternatives for one card (the first that is still available is
-        // shown). Pick 0 is offered after round 1, pick 1 after round 2, and so on. Everyone sees the same sets, so the pick
-        // has no luck in it. Every set is Armament / Endurance / Ferocity, so a Berserker can always skip the weapon slot
-        // and never take a weapon at all:
-        //
-        //   after round 1   Armament: keep the dual chainaxes (Twin Axes)   Endurance: Feel No Pain        Ferocity: Berserker's Fury
-        //   after round 2   Armament: Eviscerator                           Endurance: Blood-Fuelled Regen  Ferocity: Relentless Pursuit
-        //   after round 3   Armament: Heavy Chainaxe                        Endurance: Unstoppable          Ferocity: Skulltaker
-        //   after round 4   Armament slot: no weapon left to offer, so a second Endurance card
-        //
-        // A weapon card that is blocked (you already hold the other weapon) falls back to the next alternative in its slot.
-        // Upgrades in no set (Hamstring, Skullthrone's Favour, Vengeful Blood, Defiant Roar) stay in the catalog for the
-        // F1 test panel and for future sets.
-        public static readonly int[][][] Sets =
-        {
-            new[] { new[] { TwinAxes },                             new[] { FeelNoPain },       new[] { BerserkersFury } },
-            new[] { new[] { Eviscerator, GoreRush },                new[] { CrimsonCommunion }, new[] { RelentlessPursuit } },
-            new[] { new[] { HeavyChainaxe, GorehoundVigour },       new[] { Unstoppable },      new[] { Skulltaker } },
-            new[] { new[] { AblativePlating },                      new[] { DefiantRoar },      new[] { CrimsonMomentum } },
+            new[] { new[] { Eviscerator, HeavyChainaxe }, new[] { HeavyChainaxe, RevertToDual }, new[] { DefiantRoar }, new[] { CrimsonMomentum, VengefulBlood } },
         };
 
         public static readonly UpgradeDef[] All =
@@ -173,6 +126,10 @@ namespace Anathema.Abilities.KhorneBerserker
             new UpgradeDef(ChainFrenzy, UpgradeCategory.Armament, "Chain Frenzy",
                 "Dual chainaxes only. Axe Toss recharges 30% faster and every axe that lands adds a Rage stack.")
                 .Requires(NoWeapon),
+
+            new UpgradeDef(RevertToDual, UpgradeCategory.Armament, "Return to the Dual Chainaxes",
+                "Swap back to your starting chainaxes: Chop, Axe Toss and Rage return as they were.")
+                .InGroup(WeaponGroup).AsInstant().Requires(m => !NoWeapon(m)),
 
             new UpgradeDef(HeavyChainaxe, UpgradeCategory.Armament, "Heavy Chainaxe - The Reaver",
                 "Slow, brutal area damage. Chop becomes a wide heavy sweep with greater reach; Axe Toss becomes Gorecleave, a frontal sweep that knocks back and bleeds. Heavy hits inflict Bleed.")
@@ -195,19 +152,19 @@ namespace Anathema.Abilities.KhorneBerserker
                 "Once per round, dropping below 30% health heals you for 15% and sends you into a 4s Enraged state."),
 
             new UpgradeDef(CrimsonMomentum, UpgradeCategory.Ferocity, "Crimson Momentum",
-                "Rage holds 2 more stacks and lasts 5s between hits."),
+                "Dual chainaxes only. Rage holds 2 more stacks and lasts 3.5s between hits.").Requires(NoWeapon),
             new UpgradeDef(GoreRush, UpgradeCategory.Ferocity, "Gore Rush",
                 "Axe Rush recharges 35% faster and its sweep leaves targets bleeding."),
             new UpgradeDef(BerserkersFury, UpgradeCategory.Ferocity, "Berserker's Fury",
                 "+30% attack speed while below 40% health."),
             new UpgradeDef(RelentlessPursuit, UpgradeCategory.Ferocity, "Relentless Pursuit",
-                "Each Rage stack from consecutive hits also adds 3% movement speed."),
+                "Dual chainaxes only. Each Rage stack from consecutive hits also adds 3% movement speed.").Requires(NoWeapon),
             new UpgradeDef(Skulltaker, UpgradeCategory.Ferocity, "Skulltaker",
                 "Your melee attacks deal 30% more damage to enemies below 40% health."),
             new UpgradeDef(Hamstring, UpgradeCategory.Ferocity, "Hamstring",
                 "Maim slows by 45% and also makes the target bleed."),
             new UpgradeDef(TwinAxes, UpgradeCategory.Armament, "Keep the Dual Chainaxes",
-                "No transformation: your chainaxes stay as they are, and Axe Toss now hurls a second axe in a spread.")
+                "No transformation: your chainaxes stay as they are, and Axe Toss gains a second charge, and each charge recharges independently.")
                 .Requires(NoWeapon),
             new UpgradeDef(VengefulBlood, UpgradeCategory.Ferocity, "Vengeful Blood",
                 "Counter recharges 35% faster and its retaliation hits 50% harder."),

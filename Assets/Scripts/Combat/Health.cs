@@ -83,6 +83,10 @@ namespace Anathema.Combat
         // whatever is left over to go through to health. Receives (amount, source).
         public Func<float, GameObject, float> Absorber;
 
+        // A second, independent shield slot (e.g. the Psyker's teleport shield) so it never fights over `Absorber`
+        // with an ability shield. It soaks first; whatever it leaves goes on to `Absorber`.
+        public Func<float, GameObject, float> BonusAbsorber;
+
         // I-frames: while set, nothing hurts this character (including AoE, gas and bleeds, which skip DamageModifier).
         public bool Invulnerable { get; set; }
 
@@ -168,10 +172,13 @@ namespace Anathema.Combat
             // A fully absorbed hit still counts as landing (the attacker gets their energy) but doesn't touch health.
             // A shield-breaking hit uses up the shield faster: the shield sees the hit scaled up, and whatever it could not
             // absorb is scaled back down before it reaches health.
-            if (Absorber != null)
+            if (BonusAbsorber != null || Absorber != null)
             {
                 float breaker = Mathf.Max(1f, shieldBreak);
-                amount = Absorber(amount * breaker, source) / breaker;
+                amount *= breaker;
+                if (BonusAbsorber != null) amount = BonusAbsorber(amount, source);
+                if (amount > 0f && Absorber != null) amount = Absorber(amount, source);
+                amount /= breaker;
                 if (amount <= 0f) return true;
             }
 

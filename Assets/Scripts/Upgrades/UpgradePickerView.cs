@@ -55,6 +55,7 @@ namespace Anathema.Upgrades
             if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) state.Choose(0);
             else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) state.Choose(1);
             else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) state.Choose(2);
+            else if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) state.Choose(3);
         }
 
         public void Draw(float w, float h, UpgradeState state, int nextRound, float secondsLeft)
@@ -65,16 +66,24 @@ namespace Anathema.Upgrades
             Fill(new Rect(0, 0, w, h), new Color(0f, 0f, 0f, 0.62f)); // the prep area stays visible behind the menu
             GUI.Label(new Rect(0, 70, w, 80), "CHOOSE AN UPGRADE", titleStyle);
             GUI.Label(new Rect(0, 150, w, 40),
-                $"Prepare for round {nextRound}  ·  upgrades last for the rest of the match  ·  press 1, 2 or 3", subtitleStyle);
+                $"Prepare for round {nextRound}  ·  upgrades last for the rest of the match  ·  press a number key", subtitleStyle);
 
             int count = state.Offers.Count;
-            float total = count * CardW + (count - 1) * CardGap;
+            float cardW = Mathf.Min(CardW, (w - 80f - (count - 1) * CardGap) / count);
+            float total = count * cardW + (count - 1) * CardGap;
             float x = (w - total) * 0.5f;
             float y = 220f;
 
+            // Choosing clears the offers, so remember the click and apply it after the loop.
+            int clicked = -1;
             for (int i = 0; i < count; i++)
             {
-                if (DrawCard(new Rect(x + i * (CardW + CardGap), y, CardW, CardH), state.Offers[i], i)) state.Choose(i);
+                if (DrawCard(new Rect(x + i * (cardW + CardGap), y, cardW, CardH), state.Offers[i], i)) clicked = i;
+            }
+            if (clicked >= 0)
+            {
+                state.Choose(clicked);
+                return;
             }
 
             string owned = OwnedSummary(state);

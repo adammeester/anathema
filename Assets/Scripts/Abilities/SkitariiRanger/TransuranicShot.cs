@@ -29,7 +29,7 @@ namespace Anathema.Abilities.SkitariiRanger
         Energy energy;
         bool charging;
         float chargeStart;
-        int abilityIndex = -1;
+        int cueIndex = -1;
         readonly List<Health> hits = new List<Health>();
 
         GameObject chargeFx;
@@ -130,8 +130,8 @@ namespace Anathema.Abilities.SkitariiRanger
                 {
                     if (Health.Net != null && Health.Net.IsSpawned)
                     {
-                        if (abilityIndex < 0) abilityIndex = System.Array.IndexOf(GetComponents<Ability>(), this);
-                        Health.Net.SendCue(abilityIndex + ExCueOffset, Aim.AimPoint);
+                        if (cueIndex < 0) cueIndex = System.Array.IndexOf(GetComponents<Ability>(), this);
+                        Health.Net.SendCue(cueIndex + ExCueOffset, Aim.AimPoint);
                     }
                     Fire(true);
                     return;

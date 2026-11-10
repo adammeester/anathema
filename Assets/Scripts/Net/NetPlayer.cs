@@ -56,6 +56,12 @@ namespace Anathema.Net
         readonly NetworkVariable<int> netUpgradeMask = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         readonly NetworkVariable<int> netUpgradeRound = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
+        // Attack speed bonus from the Rage passive (owner machine). Synced so replicas replay swings at the same speed.
+        readonly NetworkVariable<float> netRageAttackBonus = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
+        // Rage display state (see Rage.NetState), so every client can draw the dots and rune.
+        readonly NetworkVariable<int> netRageState = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
         Health health;
         UpgradeState upgrades;
         Respawner respawner;
@@ -80,6 +86,11 @@ namespace Anathema.Net
         public int UpgradeMask => netUpgradeMask.Value;
         // Highest round-end this fighter has finished choosing an upgrade for (0 = none yet).
         public int UpgradeRound => netUpgradeRound.Value;
+        public float RageAttackBonus => netRageAttackBonus.Value;
+        // Rage display state published by the owner: stacks | max << 4 | expiring << 8 (0 = none).
+        public int RageState => netRageState.Value;
+        // This fighter's upgrade state (cached; null for characters without upgrades).
+        public UpgradeState Upgrades => upgrades != null ? upgrades : (upgrades = GetComponent<UpgradeState>());
 
         // Server only: this fighter has died this round (cleared when the next round starts).
         public bool ServerDead { get; set; }
@@ -233,6 +244,10 @@ namespace Anathema.Net
                 if (!Mathf.Approximately(netHealed.Value, health.RoundHealed)) netHealed.Value = health.RoundHealed;
                 if (aim == null) aim = GetComponent<MouseAim>();
                 if (aim != null && (netAim.Value - aim.AimPoint).sqrMagnitude > 0.0004f) netAim.Value = aim.AimPoint;
+                float rageBonus = Rage.AttackSpeedMultiplier(gameObject) - 1f;
+                if (!Mathf.Approximately(netRageAttackBonus.Value, rageBonus)) netRageAttackBonus.Value = rageBonus;
+                int rageState = Rage.NetState(gameObject);
+                if (netRageState.Value != rageState) netRageState.Value = rageState;
                 return;
             }
 

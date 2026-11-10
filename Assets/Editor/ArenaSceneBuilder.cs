@@ -84,6 +84,9 @@ namespace Anathema.EditorTools
             shooter.AddComponent<DummyShooter>();
             CreateDummy(new Vector3(-10f, 1f, 8f));
             CreateDummy(new Vector3(0f, 1f, 16f));
+            // Chain-lightning test cluster: within the 5m jump range of each other.
+            CreateDummy(new Vector3(3f, 1f, 16f));
+            CreateDummy(new Vector3(6f, 1f, 16f));
             CreateDummy(new Vector3(14f, 1f, -6f));
             GameObject mover = CreateDummy(new Vector3(0f, 1f, -12f));
             mover.name = "Training Dummy (Moving)";

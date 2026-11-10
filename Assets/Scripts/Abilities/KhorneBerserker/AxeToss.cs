@@ -7,7 +7,7 @@ namespace Anathema.Abilities.KhorneBerserker
 {
     // The Berserker's secondary (right mouse). Which attack it is depends on the weapon (Armament upgrade):
     //   Dual chainaxes  - Axe Toss: hurl a spinning chain axe along the aim direction. The first enemy it hits takes
-    //                     damage and starts Bleeding. Walls stop the axe. (Twin Axes upgrade: a second axe in a spread.)
+    //                     damage and starts Bleeding. Walls stop the axe. (Twin Axes upgrade: two charges, each recharging independently.)
     //   Heavy Chainaxe  - Gorecleave: a wide frontal sweep that hits everything in reach, knocks it back and causes Bleed.
     //   Eviscerator     - Executioner's Descent: an overhead strike with a long wind-up; bonus damage to low-health
     //                     targets, and it partly ignores armour and shields.
@@ -26,9 +26,6 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float windupDuration = 0.12f;
         [SerializeField] float throwDuration = 0.08f;
         [SerializeField] float recoverDuration = 0.25f;
-
-        [Header("Twin Axes upgrade")]
-        [SerializeField] float twinSpreadDegrees = 9f;
 
         [Header("Gorecleave (Heavy Chainaxe)")]
         [SerializeField] float cleaveDamage = 20f;
@@ -76,7 +73,6 @@ namespace Anathema.Abilities.KhorneBerserker
         BerserkerWeapon weapon;      // the weapon this use started with
         float curWindup, curSwing, curRecover, curRaise, curFollow, curTwist;
         bool bothArms;
-        float tossCooldown;          // the prefab/JSON cooldown, used by the dual-chainaxe toss
         float startTime;
         float lastArm;
         float lastTwist;
@@ -92,10 +88,54 @@ namespace Anathema.Abilities.KhorneBerserker
                 {
                     case BerserkerWeapon.HeavyChainaxe: return "Cleave";
                     case BerserkerWeapon.Eviscerator: return "Descent";
-                    default: return "Toss";
+                    default: return TwoCharges ? "Toss x" + ReadyCharges : "Toss";
                 }
             }
         }
+
+        // Twin Axes: the toss holds two charges that each recharge on their own.
+        readonly float[] chargeReady = new float[2];
+        int usedCharge = -1;
+
+        bool TwoCharges => BerserkerWeapons.Of(gameObject) == BerserkerWeapon.DualChainaxes && UpgradeState.Has(gameObject, BerserkerUpgrade.TwinAxes);
+
+        int ReadyCharges
+        {
+            get
+            {
+                int n = 0;
+                foreach (float t in chargeReady) if (Time.time >= t) n++;
+                return n;
+            }
+        }
+
+        protected override bool HasSpareCharge => TwoCharges && ReadyCharges > 0;
+
+        public override float CooldownRemaining =>
+            TwoCharges ? (ReadyCharges > 0 ? 0f : Mathf.Max(0f, Mathf.Min(chargeReady[0], chargeReady[1]) - Time.time)) : base.CooldownRemaining;
+
+        public override float CooldownNormalized
+        {
+            get
+            {
+                if (!TwoCharges) return base.CooldownNormalized;
+                float full = cooldown * CooldownScale;
+                return full > 0f ? Mathf.Clamp01(CooldownRemaining / full) : 0f;
+            }
+        }
+        // One axe is ready and the other is still on its way back: report how far off it is.
+        public override float ChargeRechargeNormalized
+        {
+            get
+            {
+                if (!TwoCharges || ReadyCharges != 1) return 0f;
+                float full = cooldown * CooldownScale;
+                if (full <= 0f) return 0f;
+                float pending = Time.time >= chargeReady[0] ? chargeReady[1] : chargeReady[0];
+                return Mathf.Clamp01((pending - Time.time) / full);
+            }
+        }
+
         public override string KeyLabel => "RMB";
 
         // Applied only when added in the editor.
@@ -113,26 +153,34 @@ namespace Anathema.Abilities.KhorneBerserker
             pose = armPose;
         }
 
-        void Start()
+        // True while this ability still holds its pose (wind-up, strike and recovery), and whether that pose uses the
+        // spine and both arms (the heavy weapons). AxeChop will not start while a full-body pose is held.
+        public bool PoseBusy => active || Time.time < recoverEndTime;
+        public bool UsesFullBody => bothArms;
+
+        // The weapon's cooldown relative to the authored one (`cooldown`, from the prefab/JSON, is the dual-axe toss).
+        float WeaponCooldownScale()
         {
-            tossCooldown = cooldown; // after CharacterStats has applied its JSON
+            if (cooldown <= 0f) return 1f;
+            UpgradeState upgrades = Upgrades;
+            switch (BerserkerWeapons.Of(gameObject))
+            {
+                case BerserkerWeapon.HeavyChainaxe: return cleaveCooldown / cooldown;
+                case BerserkerWeapon.Eviscerator:
+                    return descentCooldown / cooldown * (upgrades != null && upgrades.Has(BerserkerUpgrade.HeadsmansMark) ? BerserkerUpgrade.HeadsmanCooldownScale : 1f);
+                default:
+                    return upgrades != null && upgrades.Has(BerserkerUpgrade.ChainFrenzy) ? BerserkerUpgrade.FrenzyTossCooldownScale : 1f;
+            }
         }
+
+        UpgradeState upgradeState;
+        UpgradeState Upgrades => upgradeState != null ? upgradeState : (upgradeState = GetComponent<UpgradeState>());
+        AxeChop chop;
+        TwoHandedGrip grip;
 
         protected override void Update()
         {
-            if (tossCooldown > 0f)
-            {
-                switch (BerserkerWeapons.Of(gameObject))
-                {
-                    case BerserkerWeapon.HeavyChainaxe: cooldown = cleaveCooldown; break;
-                    case BerserkerWeapon.Eviscerator:
-                        cooldown = descentCooldown * (UpgradeState.Has(gameObject, BerserkerUpgrade.HeadsmansMark) ? BerserkerUpgrade.HeadsmanCooldownScale : 1f);
-                        break;
-                    default:
-                        cooldown = tossCooldown * (UpgradeState.Has(gameObject, BerserkerUpgrade.ChainFrenzy) ? BerserkerUpgrade.FrenzyTossCooldownScale : 1f);
-                        break;
-                }
-            }
+            CooldownScale = WeaponCooldownScale();
             base.Update();
 
             if (throwPending && !IsReplica && IsDisabled) InterruptSelf();
@@ -156,6 +204,9 @@ namespace Anathema.Abilities.KhorneBerserker
 
         protected override bool IsTriggered()
         {
+            // The heavy weapons drive the spine and both arms, so they may not overlap a chop (and vice versa).
+            if (chop == null) chop = GetComponent<AxeChop>();
+            if (chop != null && chop.PoseBusy && BerserkerWeapons.Of(gameObject) != BerserkerWeapon.DualChainaxes) return false;
             return Input.GetMouseButtonDown(1);
         }
 
@@ -165,6 +216,14 @@ namespace Anathema.Abilities.KhorneBerserker
             active = true;
             throwPending = true;
             startTime = Time.time;
+
+            usedCharge = -1;
+            if (TwoCharges)
+            {
+                // Spend a ready charge (else the one closest to ready); only that charge starts recharging.
+                usedCharge = Time.time >= chargeReady[0] ? 0 : Time.time >= chargeReady[1] ? 1 : (chargeReady[0] <= chargeReady[1] ? 0 : 1);
+                chargeReady[usedCharge] = Time.time + cooldown * CooldownScale;
+            }
         }
 
         void ResolveWeapon()
@@ -193,7 +252,12 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             if (!active) return;
 
-            if (throwPending) RefundCooldown();
+            if (throwPending)
+            {
+                RefundCooldown();
+                if (usedCharge >= 0) chargeReady[usedCharge] = 0f;
+            }
+            usedCharge = -1;
             active = false;
             throwPending = false;
             recoverFromArm = lastArm;
@@ -208,9 +272,7 @@ namespace Anathema.Abilities.KhorneBerserker
             if (dir.sqrMagnitude < 0.0001f) dir = transform.forward;
             dir.Normalize();
 
-            bool twin = UpgradeState.Has(gameObject, BerserkerUpgrade.TwinAxes);
-            LaunchAxe(twin ? Quaternion.AngleAxis(-twinSpreadDegrees, Vector3.up) * dir : dir);
-            if (twin) LaunchAxe(Quaternion.AngleAxis(twinSpreadDegrees, Vector3.up) * dir);
+            LaunchAxe(dir);
         }
 
         void LaunchAxe(Vector3 dir)
@@ -260,9 +322,8 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             Vector3 origin = transform.position;
             Vector3 aim = Aim.AimDirection;
-            bool whetted = UpgradeState.Has(gameObject, BerserkerUpgrade.WhettedEdge);
-            float pierce = whetted ? BerserkerUpgrade.WhettedPierce : descentArmorPierce;
-            float shieldBreak = whetted ? BerserkerUpgrade.WhettedShieldBreak : descentShieldBreak;
+            float pierce = BerserkerUpgradeEffects.Pierce(gameObject, descentArmorPierce);
+            float shieldBreak = BerserkerUpgradeEffects.ShieldBreak(gameObject, descentShieldBreak);
             SlashEffect.Spawn(origin, aim, descentRange, descentArcDegrees, curSwing * 4f, new Color(1f, 0.8f, 0.25f, 0.95f));
 
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, descentRange, descentArcDegrees))
@@ -317,6 +378,7 @@ namespace Anathema.Abilities.KhorneBerserker
         // The dual-axe toss only moves the right arm; the heavy weapons use both arms and a spine twist.
         void ApplyPose()
         {
+            if (grip == null) grip = GetComponent<TwoHandedGrip>();
             float now = Time.time;
             float windupEnd = startTime + curWindup;
             float throwEnd = windupEnd + curSwing;
@@ -360,6 +422,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 }
                 lastArm = 0f;
                 lastTwist = 0f;
+                if (grip != null) grip.TossPitch = 0f;
                 return;
             }
 
@@ -369,6 +432,8 @@ namespace Anathema.Abilities.KhorneBerserker
 
             pose.Reset();
             if (curTwist != 0f) pose.Rotate("Spine", Vector3.up, twist);
+            // Two-handed weapons swing as one piece (TwoHandedGrip drives both arms).
+            if (grip != null && grip.Engaged) { grip.TossPitch = arm; return; }
             pose.Rotate("UpperArm_R", transform.right, arm);
             if (bothArms) pose.Rotate("UpperArm_L", transform.right, arm);
         }

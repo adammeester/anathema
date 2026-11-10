@@ -41,7 +41,7 @@ namespace Anathema.Net
         public const float PrepMin = 3f;        // the prep menu never closes sooner than this
         public const float PrepWindow = 20f;    // longest it waits for slow pickers (then a random upgrade is taken)
         public const float PrepCountdown = 3f;  // picks are locked and the barrier drops after this
-        public const float PrepRadius = 7f;
+        public const float PrepRadius = 4.5f;   // small ready area at the edge of the arena; players run to the middle to meet
         public const float RoundIntro = 1.8f; // how long the "ROUND N" banner shows when a round begins
 
         public enum Phase
@@ -616,7 +616,7 @@ namespace Anathema.Net
             }
 
             if (phase == Phase.Prep && !prepLocked && NetPlayer.Local != null)
-                upgradePicker.HandleKeys(NetPlayer.Local.GetComponent<UpgradeState>());
+                upgradePicker.HandleKeys(NetPlayer.Local.Upgrades);
 
             if (manager.IsServer)
             {
@@ -718,7 +718,7 @@ namespace Anathema.Net
             introUntil = Time.time + RoundIntro;
         }
 
-        const float SpawnRadius = 20f;
+        const float SpawnRadius = 23f; // arena radius is 28; prep ring (PrepRadius) must stay inside it
 
         // Free-for-all: everyone evenly around the pit. Teams: team A on the left, team B on the right, lined up.
         Vector3 SpawnPosition(int seat, out Quaternion rotation)
@@ -1539,7 +1539,7 @@ namespace Anathema.Net
         // The prep area screen: the upgrade menu, then "waiting", then the round-start countdown.
         void DrawPrep(float w, float h, int roundNumber, string scoreLine)
         {
-            UpgradeState mine = NetPlayer.Local != null ? NetPlayer.Local.GetComponent<UpgradeState>() : null;
+            UpgradeState mine = NetPlayer.Local != null ? NetPlayer.Local.Upgrades : null;
 
             if (prepLocked)
             {
