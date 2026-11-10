@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Anathema.Abilities.Psyker;
 using Anathema.Combat;
 using UnityEngine;
 
@@ -68,7 +69,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         {
             empoweredUntil = Time.time + duration;
             GreyKnightSound.Empower();
-            if (psychicEffect != null) psychicEffect.SetActive(true);
+            if (psychicEffect != null && Halberd) psychicEffect.SetActive(true); // no halberd, no glowing blade
         }
 
         void EndEmpowerment()
@@ -106,10 +107,26 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         float leftSign = -1f;     // +1 if the character's left is along transform.right, else -1
         readonly HashSet<Health> struck = new HashSet<Health>();
 
-        protected override bool CooldownStartsOnStrike => true;
+        // With a weapon upgrade this slot becomes the weapon's own move (the hammer slam or the cannon bash), driven by
+        // GreyKnightArmament; the halberd and its pose are then put away.
+        GreyKnightArmament armament;
+        GreyKnightWeapon Mode => GreyKnightUpgrade.WeaponOf(gameObject);
+        bool Halberd => Mode == GreyKnightWeapon.Halberd || armament == null;
 
-        public override string DisplayName => "Sweep";
+        protected override bool CooldownStartsOnStrike => Halberd;
+        protected override float WindupDuration => Halberd ? 0f : armament.QWindup;
+        protected override Color WindupColor => new Color(1f, 0.8f, 0.4f, 1f);
+
+        public override string DisplayName => Halberd ? "Sweep" : Mode == GreyKnightWeapon.Daemonhammer ? "Hammer Slam" : "Overcharged Round";
         public override string KeyLabel => "Q";
+
+        // The Overcharged Round needs the knight to plant his feet while the shell charges.
+        public override bool RootsMovement => IsWindingUp && Mode == GreyKnightWeapon.Psycannon && armament != null;
+
+        protected override void OnWindupStart()
+        {
+            if (armament != null) armament.QBegin();
+        }
 
         // Applied only when added in the editor.
         void Reset()
@@ -149,6 +166,9 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         protected override void Update()
         {
+            // The armament is added at runtime by UpgradeState, so look for it until it turns up.
+            if (armament == null) armament = GetComponent<GreyKnightArmament>();
+            CooldownScale = !Halberd && cooldown > 0f ? armament.QCooldown / cooldown : 1f;
             base.Update();
 
             // The charge fades if no sweep is made in time.
@@ -162,8 +182,14 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 int hits = DealDamage(empowered ? empoweredDamageMultiplier : 1f, empowered ? empoweredRangeBonus : 0f);
                 GreyKnightSound.Swing(empowered);
                 GreyKnightSound.Impact(hits);
-                SlashEffect.Spawn(transform.position, Aim.AimDirection, range + (empowered ? empoweredRangeBonus : 0f),
-                    currentArc, swingDuration * 2f, empowered ? empoweredSlashColor : slashColor);
+                bool purifier = GreyKnightUpgrade.HasPurifier(gameObject);
+                float reach = range + (empowered ? empoweredRangeBonus : 0f);
+                SlashEffect.Spawn(transform.position, Aim.AimDirection, reach,
+                    currentArc, swingDuration * 2f, purifier ? new Color(1f, 0.5f, 0.15f, 0.9f) : empowered ? empoweredSlashColor : slashColor);
+                // Purifier Order: the swing leaves burning ground (damaging only on the owner's machine).
+                if (purifier)
+                    FirePool.Spawn(gameObject, Health.Team, transform.position + Aim.AimDirection * (reach * 0.55f),
+                        GreyKnightUpgrade.GroundFireRadius, GreyKnightUpgrade.GroundFireSeconds, GreyKnightUpgrade.GroundFirePerSecond, !IsReplica);
                 if (empowered) EndEmpowerment();
             }
 
@@ -187,6 +213,15 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         protected override void Activate()
         {
+            if (!Halberd)
+            {
+                // The weapon's move lands now (the wind-up has just finished). An empowered charge boosts it too.
+                float boost = IsEmpowered ? empoweredDamageMultiplier : 1f;
+                if (IsEmpowered) EndEmpowerment();
+                armament.QStrike(boost);
+                return;
+            }
+
             swingDirection = -swingDirection;
             swingEmpowered = IsEmpowered;
             currentArc = arcDegrees + (swingEmpowered ? empoweredArcBonus : 0f);
@@ -203,6 +238,8 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         protected override void Cancel()
         {
+            if (armament != null) armament.CancelPose();
+
             // Cancelled mid-swing (the strike already landed): the cooldown starts now, not refunded.
             if (cooldownPending)
             {
@@ -244,6 +281,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 if (!target.TakeDamage(damage * damageMultiplier, gameObject)) continue;
                 hits++;
                 if (energy != null) energy.Gain(energyPerHit);
+                GreyKnightUpgrade.Ignite(gameObject, target);
             }
 
             return hits;
@@ -253,6 +291,8 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         // Recovery: ease back to rest.
         void ApplyPose()
         {
+            // With a weapon upgrade the armament poses the arms; this pose only ever drives the halberd.
+            if (!Halberd && !posed && !active) return;
             float now = Time.time;
             float yaw;
             float lean;

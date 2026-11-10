@@ -196,7 +196,18 @@ MonoBehaviour:
   muzzleHeight: 1.25
   muzzleForward: 0.6
   energyPerHit: 8
+  chargedBonus: 0.4
   boltColor: {r: 0.45, g: 0.95, b: 1, a: 1}
+  staveDamage: 12
+  staveRange: 3.4
+  staveArc: 110
+  staveWindup: 0.2
+  staveCooldown: 0.7
+  staveKnockback: 1.8
+  staveKnockbackDuration: 0.2
+  staveComboLength: 3
+  staveComboWindow: 1.1
+  staveFinisherDamage: 1.3
 --- !u!114 &8388641068491544697
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -246,6 +257,22 @@ MonoBehaviour:
   falloff: 0.7
   energyPerHit: 6
   originHeight: 1.25
+  chargedDuration: 6
+  chargedBonus: 0.4
+  slamDamage: 18
+  slamRadius: 4
+  slamWindup: 0.5
+  slamCooldown: 6
+  slamKnockback: 2.5
+  slamKnockbackDuration: 0.25
+  slamEnergyPerHit: 6
+  exEnergyCost: 40
+  leechRange: 11
+  leechDuration: 2
+  silenceDuration: 2
+  leechDamagePerSecond: 16
+  leechHealPerSecond: 16
+  leechEnergyPerSecond: 12
 --- !u!114 &6841414072090863450
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -262,12 +289,8 @@ MonoBehaviour:
   strength: 50
   duration: 5
   exEnergyCost: 40
-  leechRange: 11
-  leechDuration: 2
-  silenceDuration: 2
-  leechDamagePerSecond: 16
-  leechHealPerSecond: 16
-  leechEnergyPerSecond: 12
+  screamRadius: 4.2
+  screamPanicSeconds: 2
   shellColor: {r: 0.35, g: 0.85, b: 1, a: 0.3}
 --- !u!114 &8272604845336622420
 MonoBehaviour:
@@ -283,7 +306,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Anathema.Abilities.Psyker.WarpStep
   cooldown: 6
   range: 8
-  wallPadding: 0.8
   fireRadius: 2.2
   fireDuration: 4
   fireDamagePerSecond: 12

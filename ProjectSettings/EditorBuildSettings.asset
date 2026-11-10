@@ -6,6 +6,15 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/Scenes/Menu.unity
+    guid: 0f507f5903c05ab48b14210e8443609b
+  - enabled: 1
+    path: Assets/Scenes/Versus.unity
+    guid: d19c8eb61671a6a4da14fc05fa02d3e7
+  - enabled: 1
+    path: Assets/Scenes/Versus_Shrine.unity
+    guid: 0609c15dde8bc3241a0a81ada10a27fa
+  - enabled: 1
     path: Assets/Scenes/Arena.unity
     guid: c8e56e24f1c6b0046a19fd4a94673696
   m_configObjects: {}

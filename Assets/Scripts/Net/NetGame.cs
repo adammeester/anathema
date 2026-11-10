@@ -102,7 +102,8 @@ namespace Anathema.Net
         float prepGoTime;         // both sides: when the locked countdown ends
         int roundsCompleted;      // rounds finished this match; upgrade picks are numbered by it
         readonly UpgradePickerView upgradePicker = new UpgradePickerView();
-        float introUntil;         // when the "ROUND N" banner stops showing
+        float roundElapsed;       // seconds into the current round (shown by the HUD timer)
+        float introUntil;        // when the "ROUND N" banner stops showing
         bool frozen;
 
         int RoundsToWin => bestOf / 2 + 1;
@@ -119,6 +120,8 @@ namespace Anathema.Net
         readonly bool[] roleFilter = new bool[3];
         bool draggingModel;
         float modelDrag;
+        bool showUpgrades;           // the "all upgrades" overlay on the champion-select screen
+        Vector2 upgradeScroll;
 
         // --- Creation ---------------------------------------------------------------------------------------------
 
@@ -305,6 +308,7 @@ namespace Anathema.Net
             msg.RegisterNamedMessageHandler("nextRound", OnNextRoundMessage);
             msg.RegisterNamedMessageHandler("over", OnOverMessage);
             msg.RegisterNamedMessageHandler("rematch", OnRematchMessage);
+            msg.RegisterNamedMessageHandler("toLobby", OnToLobbyMessage);
             msg.RegisterNamedMessageHandler("orbSpawn", OnOrbSpawnMessage);
             msg.RegisterNamedMessageHandler("orbClaim", OnOrbClaimMessage);
             msg.RegisterNamedMessageHandler("orbTaken", OnOrbTakenMessage);
@@ -615,6 +619,10 @@ namespace Anathema.Net
                 introUntil = Time.time + RoundIntro;
             }
 
+            // Client: the host sent everyone back to character select; the Menu scene has finished loading.
+            if (!manager.IsServer && phase == Phase.Loading && SceneManager.GetActiveScene().name == MenuScene)
+                phase = Phase.Lobby;
+
             if (phase == Phase.Prep && !prepLocked && NetPlayer.Local != null)
                 upgradePicker.HandleKeys(NetPlayer.Local.Upgrades);
 
@@ -656,7 +664,7 @@ namespace Anathema.Net
             bool inMatch = phase == Phase.Playing || phase == Phase.RoundEnd || phase == Phase.Over; // prep: everyone is back up
             bool down = inMatch && me != null && me.Health.IsDead;
 
-            if (spectateCamera == null) spectateCamera = FindFirstObjectByType<TopDownCamera>();
+            if (spectateCamera == null) spectateCamera = FindAnyObjectByType<TopDownCamera>();
             if (spectateCamera == null) return;
 
             if (!down)
@@ -696,8 +704,25 @@ namespace Anathema.Net
 
         void OnLoadEventCompleted(string sceneName, LoadSceneMode mode, List<ulong> completed, List<ulong> timedOut)
         {
-            if (!manager.IsServer || !IsArenaScene(sceneName)) return;
+            if (!manager.IsServer) return;
 
+            if (sceneName == MenuScene)
+            {
+                // Back from a finished match: everyone is in the lobby again with the same seats, teams and rules.
+                for (int i = 0; i < seats.Length; i++) seats[i].ready = false;
+                myReady = false;
+                winnerTeam = -1;
+                lastDeadTeam = -1;
+                roundsCompleted = 0;
+                frozen = false;
+                phase = Phase.Lobby;
+                BroadcastLobby();
+                return;
+            }
+
+            if (!IsArenaScene(sceneName)) return;
+
+            PlanSpawns();
             for (int seat = 0; seat < seats.Length; seat++)
             {
                 if (!seats[seat].used) continue;
@@ -720,9 +745,70 @@ namespace Anathema.Net
 
         const float SpawnRadius = 23f; // arena radius is 28; prep ring (PrepRadius) must stay inside it
 
-        // Free-for-all: everyone evenly around the pit. Teams: team A on the left, team B on the right, lined up.
+        // Free-for-all spawn plan for the ready-room arenas, built once per match by the server before anyone is spawned.
+        readonly Dictionary<int, (Vector3 position, Quaternion rotation)> ffaSpawns = new Dictionary<int, (Vector3, Quaternion)>();
+
+        // Free-for-all in an arena with ready rooms: two random players start one in each room, everyone else at a random
+        // spot around the pit (kept clear of the two doorways). Teams mode just uses the rooms by team (see SpawnPosition).
+        void PlanSpawns()
+        {
+            ffaSpawns.Clear();
+            if (mode == GameMode.Teams || !ReadyRoom.Available) return;
+
+            var order = new List<int>();
+            for (int i = 0; i < seats.Length; i++) if (seats[i].used) order.Add(i);
+            for (int i = order.Count - 1; i > 0; i--)
+            {
+                int j = UnityEngine.Random.Range(0, i + 1);
+                (order[i], order[j]) = (order[j], order[i]);
+            }
+
+            bool leftFirst = UnityEngine.Random.value < 0.5f;
+            int inRooms = Mathf.Min(2, order.Count);
+            for (int k = 0; k < inRooms; k++)
+            {
+                ReadyRoom room = ReadyRoom.Find(k == 0 ? leftFirst : !leftFirst);
+                Vector3 position = room.SlotPosition(0, 1, out Quaternion rotation);
+                ffaSpawns[order[k]] = (position, rotation);
+            }
+
+            // The rest: random but evenly spread positions on the two arcs between the doorways (14 degrees clear of each).
+            const float Clear = 14f, Arc = 180f - 2f * Clear;
+            int others = order.Count - inRooms;
+            float shift = others > 0 ? UnityEngine.Random.value * (2f * Arc / others) : 0f;
+            for (int k = 0; k < others; k++)
+            {
+                float u = (shift + (k + 0.5f + UnityEngine.Random.Range(-0.25f, 0.25f)) * (2f * Arc / others)) % (2f * Arc);
+                float angle = (u < Arc ? Clear + u : 180f + Clear + (u - Arc)) * Mathf.Deg2Rad;
+                Vector3 position = new Vector3(Mathf.Cos(angle) * SpawnRadius, 0.1f, Mathf.Sin(angle) * SpawnRadius);
+                Vector3 toCentre = -position;
+                toCentre.y = 0f;
+                ffaSpawns[order[inRooms + k]] = (position, Quaternion.LookRotation(toCentre.normalized, Vector3.up));
+            }
+        }
+
+        // Teams: each team in its ready room (team A left, team B right). Free-for-all: see PlanSpawns. Arenas without
+        // ready rooms fall back to the old layout: teams lined up on the left/right edge, free-for-all evenly round the pit.
         Vector3 SpawnPosition(int seat, out Quaternion rotation)
         {
+            if (ffaSpawns.TryGetValue(seat, out var planned))
+            {
+                rotation = planned.rotation;
+                return planned.position;
+            }
+
+            if (mode == GameMode.Teams && ReadyRoom.Available)
+            {
+                int roomTeam = seats[seat].team, roomIndex = 0, roomCount = 0;
+                for (int i = 0; i < seats.Length; i++)
+                {
+                    if (!seats[i].used || seats[i].team != roomTeam) continue;
+                    if (i < seat) roomIndex++;
+                    roomCount++;
+                }
+                return ReadyRoom.Find(roomTeam == 0).SlotPosition(roomIndex, roomCount, out rotation);
+            }
+
             Vector3 position;
             if (mode == GameMode.Teams)
             {
@@ -884,11 +970,12 @@ namespace Anathema.Net
                 if (respawner != null)
                 {
                     if (prepArea != null) Destroy(prepArea.gameObject);
-                    prepArea = PrepArea.Show(respawner.SpawnPosition);
+                    // Players in a ready room are held in by its walls and gate; only a free spawn gets the barrier ring.
+                    prepArea = ReadyRoom.AnyContains(respawner.SpawnPosition) ? null : PrepArea.Show(respawner.SpawnPosition);
                 }
             }
 
-            GasZone gas = FindFirstObjectByType<GasZone>();
+            GasZone gas = FindAnyObjectByType<GasZone>();
             if (gas != null) gas.Restart();
             HealingOrb.ClearAll();
         }
@@ -946,6 +1033,26 @@ namespace Anathema.Net
             ApplyRoundReset();
         }
 
+        // Host sends everyone back to character select without tearing down the connection.
+        void ReturnToLobby()
+        {
+            if (!manager.IsServer || phase != Phase.Over) return;
+
+            using var writer = new FastBufferWriter(8, Allocator.Temp);
+            writer.WriteValueSafe(true);
+            manager.CustomMessagingManager.SendNamedMessageToAll("toLobby", writer);
+            phase = Phase.Loading;
+            frozen = false;
+            manager.SceneManager.LoadScene(MenuScene, LoadSceneMode.Single);
+        }
+
+        void OnToLobbyMessage(ulong sender, FastBufferReader reader)
+        {
+            if (manager.IsServer) return;
+            phase = Phase.Loading;
+            frozen = false;
+        }
+
         void OnRematchMessage(ulong sender, FastBufferReader reader)
         {
             if (manager.IsServer) return;
@@ -971,9 +1078,9 @@ namespace Anathema.Net
                 NetPlayer.Local.ResetForRematch();
             }
             if (manager.IsServer) foreach (NetPlayer player in NetPlayer.All) player.ServerResetRoundStats();
-            GasZone gas = FindFirstObjectByType<GasZone>();
+            GasZone gas = FindAnyObjectByType<GasZone>();
             if (gas != null) gas.Restart();
-            OrbSpawner orbs = FindFirstObjectByType<OrbSpawner>();
+            OrbSpawner orbs = FindAnyObjectByType<OrbSpawner>();
             if (orbs != null) orbs.Restart();
             else HealingOrb.ClearAll();
         }
@@ -1128,8 +1235,11 @@ namespace Anathema.Net
             int players = UsedSeats();
             var info = roster[Mathf.Clamp(myCharacter, 0, roster.Length - 1)];
             Color accent = info.accent;
-            Vector2 mouse = Event.current.mousePosition;
+            if (showUpgrades && UpgradeCatalog.For(UpgradeKey(info)) == null) showUpgrades = false;
+            bool modal = showUpgrades;
+            Vector2 mouse = modal ? new Vector2(-10000f, -10000f) : Event.current.mousePosition;
             bool repaint = Event.current.type == EventType.Repaint;
+            if (modal) GUI.enabled = false; // everything beneath the overlay is inert while it is open
 
             // Header.
             GUI.Label(new Rect(0, 14, w, 70), "CHAMPION SELECT", new GUIStyle(headline) { fontSize = 46 });
@@ -1146,7 +1256,7 @@ namespace Anathema.Net
 
             Event e = Event.current;
             var dragZone = new Rect(w * 0.5f - 280, 160, 560, 690);
-            if (e.type == EventType.MouseDown && dragZone.Contains(e.mousePosition)) { draggingModel = true; e.Use(); }
+            if (e.type == EventType.MouseDown && !modal && dragZone.Contains(e.mousePosition)) { draggingModel = true; e.Use(); }
             else if (e.type == EventType.MouseDrag && draggingModel) { modelDrag += e.delta.x; e.Use(); }
             else if (e.type == EventType.MouseUp) draggingModel = false;
 
@@ -1173,6 +1283,18 @@ namespace Anathema.Net
             CharacterSelectView.AbilityInfo hoveredAbility = null;
             Rect hoveredRect = default;
             var keyStyle = new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter, fontSize = 18, fontStyle = FontStyle.Bold, wordWrap = false };
+
+            // Passive (if the champion has one): a small icon beside the role label.
+            if (info.passive != null)
+            {
+                var pr = new Rect(left.xMax - 40 - 56, left.y + 134, 56, 56);
+                GUI.Label(new Rect(pr.x - 150, pr.y, 144, pr.height), "PASSIVE",
+                    new GUIStyle(keyStyle) { alignment = TextAnchor.MiddleRight, normal = { textColor = new Color(0.6f, 0.58f, 0.55f) } });
+                if (info.passive.icon != null) GUI.DrawTexture(pr, info.passive.icon, ScaleMode.StretchToFill, true);
+                GUI.Label(new Rect(pr.x - 4, pr.y + 10, pr.width + 8, 36), Abbreviation(info.passive.name),
+                    new GUIStyle(keyStyle) { fontSize = 22, normal = { textColor = Color.white } });
+                if (pr.Contains(mouse)) { hoveredAbility = info.passive; hoveredRect = pr; }
+            }
             for (int pass = 0; pass < 2; pass++)
             {
                 var row = new System.Collections.Generic.List<CharacterSelectView.AbilityInfo>();
@@ -1197,6 +1319,13 @@ namespace Anathema.Net
                         new GUIStyle(keyStyle) { fontSize = 26, normal = { textColor = Color.white } });
                     if (ir.Contains(mouse)) { hoveredAbility = row[i]; hoveredRect = ir; }
                 }
+            }
+
+            // Opens the overlay listing every upgrade this champion can be offered.
+            if (UpgradeCatalog.For(UpgradeKey(info)) != null)
+            {
+                var ub = new Rect(left.x + 130, left.y + 666, left.width - 260, 40);
+                if (GUI.Button(ub, "VIEW ALL UPGRADES", new GUIStyle(button) { fontSize = 22 })) showUpgrades = true;
             }
 
             if (!string.IsNullOrEmpty(info.footnote))
@@ -1294,10 +1423,10 @@ namespace Anathema.Net
             }
 
             bool canReady = players >= 2;
-            GUI.enabled = canReady;
+            GUI.enabled = canReady && !modal;
             string readyText = myReady ? "READY!  (cancel)" : "READY";
             if (GUI.Button(new Rect(w * 0.5f - 220, 954, 440, 80), readyText, buttonBig)) SetMyReady(!myReady);
-            GUI.enabled = true;
+            GUI.enabled = !modal;
 
             if (GUI.Button(new Rect(30, 970, 200, 60), "BACK", button)) LeaveToMenu("");
 
@@ -1345,6 +1474,9 @@ namespace Anathema.Net
                 : $"{players} players - waiting for everyone to ready up";
             GUI.Label(new Rect(0, 1040, w, 36), status, labelCentered);
 
+            GUI.enabled = true;
+            if (modal) DrawUpgradeOverlay(w, h, info);
+
             // Ability tooltip drawn last so it sits on top of everything.
             if (hoveredAbility != null)
             {
@@ -1354,18 +1486,81 @@ namespace Anathema.Net
                 var statStyle = new GUIStyle(labelSmall) { fontSize = 17, normal = { textColor = Gold } };
                 float descH = descStyle.CalcHeight(new GUIContent(hoveredAbility.description), tipW - 28);
                 float statH = statStyle.CalcHeight(new GUIContent(hoveredAbility.stats), tipW - 28);
-                string tag = hoveredAbility.ex ? "EX ABILITY" : hoveredAbility.ultimate ? "ULTIMATE" : "ABILITY";
+                string tag = hoveredAbility.passive ? "PASSIVE" : hoveredAbility.ex ? "EX ABILITY" : hoveredAbility.ultimate ? "ULTIMATE" : "ABILITY";
                 float tipH = 44 + 26 + descH + 14 + statH + 16;
                 var tip = new Rect(hoveredRect.xMax + 16, Mathf.Min(hoveredRect.y - 10, h - tipH - 10), tipW, tipH);
                 if (tip.xMax > w - 10) tip.x = hoveredRect.x - tipW - 16;
                 Frame(tip, new Color(0.04f, 0.05f, 0.08f, 0.98f), hoveredAbility.ex ? new Color(0.8f, 0.6f, 1f) : accent, 2f);
-                GUI.Label(new Rect(tip.x + 14, tip.y + 8, tip.width - 28, 32), $"{hoveredAbility.name}  [{hoveredAbility.key}]", nameStyle);
+                GUI.Label(new Rect(tip.x + 14, tip.y + 8, tip.width - 28, 32), hoveredAbility.passive ? hoveredAbility.name : $"{hoveredAbility.name}  [{hoveredAbility.key}]", nameStyle);
                 GUI.Label(new Rect(tip.x + 14, tip.y + 38, tip.width - 28, 24), tag,
                     new GUIStyle(labelSmall) { fontSize = 15, fontStyle = FontStyle.Bold, wordWrap = false, normal = { textColor = new Color(0.6f, 0.58f, 0.55f) } });
                 GUI.Label(new Rect(tip.x + 14, tip.y + 66, tip.width - 28, descH), hoveredAbility.description, descStyle);
                 Rect(new Rect(tip.x + 14, tip.y + 66 + descH + 4, tip.width - 28, 1), DarkGold);
                 GUI.Label(new Rect(tip.x + 14, tip.y + 66 + descH + 10, tip.width - 28, statH), hoveredAbility.stats, statStyle);
             }
+        }
+
+        // Upgrade-catalog key for a roster entry, taken from its prefab ("Net/Player_GreyKnight" -> "GreyKnight").
+        static string UpgradeKey(CharacterSelectView.CharacterInfo info)
+        {
+            int i = info.prefabPath.LastIndexOf("Player_", System.StringComparison.Ordinal);
+            return i < 0 ? null : info.prefabPath.Substring(i + "Player_".Length);
+        }
+
+        // Modal list of every upgrade the champion can be offered, grouped by category.
+        void DrawUpgradeOverlay(float w, float h, CharacterSelectView.CharacterInfo info)
+        {
+            var all = UpgradeCatalog.For(UpgradeKey(info));
+            Rect(new Rect(0, 0, w, h), new Color(0f, 0f, 0f, 0.72f));
+
+            var panel = new Rect(w * 0.5f - 560, 110, 1120, h - 220);
+            Frame(panel, new Color(0.04f, 0.05f, 0.08f, 0.99f), DarkGold, 3f);
+            Rect(new Rect(panel.x + 3, panel.y + 3, panel.width - 6, 8), new Color(info.accent.r, info.accent.g, info.accent.b, 0.85f));
+            GUI.Label(new Rect(panel.x + 24, panel.y + 20, panel.width - 200, 50), info.name + " - Upgrades",
+                new GUIStyle(headline) { fontSize = 34, alignment = TextAnchor.MiddleLeft, normal = { textColor = Color.white } });
+            if (GUI.Button(new Rect(panel.xMax - 170, panel.y + 22, 146, 46), "CLOSE", new GUIStyle(button) { fontSize = 22 }))
+                showUpgrades = false;
+            Rect(new Rect(panel.x + 24, panel.y + 76, panel.width - 48, 2), DarkGold);
+
+            var nameStyle = new GUIStyle(label) { fontSize = 22, fontStyle = FontStyle.Bold, wordWrap = false, normal = { textColor = Color.white } };
+            var descStyle = new GUIStyle(labelSmall) { fontSize = 18 };
+            var headStyle = new GUIStyle(label) { fontSize = 26, fontStyle = FontStyle.Bold, wordWrap = false, normal = { textColor = Gold } };
+            string[] catNames = { "ARMAMENT - weapon transformations", "ENDURANCE - defensive", "FEROCITY - ability enhancements" };
+
+            const float rowGap = 10f;
+            float viewW = panel.width - 72f; // room for the scrollbar
+            float textW = viewW - 28f;
+            float total = 0f;
+            for (int c = 0; c < 3; c++)
+            {
+                bool any = false;
+                foreach (var u in all) if ((int)u.Category == c) { any = true; total += 30f + descStyle.CalcHeight(new GUIContent(u.Description), textW) + rowGap + 6f; }
+                if (any) total += 44f;
+            }
+
+            var view = new Rect(panel.x + 24, panel.y + 90, panel.width - 48, panel.height - 110);
+            upgradeScroll = GUI.BeginScrollView(view, upgradeScroll, new Rect(0, 0, viewW, total));
+            float y = 0f;
+            for (int c = 0; c < 3; c++)
+            {
+                bool first = true;
+                foreach (var u in all)
+                {
+                    if ((int)u.Category != c) continue;
+                    if (first)
+                    {
+                        GUI.Label(new Rect(0, y, viewW, 36), catNames[c], headStyle);
+                        y += 44f;
+                        first = false;
+                    }
+                    float dh = descStyle.CalcHeight(new GUIContent(u.Description), textW);
+                    Rect(new Rect(0, y, viewW, 30f + dh + 6f), new Color(1f, 1f, 1f, 0.04f));
+                    GUI.Label(new Rect(14, y + 2, textW, 28), u.Name, nameStyle);
+                    GUI.Label(new Rect(14, y + 30, textW, dh), u.Description, descStyle);
+                    y += 30f + dh + rowGap + 6f;
+                }
+            }
+            GUI.EndScrollView();
         }
 
         static string Abbreviation(string name)
@@ -1445,23 +1640,22 @@ namespace Anathema.Net
             Color green = new Color(0.4f, 1f, 0.5f), red = new Color(1f, 0.4f, 0.35f);
             string scoreLine = string.Join("  -  ", order.ConvertAll(t => teamScores[t].ToString()));
 
-            // Your score on the left, the round label in the middle, every other team spread across the right.
-            int others = Mathf.Max(1, order.Count - 1);
-            float side = Mathf.Max(150f, 90f * others);
-            float scoreW = 160f + side * 2f;
-            var scoreBox = new Rect(w * 0.5f - scoreW * 0.5f, 18, scoreW, 78);
-            Frame(scoreBox, Panel, DarkGold);
-            var big = new GUIStyle(headline) { fontSize = 50 };
-            for (int i = 0; i < order.Count; i++)
+            // Top-centre strip: the round timer in the middle (counts up from the round start, frozen once the round
+            // ends), with a marble per round needed to win either side: yours on the left, everyone else on the right.
+            if (phase == Phase.Playing) roundElapsed = Mathf.Max(0f, Time.time - (introUntil - RoundIntro));
+            else if (phase == Phase.Prep) roundElapsed = 0f;
+            if (phase == Phase.Playing || phase == Phase.RoundEnd || phase == Phase.Prep)
             {
-                big.normal.textColor = order[i] == myTeam ? green : red;
-                Rect cellRect = i == 0
-                    ? new Rect(scoreBox.x, scoreBox.y + 4, side, 70)
-                    : new Rect(scoreBox.xMax - side + (i - 1) * (side / others), scoreBox.y + 4, side / others, 70);
-                GUI.Label(cellRect, teamScores[order[i]].ToString(), big);
+                int secs = Mathf.FloorToInt(roundElapsed);
+                var timerBox = new Rect(w * 0.5f - 60, 14, 120, 44);
+                Frame(timerBox, Panel, DarkGold);
+                GUI.Label(timerBox, $"{secs / 60}:{secs % 60:00}", new GUIStyle(labelCentered) { fontSize = 26, fontStyle = FontStyle.Bold });
+
+                var otherScores = new List<int>();
+                bool inMatch = order.Count > 0 && order[0] == myTeam; // spectators have no team of their own
+                for (int i = inMatch ? 1 : 0; i < order.Count; i++) otherScores.Add(teamScores[order[i]]);
+                RoundMarbles.Draw(w * 0.5f, 14, 1f, 74f, 44f, RoundsToWin, inMatch ? teamScores[myTeam] : 0, otherScores);
             }
-            GUI.Label(new Rect(scoreBox.center.x - 80, scoreBox.y + 6, 160, 30), $"ROUND {roundNumber}", new GUIStyle(labelCentered) { fontSize = 22, fontStyle = FontStyle.Bold });
-            GUI.Label(new Rect(scoreBox.center.x - 80, scoreBox.y + 36, 160, 30), $"BEST OF {bestOf}", new GUIStyle(labelCentered) { fontSize = 20 });
 
             if (phase == Phase.Playing || phase == Phase.RoundEnd || phase == Phase.Prep)
                 if (GUI.Button(new Rect(w - 190, 18, 160, 52), "LEAVE", button)) LeaveToMenu("");
@@ -1527,13 +1721,14 @@ namespace Anathema.Net
             float bx = w * 0.5f - 230;
             if (manager.IsServer)
             {
-                if (GUI.Button(new Rect(bx, 800, 460, 84), "REMATCH", buttonBig)) StartRematch();
+                if (GUI.Button(new Rect(bx, 740, 460, 84), "REMATCH", buttonBig)) StartRematch();
+                if (GUI.Button(new Rect(bx, 835, 460, 70), "CHARACTER SELECT", button)) ReturnToLobby();
             }
             else
             {
-                GUI.Label(new Rect(0, 820, w, 50), "Waiting for the host to start a rematch...", labelCentered);
+                GUI.Label(new Rect(0, 780, w, 50), "Waiting for the host to choose rematch or character select...", labelCentered);
             }
-            if (GUI.Button(new Rect(bx, 900, 460, 70), "MAIN MENU", button)) LeaveToMenu("");
+            if (GUI.Button(new Rect(bx, 920, 460, 70), "MAIN MENU", button)) LeaveToMenu("");
         }
 
         // The prep area screen: the upgrade menu, then "waiting", then the round-start countdown.

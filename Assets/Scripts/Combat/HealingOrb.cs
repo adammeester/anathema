@@ -126,7 +126,7 @@ namespace Anathema.Combat
             if (NetGame.Online) return NetPlayer.Local != null ? NetPlayer.Local.Health : null;
             if (candidate == null)
             {
-                var aim = FindFirstObjectByType<Anathema.Player.MouseAim>();
+                var aim = FindAnyObjectByType<Anathema.Player.MouseAim>();
                 if (aim != null) candidate = aim.GetComponent<Health>();
             }
             return candidate;

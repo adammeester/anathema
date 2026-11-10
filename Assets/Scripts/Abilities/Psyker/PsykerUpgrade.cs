@@ -42,7 +42,7 @@ namespace Anathema.Abilities.Psyker
         public static readonly UpgradeDef[] All =
         {
             new UpgradeDef(ForceStave, UpgradeCategory.Armament, "Force Stave - The Sentinel",
-                "Close-range control. Warp Bolt becomes Stave Sweep, a wide melee arc that shoves enemies back; Chain Lightning becomes Kine Slam, a shockwave around you that damages and Charges everything it hits. Unlocks Mind Leech (Shift+RMB) but loses Psychic Scream (Shift+E). Excludes Arc Conduit.")
+                "Close-range control. Warp Bolt becomes Stave Sweep, a wide melee arc whose third swing hits harder and shoves enemies back; Chain Lightning becomes Kine Slam, a shockwave around you that damages and Charges everything it hits. Unlocks Mind Leech (Shift+RMB) but loses Psychic Scream (Shift+E). Excludes Arc Conduit.")
                 .InGroup(WeaponGroup)
                 .Requires(m => (m & (1 << ArcConduit)) == 0),
             new UpgradeDef(ArcConduit, UpgradeCategory.Ferocity, "Arc Conduit",

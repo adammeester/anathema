@@ -30,7 +30,7 @@ namespace Anathema.Arena
 
         void Start()
         {
-            gas = FindFirstObjectByType<GasZone>();
+            gas = FindAnyObjectByType<GasZone>();
             nextSpawn = Time.time + firstDelay;
         }
 

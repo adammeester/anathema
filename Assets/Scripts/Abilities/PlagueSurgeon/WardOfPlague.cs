@@ -70,7 +70,7 @@ namespace Anathema.Abilities.PlagueSurgeon
             Health best = null;
             float bestDistance = pickRadius;
 
-            foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+            foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead || h.Team != Health.Team || h.gameObject == gameObject) continue;
 

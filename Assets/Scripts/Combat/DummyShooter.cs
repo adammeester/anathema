@@ -47,7 +47,7 @@ namespace Anathema.Combat
             Health best = null;
             float bestDistance = float.MaxValue;
 
-            foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+            foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.Team == health.Team || h.IsDead) continue;
                 float d = (h.transform.position - transform.position).sqrMagnitude;

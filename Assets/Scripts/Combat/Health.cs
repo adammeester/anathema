@@ -67,6 +67,12 @@ namespace Anathema.Combat
 
         public float EffectiveArmor => Mathf.Min(MaxArmor, armor + (Time.time < tempArmorEnd ? tempArmor : 0f));
 
+        // Martyr's Resolve (Paladin Order): once per round a lethal hit is survived at 1 health, followed by brief immunity.
+        public const float LastStandSeconds = 2f;
+        public bool LastStand { get; set; }
+        bool lastStandUsed;
+        float lastStandUntil = float.NegativeInfinity;
+
         // Extra maximum health from upgrades. Set absolutely (not added), so re-applying it is harmless.
         float bonusMaxHealth;
 
@@ -136,7 +142,8 @@ namespace Anathema.Combat
         // Entry point for everything that hurts a character. Online it decides where the damage is actually applied.
         // `pierce` (0-1) is the share of the victim's armour this hit ignores; `shieldBreak` multiplies how much of a
         // shield (Absorber) the hit uses up (1.5 = it burns through shields 50% faster).
-        public bool TakeDamage(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f)
+        // `dot` marks a damage-over-time tick (bleed, burn, gas, plague): it never breaks panic.
+        public bool TakeDamage(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f, bool dot = false)
         {
             if (IsDead || amount <= 0f) return false;
 
@@ -149,18 +156,21 @@ namespace Anathema.Combat
                 {
                     // Environmental damage (gas) is applied by the victim's own machine, so ignore it here.
                     if (source != null && !source.TryGetComponent(out NetPlayer _)) return false;
-                    net.SendDamage(amount, source, aoe, pierce, shieldBreak);
+                    net.SendDamage(amount, source, aoe, pierce, shieldBreak, dot);
                     return true;
                 }
             }
 
-            return ApplyDamageLocal(amount, source, aoe, pierce, shieldBreak);
+            return ApplyDamageLocal(amount, source, aoe, pierce, shieldBreak, dot);
         }
 
+        // A single non-DoT hit that costs at least this share of max health snaps the victim out of panic.
+        public const float PanicBreakFraction = 0.05f;
+
         // Applies damage to this machine's copy (counters and other modifiers run here).
-        public bool ApplyDamageLocal(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f)
+        public bool ApplyDamageLocal(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f, bool dot = false)
         {
-            if (IsDead || Invulnerable || amount <= 0f) return false;
+            if (IsDead || Invulnerable || Time.time < lastStandUntil || amount <= 0f) return false;
 
             if (!aoe && DamageModifier != null) amount = DamageModifier(amount, source);
             if (amount <= 0f) return false;
@@ -183,6 +193,13 @@ namespace Anathema.Combat
             }
 
             float dealt = Mathf.Min(amount, Current);
+            if (LastStand && !lastStandUsed && amount >= Current)
+            {
+                // Martyr's Resolve: the first lethal hit each round leaves one health and a moment of immunity.
+                dealt = Mathf.Max(0f, Current - 1f);
+                lastStandUsed = true;
+                lastStandUntil = Time.time + LastStandSeconds;
+            }
             Current -= dealt;
             RoundDamageTaken += dealt;
             DamageTaken?.Invoke(dealt, source);
@@ -190,6 +207,7 @@ namespace Anathema.Combat
             Recoverable = Mathf.Min(Recoverable + dealt, maxHealth - Current, maxRecoverableChunks * ChunkSize);
             lastDamageTime = Time.time;
             if (Current <= 0f) Recoverable = 0f;
+            if (!dot && dealt >= maxHealth * PanicBreakFraction) Panicked.Cancel(gameObject);
 
             Damaged?.Invoke(this, amount, source);
             if (Current <= 0f) Died?.Invoke(this, source);
@@ -236,6 +254,8 @@ namespace Anathema.Combat
             RoundHealed = 0f;
             Current = maxHealth;
             Recoverable = 0f;
+            lastStandUsed = false;
+            lastStandUntil = float.NegativeInfinity;
         }
     }
 }

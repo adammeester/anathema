@@ -27,7 +27,8 @@ namespace Anathema.Net
             Heal,
             Panic,
             Ward,
-            Slow
+            Slow,
+            Burn
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -62,6 +63,9 @@ namespace Anathema.Net
         // Rage display state (see Rage.NetState), so every client can draw the dots and rune.
         readonly NetworkVariable<int> netRageState = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
 
+        // Energy (whole points) so teammates' frames can show it.
+        readonly NetworkVariable<float> netEnergy = new NetworkVariable<float>(0f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
+
         Health health;
         UpgradeState upgrades;
         Respawner respawner;
@@ -87,6 +91,8 @@ namespace Anathema.Net
         // Highest round-end this fighter has finished choosing an upgrade for (0 = none yet).
         public int UpgradeRound => netUpgradeRound.Value;
         public float RageAttackBonus => netRageAttackBonus.Value;
+        public float EnergyMax => energy != null ? energy.Max : 0f;
+        public float EnergyCurrent => energy == null ? 0f : IsOwner ? energy.Current : netEnergy.Value;
         // Rage display state published by the owner: stacks | max << 4 | expiring << 8 (0 = none).
         public int RageState => netRageState.Value;
         // This fighter's upgrade state (cached; null for characters without upgrades).
@@ -109,7 +115,7 @@ namespace Anathema.Net
             CreditServerRpc(no, damage, healing);
         }
 
-        [ServerRpc(RequireOwnership = false)]
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         void CreditServerRpc(NetworkObjectReference credited, float damage, float healing)
         {
             if (!credited.TryGet(out NetworkObject no) || !no.TryGetComponent(out NetPlayer np)) return;
@@ -165,7 +171,7 @@ namespace Anathema.Net
                 health.Died += OnOwnerDied;
                 health.DamageTaken += OnOwnerDamageTaken;
 
-                TopDownCamera cam = FindFirstObjectByType<TopDownCamera>();
+                TopDownCamera cam = FindAnyObjectByType<TopDownCamera>();
                 if (cam != null) cam.SetTarget(transform);
 
                 if (proxyCollider != null) proxyCollider.enabled = false;
@@ -246,6 +252,11 @@ namespace Anathema.Net
                 if (aim != null && (netAim.Value - aim.AimPoint).sqrMagnitude > 0.0004f) netAim.Value = aim.AimPoint;
                 float rageBonus = Rage.AttackSpeedMultiplier(gameObject) - 1f;
                 if (!Mathf.Approximately(netRageAttackBonus.Value, rageBonus)) netRageAttackBonus.Value = rageBonus;
+                if (energy != null)
+                {
+                    float e = Mathf.Floor(energy.Current);
+                    if (!Mathf.Approximately(netEnergy.Value, e)) netEnergy.Value = e;
+                }
                 int rageState = Rage.NetState(gameObject);
                 if (netRageState.Value != rageState) netRageState.Value = rageState;
                 return;
@@ -363,7 +374,7 @@ namespace Anathema.Net
 
         // --- Damage and status effects (aimed at a replica, applied on its owner) ---------------------------------
 
-        public void SendDamage(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f)
+        public void SendDamage(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f, bool dot = false)
         {
             NetworkObjectReference reference = default;
             bool hasSource = false;
@@ -372,25 +383,25 @@ namespace Anathema.Net
                 reference = no;
                 hasSource = true;
             }
-            DamageServerRpc(amount, reference, hasSource, aoe, pierce, shieldBreak);
+            DamageServerRpc(amount, reference, hasSource, aoe, pierce, shieldBreak, dot);
         }
 
         ClientRpcParams ToOwner => new ClientRpcParams { Send = new ClientRpcSendParams { TargetClientIds = new[] { OwnerClientId } } };
 
-        [ServerRpc(RequireOwnership = false)]
-        void DamageServerRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, float pierce, float shieldBreak)
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        void DamageServerRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, float pierce, float shieldBreak, bool dot)
         {
-            DamageClientRpc(amount, source, hasSource, aoe, pierce, shieldBreak, ToOwner);
+            DamageClientRpc(amount, source, hasSource, aoe, pierce, shieldBreak, dot, ToOwner);
         }
 
         [ClientRpc]
-        void DamageClientRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, float pierce, float shieldBreak, ClientRpcParams rpcParams = default)
+        void DamageClientRpc(float amount, NetworkObjectReference source, bool hasSource, bool aoe, float pierce, float shieldBreak, bool dot, ClientRpcParams rpcParams = default)
         {
             if (!IsOwner || NetGame.Frozen) return;
 
             GameObject attacker = null;
             if (hasSource && source.TryGet(out NetworkObject no)) attacker = no.gameObject;
-            health.ApplyDamageLocal(amount, attacker, aoe, pierce, shieldBreak);
+            health.ApplyDamageLocal(amount, attacker, aoe, pierce, shieldBreak, dot);
         }
 
         public void SendStatus(StatusKind kind, float a, float b, Vector3 direction, GameObject source = null)
@@ -405,7 +416,7 @@ namespace Anathema.Net
             StatusServerRpc((int)kind, a, b, direction, reference, hasSource);
         }
 
-        [ServerRpc(RequireOwnership = false)]
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         void StatusServerRpc(int kind, float a, float b, Vector3 direction, NetworkObjectReference source, bool hasSource)
         {
             StatusClientRpc(kind, a, b, direction, source, hasSource, ToOwner);
@@ -431,6 +442,7 @@ namespace Anathema.Net
                 case StatusKind.Panic: Panicked.Apply(gameObject, attacker, a); break;
                 case StatusKind.Ward: PlagueWard.Apply(gameObject, attacker, a, b); break;
                 case StatusKind.Slow: Slowed.Apply(gameObject, a, b); break;
+                case StatusKind.Burn: Burning.Apply(gameObject, attacker, a, b); break;
             }
         }
     }

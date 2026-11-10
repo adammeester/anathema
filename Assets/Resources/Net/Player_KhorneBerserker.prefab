@@ -198,6 +198,28 @@ MonoBehaviour:
   recoverDuration: 0.3
   energyPerHit: 8
   slashColor: {r: 1, g: 0.25, b: 0.15, a: 0.8}
+  heavyDamage: 16
+  heavyRange: 3.5
+  heavyArcDegrees: 150
+  heavyWindupDuration: 0.22
+  heavySwingDuration: 0.14
+  heavyRecoverDuration: 0.5
+  heavyCooldown: 1.3
+  heavyBleedDamagePerSecond: 2.5
+  heavyBleedDuration: 3
+  heavySpineTwist: 42
+  heavyArmRaise: 85
+  eviscDamage: 30
+  eviscRange: 2.8
+  eviscArcDegrees: 70
+  eviscWindupDuration: 0.55
+  eviscSwingDuration: 0.1
+  eviscRecoverDuration: 0.6
+  eviscCooldown: 1.8
+  eviscArmorPierce: 0.4
+  eviscShieldBreak: 1.5
+  eviscSpineTwist: 10
+  eviscArmRaise: 115
   empoweredDamageMultiplier: 2
   empoweredRangeMultiplier: 1.35
   empoweredColor: {r: 1, g: 0.85, b: 0.3, a: 0.95}
@@ -303,6 +325,28 @@ MonoBehaviour:
   windupDuration: 0.12
   throwDuration: 0.08
   recoverDuration: 0.25
+  cleaveDamage: 20
+  cleaveRange: 4.2
+  cleaveArcDegrees: 200
+  cleaveWindupDuration: 0.3
+  cleaveSwingDuration: 0.14
+  cleaveRecoverDuration: 0.35
+  cleaveCooldown: 7
+  cleaveKnockbackDistance: 3.5
+  cleaveKnockbackDuration: 0.25
+  cleaveBleedDamagePerSecond: 4
+  cleaveBleedDuration: 4
+  descentDamage: 26
+  descentRange: 3.2
+  descentArcDegrees: 80
+  descentWindupDuration: 0.55
+  descentSwingDuration: 0.1
+  descentRecoverDuration: 0.5
+  descentCooldown: 6.5
+  descentExecuteThreshold: 0.5
+  descentMaxBonus: 1
+  descentArmorPierce: 0.4
+  descentShieldBreak: 1.5
   armRaise: 85
   armFollowThrough: 40
 --- !u!114 &4043899693387965823

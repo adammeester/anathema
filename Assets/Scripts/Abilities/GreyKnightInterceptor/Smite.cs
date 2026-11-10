@@ -18,6 +18,19 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         [SerializeField] float energyPerHit = 10f;
         [SerializeField] float originHeight = 1.2f;
         [SerializeField] Color telegraphColor = new Color(1f, 1f, 1f, 0.25f);
+        // Purifying Flame (Purifier Order): a 2s flame-thrower channel instead of the lance. ~32 damage over the channel
+        // (similar to Smite) plus the burn it applies on top.
+        [SerializeField] float flameDuration = 2f;
+        [SerializeField] float flameRange = 7f;
+        [SerializeField] float flameHalfAngle = 20f;
+        [SerializeField] float flameTotalDamage = 32f;
+        const float FlameTick = 0.25f;
+
+        bool channeling;
+        float channelEnd;
+        float nextFlameTick;
+        FlameJet jet;
+
         [SerializeField] Color beamColor = new Color(0.5f, 0.8f, 1f, 0.95f);
 
         Energy energy;
@@ -30,7 +43,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         protected override bool CooldownStartsOnStrike => true;
 
-        public override string DisplayName => "Smite";
+        public override string DisplayName => GreyKnightUpgrade.HasPurifier(gameObject) ? "Purifying Flame" : "Smite";
         public override string KeyLabel => "RMB";
 
         // Applied only when added in the editor.
@@ -65,6 +78,11 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         protected override void Update()
         {
             base.Update();
+            if (channeling)
+            {
+                UpdateChannel();
+                return;
+            }
             if (!charging) return;
 
             FindBeam(out Vector3 start, out Vector3 end);
@@ -95,6 +113,15 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         protected override void Activate()
         {
+            if (GreyKnightUpgrade.HasPurifier(gameObject))
+            {
+                channeling = true;
+                channelEnd = Time.time + flameDuration;
+                nextFlameTick = Time.time;
+                jet = FlameJet.Create();
+                chargeSound = GreyKnightSound.SmiteCharge();
+                return;
+            }
             charging = true;
             fireTime = Time.time + chargeDuration;
             telegraph.enabled = true;
@@ -103,12 +130,66 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         protected override void Cancel()
         {
+            if (channeling)
+            {
+                EndChannel();
+                RefundCooldown();
+                return;
+            }
             if (!charging) return;
 
             GreyKnightSound.Stop(chargeSound);
             charging = false;
             telegraph.enabled = false;
             RefundCooldown();
+        }
+
+        void UpdateChannel()
+        {
+            Vector3 origin = transform.position + Vector3.up * originHeight;
+            Vector3 dir = Aim.AimDirection;
+            dir.y = 0f;
+            dir = dir.sqrMagnitude > 0.0001f ? dir.normalized : transform.forward;
+            if (jet != null) jet.Emit(origin + dir * 0.7f, dir, flameRange);
+
+            if (!IsReplica && Time.time >= nextFlameTick)
+            {
+                nextFlameTick += FlameTick;
+                float perTick = flameTotalDamage * FlameTick / flameDuration;
+                Vector3 flat = transform.position;
+                struck.Clear();
+                foreach (Collider c in Physics.OverlapSphere(transform.position + Vector3.up, flameRange, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    Health target = c.GetComponentInParent<Health>();
+                    if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
+
+                    Vector3 to = c.ClosestPoint(flat) - flat;
+                    to.y = 0f;
+                    if (to.magnitude > flameRange) continue;
+                    if (to.sqrMagnitude > 0.0001f && Vector3.Angle(dir, to) > flameHalfAngle) continue;
+
+                    if (target.TakeDamage(perTick, gameObject, true, 0f, 1f, true))
+                    {
+                        if (energy != null) energy.Gain(energyPerHit * 0.1f);
+                        GreyKnightUpgrade.Ignite(gameObject, target);
+                    }
+                }
+                struck.Clear();
+            }
+
+            if (Time.time >= channelEnd)
+            {
+                EndChannel();
+                StartCooldown();
+            }
+        }
+
+        void EndChannel()
+        {
+            channeling = false;
+            struck.Clear();
+            GreyKnightSound.Stop(chargeSound);
+            if (jet != null) { jet.Stop(); jet = null; }
         }
 
         // The beam runs from chest height along the aim direction and stops at the first wall or pillar.
@@ -140,15 +221,84 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             {
                 Health target = hit.collider.GetComponentInParent<Health>();
                 if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
-                if (target.TakeDamage(damage, gameObject) && energy != null) energy.Gain(energyPerHit);
+                if (target.TakeDamage(damage, gameObject))
+                {
+                    if (energy != null) energy.Gain(energyPerHit);
+                    GreyKnightUpgrade.Ignite(gameObject, target);
+                }
                 hitPoints.Add(target.transform.position + Vector3.up * originHeight);
             }
 
-            BeamEffect.Spawn(start, end, beamRadius * 2f, hitPoints);
+            BeamEffect.Spawn(start, end, beamRadius * 2f, hitPoints, GreyKnightUpgrade.HasPurifier(gameObject));
             GreyKnightSound.Stop(chargeSound);
             GreyKnightSound.SmiteFire();
             GreyKnightSound.PsychicImpact(hitPoints.Count);
             StartCooldown();
+        }
+
+        // The flame-thrower stream: fire blobs launched every frame that fly out, grow and fade.
+        class FlameJet : MonoBehaviour
+        {
+            const int Max = 60;
+            const float Life = 0.45f;
+
+            struct Blob { public Transform t; public Vector3 vel; public float born; }
+
+            readonly List<Blob> blobs = new List<Blob>();
+            Material outer, inner;
+            bool stopping;
+
+            public static FlameJet Create()
+            {
+                var go = new GameObject("Purifying Flame");
+                var jet = go.AddComponent<FlameJet>();
+                jet.outer = VisualUtil.UnlitMaterial(new Color(1f, 0.4f, 0.05f, 0.6f), 3002);
+                jet.inner = VisualUtil.UnlitMaterial(new Color(1f, 0.85f, 0.35f, 0.75f), 3003);
+                return jet;
+            }
+
+            public void Emit(Vector3 origin, Vector3 dir, float range)
+            {
+                float speed = range / Life;
+                for (int i = 0; i < 2 && blobs.Count < Max; i++)
+                {
+                    GameObject g = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                    Destroy(g.GetComponent<Collider>());
+                    var r = g.GetComponent<Renderer>();
+                    r.sharedMaterial = Random.value < 0.4f ? inner : outer;
+                    r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    g.transform.SetParent(transform, false);
+                    g.transform.position = origin;
+                    Vector3 spread = Random.insideUnitSphere * 0.15f * speed;
+                    blobs.Add(new Blob { t = g.transform, vel = dir * speed * Random.Range(0.8f, 1.05f) + spread, born = Time.time });
+                }
+            }
+
+            public void Stop() { stopping = true; }
+
+            void Update()
+            {
+                for (int i = blobs.Count - 1; i >= 0; i--)
+                {
+                    Blob b = blobs[i];
+                    float age = (Time.time - b.born) / Life;
+                    if (age >= 1f)
+                    {
+                        Destroy(b.t.gameObject);
+                        blobs.RemoveAt(i);
+                        continue;
+                    }
+                    b.t.position += (b.vel + Vector3.up * 1.2f) * Time.deltaTime;
+                    b.t.localScale = Vector3.one * Mathf.Lerp(0.2f, 0.9f, age) * (1f - age * 0.4f);
+                }
+                if (stopping && blobs.Count == 0) Destroy(gameObject);
+            }
+
+            void OnDestroy()
+            {
+                if (outer != null) Destroy(outer);
+                if (inner != null) Destroy(inner);
+            }
         }
 
         // Psychic lightning: a wide violet glow, a white-hot core and several jagged arcs that re-roll every frame so
@@ -175,7 +325,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             Vector3 start, end;
             float startTime;
 
-            public static void Spawn(Vector3 start, Vector3 end, float width, List<Vector3> hitPoints)
+            public static void Spawn(Vector3 start, Vector3 end, float width, List<Vector3> hitPoints, bool fire = false)
             {
                 var go = new GameObject("Smite Lightning");
                 var fx = go.AddComponent<BeamEffect>();
@@ -186,8 +336,8 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 fx.burstPoints.Add(end);
                 fx.burstPoints.AddRange(hitPoints);
 
-                var glow = new Color(0.1f, 0.4f, 1f, 0.35f);
-                var arc = new Color(0.4f, 0.75f, 1f, 0.95f);
+                var glow = fire ? new Color(1f, 0.3f, 0.05f, 0.35f) : new Color(0.1f, 0.4f, 1f, 0.35f);
+                var arc = fire ? new Color(1f, 0.65f, 0.2f, 0.95f) : new Color(0.4f, 0.75f, 1f, 0.95f);
                 fx.AddLayer(fx.layers, 2, width * 3.5f, glow, 0.05f, 3000);
                 for (int i = 0; i < Arcs; i++) fx.AddLayer(fx.layers, Segments, width * 0.55f, arc, 0.55f, 3001);
                 fx.AddLayer(fx.layers, 2, width * 0.8f, Color.white, 0.03f, 3002);

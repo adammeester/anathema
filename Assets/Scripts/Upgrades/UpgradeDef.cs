@@ -44,6 +44,8 @@ namespace Anathema.Upgrades
         public UpgradeDef Health(float bonus) { BonusHealth = bonus; return this; }
         public UpgradeDef Armour(float fraction) { Armor = fraction; return this; }
         public UpgradeDef CrowdControl(float scale) { CrowdControlScale = scale; return this; }
+        public bool GrantsLastStand { get; private set; }   // survive one lethal hit per round (see Health.LastStand)
+        public UpgradeDef LastStand() { GrantsLastStand = true; return this; }
         public UpgradeDef Requires(Func<int, bool> requirement) { Requirement = requirement; return this; }
 
         // A choice that is applied on the spot and not kept in the mask (e.g. returning to the starting weapon).

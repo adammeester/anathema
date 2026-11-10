@@ -44,12 +44,27 @@ namespace Anathema.Player
             cooldown = 0.85f;
         }
 
+        // An upgrade that replaces the attack (e.g. the Grey Knight's Daemonhammer and Psycannon).
+        IPrimaryAttackOverride weapon;
+        bool Overridden => weapon != null && weapon.Active;
+
         protected override void Awake()
         {
             base.Awake();
             muzzle = FindDeep(transform, "Muzzle_R");
             energy = GetComponent<Energy>();
         }
+
+        protected override void Update()
+        {
+            // The upgrade component is added at runtime, so look for it until it turns up.
+            if (weapon == null) weapon = GetComponent<IPrimaryAttackOverride>();
+            CooldownScale = Overridden && cooldown > 0f ? weapon.AttackCooldown / cooldown : 1f;
+            base.Update();
+        }
+
+        protected override float WindupDuration => Overridden ? weapon.AttackWindup : 0f;
+        protected override void OnWindupStart() { if (Overridden) weapon.AttackBegin(); }
 
         void OnHit(Health _)
         {
@@ -64,7 +79,7 @@ namespace Anathema.Player
             return null;
         }
 
-        public override string DisplayName => "Attack";
+        public override string DisplayName => Overridden ? weapon.AttackName : "Attack";
         public override string KeyLabel => "LMB";
 
         protected override bool IsTriggered()
@@ -74,7 +89,8 @@ namespace Anathema.Player
 
         protected override void Activate()
         {
-            if (kind == AttackKind.Ranged) FireProjectile();
+            if (Overridden) weapon.AttackStrike();
+            else if (kind == AttackKind.Ranged) FireProjectile();
             else Swing();
         }
 
@@ -82,6 +98,7 @@ namespace Anathema.Player
         // wind-up or animation to cancel.
         protected override void Cancel()
         {
+            if (weapon != null) weapon.AttackCancel();
         }
 
         void FireProjectile()

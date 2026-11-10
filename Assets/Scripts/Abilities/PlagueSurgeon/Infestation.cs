@@ -86,7 +86,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         {
             if (HostIsEnemy)
             {
-                if (host.TakeDamage(damagePerTick, source, true) && sourceEnergy != null) sourceEnergy.Gain(energyPerTick);
+                if (host.TakeDamage(damagePerTick, source, true, dot: true) && sourceEnergy != null) sourceEnergy.Gain(energyPerTick);
             }
             else
             {
@@ -102,7 +102,7 @@ namespace Anathema.Abilities.PlagueSurgeon
             BurstEffect.Spawn(center, radius);
             if (visualOnly) return;
 
-            foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+            foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead) continue;
 

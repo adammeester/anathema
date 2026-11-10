@@ -6,6 +6,7 @@ namespace Anathema.Combat
     // (PlayerMovement, MouseAim and DummyMover ask TryGetFleeDirection). A full loss of control: they can't steer, aim
     // (they face where they run), attack or start any ability (Ability.Update checks IsPanicked). Stuns and roots still
     // win over the running: a pinned or stunned character doesn't go anywhere.
+    // A solid hit (>= Health.PanicBreakFraction of max health, DoT ticks excluded) snaps them out of it.
     // The flight direction tracks the source's live position, so circling the victim turns them around.
     // Shows a bobbing yellow "!" above the head. Added to the victim at runtime; re-applying extends it.
     public class Panicked : MonoBehaviour
@@ -39,6 +40,12 @@ namespace Anathema.Combat
                 panicked.lastSourcePosition = source.transform.position;
             }
             return panicked;
+        }
+
+        // Damage snaps the victim out of it (see Health.PanicBreakFraction); DoT ticks never call this.
+        public static void Cancel(GameObject target)
+        {
+            if (target.TryGetComponent(out Panicked panicked)) Destroy(panicked);
         }
 
         public static bool IsPanicked(GameObject target)

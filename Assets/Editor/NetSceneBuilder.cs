@@ -114,7 +114,7 @@ namespace Anathema.EditorTools
             Scene scene = NewScratchScene();
 
             ArenaSceneBuilder.CreateLight(map);
-            ArenaSceneBuilder.CreateArena(map);
+            ArenaSceneBuilder.CreateArena(map, readyRooms: true);
             new GameObject("Gas Zone").AddComponent<GasZone>();
             new GameObject("Orb Spawner").AddComponent<OrbSpawner>();
             ArenaSceneBuilder.CreateCamera(null, map);

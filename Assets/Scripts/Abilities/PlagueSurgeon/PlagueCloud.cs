@@ -207,7 +207,7 @@ namespace Anathema.Abilities.PlagueSurgeon
 
             void Tick()
             {
-                foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+                foreach (Health h in FindObjectsByType<Health>())
                 {
                     if (h.IsDead) continue;
 
@@ -217,7 +217,7 @@ namespace Anathema.Abilities.PlagueSurgeon
 
                     if (h.Team != team)
                     {
-                        if (damagePerTick > 0f && h.TakeDamage(damagePerTick, owner, true) && energy != null)
+                        if (damagePerTick > 0f && h.TakeDamage(damagePerTick, owner, true, dot: true) && energy != null)
                             energy.Gain(energyPerTick);
                     }
                     else if (healPerTick > 0f)

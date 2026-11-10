@@ -28,7 +28,18 @@ namespace Anathema.Abilities.Psyker
         Transform shell;
         Material shellMaterial;
 
-        protected override float WindupDuration => 0.4f;
+        // The Kine Shield is instant; only the EX Psychic Scream winds up. This is read once, as the key is pressed,
+        // before the EX energy is spent: the owner goes by Shift and spare energy, a replica by the owner's cue.
+        protected override float WindupDuration
+        {
+            get
+            {
+                if (HoldsStave) return 0f;
+                bool scream = IsReplica ? ExActivation
+                    : Input.GetKey(KeyCode.LeftShift) && energy != null && energy.Current >= exEnergyCost;
+                return scream ? 0.4f : 0f;
+            }
+        }
         protected override Color WindupColor => PsykerFx.Cyan;
 
         // The EX energy is spent when the wind-up starts and given back if it is cancelled.
@@ -112,7 +123,7 @@ namespace Anathema.Abilities.Psyker
             PsykerFx.Ring(centre, 0.2f, screamRadius * 0.65f, 0.35f, new Color(1f, 1f, 1f, 0.7f), 0.16f);
             if (IsReplica) return;
 
-            foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+            foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead || h.Team == Health.Team) continue;
 

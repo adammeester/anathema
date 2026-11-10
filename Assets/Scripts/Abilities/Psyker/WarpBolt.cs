@@ -8,7 +8,8 @@ namespace Anathema.Abilities.Psyker
     // Passive: bolts deal 40% more damage to Charged targets (see Charged).
     //
     // Force Stave (Armament upgrade): this becomes Stave Sweep, a wide melee arc that hits everything in front of the
-    // Psyker and shoves it back. The Charged passive still applies. Hold to keep swinging.
+    // Psyker. Every third swing of a chain is a finisher that hits harder and shoves enemies back. The Charged passive
+    // still applies. Hold to keep swinging.
     public class WarpBolt : Ability
     {
         [SerializeField] float damage = 9f;
@@ -27,10 +28,15 @@ namespace Anathema.Abilities.Psyker
         [SerializeField] float staveArc = 110f;
         [SerializeField] float staveWindup = 0.2f;
         [SerializeField] float staveCooldown = 0.7f;
-        [SerializeField] float staveKnockback = 1.2f;
-        [SerializeField] float staveKnockbackDuration = 0.15f;
+        [SerializeField] float staveKnockback = 1.8f;          // finisher only
+        [SerializeField] float staveKnockbackDuration = 0.2f;
+        [SerializeField] int staveComboLength = 3;             // every Nth swing in a chain is the finisher
+        [SerializeField] float staveComboWindow = 1.1f;        // a pause longer than this resets the chain
+        [SerializeField] float staveFinisherDamage = 1.3f;     // finisher damage multiplier
 
         Energy energy;
+        int swingCount;
+        float lastSwingTime = -99f;
         Material boltMaterial;
         Material haloMaterial;
 
@@ -80,7 +86,14 @@ namespace Anathema.Abilities.Psyker
             PsykerFx.Arc(origin, dir, staveArc * 0.5f, staveRange, 0.2f, PsykerFx.Cyan);
             if (IsReplica) return;
 
-            foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+            // Combo: the first swings just cut; the last swing of a chain hits harder and shoves.
+            if (Time.time - lastSwingTime > staveComboWindow) swingCount = 0;
+            lastSwingTime = Time.time;
+            swingCount++;
+            bool finisher = swingCount >= Mathf.Max(1, staveComboLength);
+            if (finisher) swingCount = 0;
+            float swingScale = finisher ? staveFinisherDamage : 1f;
+            foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead || h.Team == Health.Team) continue;
 
@@ -90,9 +103,9 @@ namespace Anathema.Abilities.Psyker
                 if (distance > staveRange + 0.4f) continue; // a little allowance for the target's body
                 if (distance > 0.05f && Vector3.Angle(dir, to) > staveArc * 0.5f) continue;
 
-                if (!h.TakeDamage(staveDamage * ChargedScale(h), gameObject)) continue;
+                if (!h.TakeDamage(staveDamage * swingScale * ChargedScale(h), gameObject)) continue;
                 OnHit(h);
-                if (!h.IsDead) Knockback.Apply(h.gameObject, to, staveKnockback, staveKnockbackDuration);
+                if (finisher && !h.IsDead) Knockback.Apply(h.gameObject, to, staveKnockback, staveKnockbackDuration);
             }
         }
 

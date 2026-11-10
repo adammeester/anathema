@@ -188,6 +188,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
                 if (!target.TakeDamage(damage, gameObject, true)) continue;
                 GreyKnightSound.Impact();
+                GreyKnightUpgrade.Ignite(gameObject, target);
                 if (target.IsDead) continue;
                 Knockback.Apply(target.gameObject, away, knockbackDistance, knockbackDuration);
                 Silenced.Apply(target.gameObject, silenceDuration);

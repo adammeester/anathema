@@ -3,13 +3,12 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Psyker
 {
-    // Space: the Psyker steps through the warp, vanishing and reappearing at the cursor (pulled in to max range, and
-    // stopped short of walls). She leaves a pool of burning warp-fire where she lands that burns enemies standing in
+    // Space: the Psyker steps through the warp, vanishing and reappearing at the cursor (pulled in to max range; it
+    // passes over walls but never lands inside one). She leaves a pool of burning warp-fire where she lands that burns enemies standing in
     // it. Replicas only play the flashes and the flames; the owner's synced position does the rest.
     public class WarpStep : Ability
     {
         [SerializeField] float range = 8f;
-        [SerializeField] float wallPadding = 0.8f;
         [SerializeField] float fireRadius = 2.2f;
         [SerializeField] float fireDuration = 4f;
         [SerializeField] float fireDamagePerSecond = 12f;
@@ -50,13 +49,8 @@ namespace Anathema.Abilities.Psyker
             float distance = Mathf.Min(range, dir.magnitude);
             dir = dir.sqrMagnitude < 0.0001f ? transform.forward : dir.normalized;
 
-            // Stop short of any wall or pillar in the way (characters don't block the step).
-            Vector3 probe = from + Vector3.up;
-            foreach (RaycastHit hit in Physics.SphereCastAll(probe, 0.4f, dir, distance, ~0, QueryTriggerInteraction.Ignore))
-            {
-                if (hit.transform.IsChildOf(transform) || hit.collider.GetComponentInParent<Health>() != null) continue;
-                if (hit.distance > 0f) distance = Mathf.Min(distance, Mathf.Max(0f, hit.distance - wallPadding));
-            }
+            // The step passes over walls, but she can't land inside one: back off to the nearest clear spot.
+            distance = LandingSpot.Clear(transform, from, dir, distance);
 
             Vector3 to = from + dir * distance;
 

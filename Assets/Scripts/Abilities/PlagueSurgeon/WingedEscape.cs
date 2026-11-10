@@ -5,7 +5,7 @@ namespace Anathema.Abilities.PlagueSurgeon
 {
     // The Plague Surgeon has no counter. Press Space and a pair of insect wings tear out of his back: he becomes
     // invulnerable and flies in a straight line to the cursor (clamped to range), then drops back to the ground.
-    // Walls stop the flight short. Pressing C (or dying) ends it early.
+    // He flies over walls (landing short of any he'd end up inside). Pressing C (or dying) ends it early.
     // While flying he can't be hurt by anything, including gas and damage over time.
     public class WingedEscape : Ability
     {
@@ -138,8 +138,12 @@ namespace Anathema.Abilities.PlagueSurgeon
             if (!flying) return;
 
             // On a replica the movement arrives through the network position instead.
-            if (!IsReplica && controller != null && controller.enabled)
-                controller.Move(direction * (speed * Time.deltaTime));
+            // Moved directly rather than through the controller so walls don't stop the flight.
+            if (!IsReplica)
+            {
+                transform.position += direction * (speed * Time.deltaTime);
+                Physics.SyncTransforms(); // keep the CharacterController from snapping back to its old position
+            }
 
             // Wing flap: a fast beat that opens up as the flight goes on.
             float flap = Mathf.Sin(Time.time * 45f) * 35f;
@@ -161,8 +165,9 @@ namespace Anathema.Abilities.PlagueSurgeon
             to.y = 0f;
             if (to.sqrMagnitude < 0.01f) to = transform.forward;
 
-            float distance = Mathf.Min(to.magnitude, range);
             direction = to.normalized;
+            // He flies over walls but can't land inside one.
+            float distance = LandingSpot.Clear(transform, origin, direction, Mathf.Min(to.magnitude, range));
             speed = distance / flightDuration;
             endTime = Time.time + flightDuration;
             PlagueSurgeonPose.For(gameObject).Wings(flightDuration + 0.15f);

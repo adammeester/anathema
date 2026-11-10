@@ -15,6 +15,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         [SerializeField] float delay = 0.6f;
         [SerializeField] float rootDuration = 0.75f;
         [SerializeField] float energyPerHit = 8f;
+        [SerializeField] float fireDuration = 2f;   // how long the flames burn on the ground (visual only; the root is rootDuration)
         [SerializeField] Color telegraphColor = new Color(1f, 1f, 1f, 0.15f);
         [SerializeField] Color fillColor = new Color(1f, 1f, 1f, 0.3f);
 
@@ -146,7 +147,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         void Detonate()
         {
             Hide();
-            CleansingFire.Spawn(center, radius, rootDuration, fillColor);
+            CleansingFire.Spawn(center, radius, Mathf.Max(rootDuration, fireDuration), fillColor);
             GreyKnightSound.Stop(armSound);
             GreyKnightSound.ConsecrateBoom();
 
@@ -166,6 +167,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 struck.Add(target);
                 if (!target.TakeDamage(damage, gameObject, true)) continue;
                 if (energy != null) energy.Gain(energyPerHit);
+                GreyKnightUpgrade.Ignite(gameObject, target);
                 if (!target.IsDead) Rooted.Apply(target.gameObject, rootDuration);
             }
 
@@ -173,7 +175,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         }
 
         // The hallowed ground left behind by the detonation: a blue psychic disc ringed in orange, with cleansing fire
-        // licking up from it. It lasts exactly as long as the root, fading over its final moments, then destroys itself.
+        // licking up from it. It lasts `fireDuration`, fading over its final moments, then destroys itself.
         class CleansingFire : MonoBehaviour
         {
             const float FadeTime = 0.25f;

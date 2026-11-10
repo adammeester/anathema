@@ -231,8 +231,9 @@ def render_previews(out_dir, focus_z=1.1, distance=1.0):
     shot("game", (0, d * math.cos(math.radians(55)), focus_z + d * math.sin(math.radians(55))), target, 60, (800, 600))
 
 
-def clipped_ellipsoid(loc, size, zmin, zmax, material, bone, rot=(0, 0, 0), bevel=0.0):
-    """An ellipsoid (full extent `size`) sliced flat at local heights zmin and zmax (None = uncut), capped and closed."""
+def clipped_ellipsoid(loc, size, zmin, zmax, material, bone, rot=(0, 0, 0), bevel=0.0, half=0):
+    """An ellipsoid (full extent `size`) sliced flat at local heights zmin and zmax (None = uncut), capped and closed.
+    half=+1 / -1 also keeps only the local +Y (rear) / -Y (front) half, cut flat down the middle."""
     import bmesh
     bpy.ops.mesh.primitive_uv_sphere_add(radius=0.5, segments=32, ring_count=16)
     o = bpy.context.active_object
@@ -242,11 +243,15 @@ def clipped_ellipsoid(loc, size, zmin, zmax, material, bone, rot=(0, 0, 0), beve
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     bm = bmesh.new()
     bm.from_mesh(o.data)
-    for zc, clear_inner in ((zmin, True), (zmax, False)):
-        if zc is None:
+    cuts = [((0, 0, zmin * S), (0, 0, 1), True) if zmin is not None else None,
+            ((0, 0, zmax * S), (0, 0, 1), False) if zmax is not None else None,
+            ((0, 0, 0), (0, 1, 0), half > 0) if half else None]  # half<0 keeps front (-Y); half>0 keeps rear (+Y)
+    for cut_def in cuts:
+        if cut_def is None:
             continue
+        co, no, clear_inner = cut_def
         geom = list(bm.verts) + list(bm.edges) + list(bm.faces)
-        res = bmesh.ops.bisect_plane(bm, geom=geom, dist=0.0001, plane_co=(0, 0, zc * S), plane_no=(0, 0, 1),
+        res = bmesh.ops.bisect_plane(bm, geom=geom, dist=0.0001, plane_co=co, plane_no=no,
                                      clear_inner=clear_inner, clear_outer=not clear_inner)
         cut = [e for e in res["geom_cut"] if isinstance(e, bmesh.types.BMEdge)]
         bmesh.ops.triangle_fill(bm, use_beauty=True, edges=cut)

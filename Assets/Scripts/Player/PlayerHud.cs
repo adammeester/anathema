@@ -1,6 +1,7 @@
 using Anathema.Abilities;
 using Anathema.Combat;
 using Anathema.Upgrades;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Anathema.Player
@@ -87,6 +88,148 @@ namespace Anathema.Player
             }
 
             DrawPassives(centerX, slotY, abilityWidth);
+            DrawAllies();
+        }
+
+        // ---------- Allies ----------
+
+        // Health frames for teammates down the left edge: name, health bar, and a pip per upgrade they have taken.
+        void DrawAllies()
+        {
+            float y = 180f * scale;
+
+            foreach (Net.NetPlayer p in Net.NetPlayer.All)
+            {
+                if (p == null || p.Health == null || p.Health == health || p.Health.Team != health.Team) continue;
+
+                UpgradeState up = p.GetComponent<UpgradeState>();
+                var owned = new List<UpgradeDef>();
+                UpgradeDef[] all = up != null ? UpgradeCatalog.For(up.Character) : null;
+                if (all != null) foreach (UpgradeDef d in all) if (up.Has(d.Bit)) owned.Add(d);
+
+                string name = up != null && !string.IsNullOrEmpty(up.Character) ? up.Character : p.name;
+                DrawAllyFrame(ref y, name, up != null ? up.Character : null, p.Health.Current, p.Health.Max, p.EnergyCurrent, p.EnergyMax, owned);
+            }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            // Training arena has no teammates: F9 shows two made-up ones so the frames can be checked.
+            if (!Net.NetGame.Online)
+            {
+                if (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.F9) demoAllies = !demoAllies;
+                if (demoAllies)
+                {
+                    UpgradeDef[] cat = upgrades != null ? UpgradeCatalog.For(upgrades.Character) : null;
+                    var few = new List<UpgradeDef>();
+                    var many = new List<UpgradeDef>();
+                    if (cat != null)
+                        for (int i = 0; i < cat.Length; i++)
+                        {
+                            if (i < 3) few.Add(cat[i]);
+                            many.Add(cat[i]);
+                        }
+                    DrawDemoRoundBanner();
+                    string key = upgrades != null ? upgrades.Character : null;
+                    DrawAllyFrame(ref y, "Demo Ally A", key, 140f, 200f, 65f, 100f, few);
+                    DrawAllyFrame(ref y, "Demo Ally B", key, 0f, 250f, 0f, 100f, many);
+                }
+            }
+#endif
+            DrawHoverTip();
+        }
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        bool demoAllies;
+
+        // Mock of NetGame's top-centre round counter, score and timer, for checking layout offline.
+        void DrawDemoRoundBanner()
+        {
+            float cx = Screen.width * 0.5f, top = 14f * scale, hgt = 44f * scale;
+            var timer = new Rect(cx - 60f * scale, top, 120f * scale, hgt);
+            DrawFrame(timer, 3f * scale, DarkGold);
+            int secs = Mathf.FloorToInt(Time.timeSinceLevelLoad);
+            DrawText(timer, $"{secs / 60}:{secs % 60:00}", Mathf.RoundToInt(26f * scale), FontStyle.Bold, Color.white);
+
+            // Best of 3: you have won 1 round, the enemy 0.
+            Net.RoundMarbles.Draw(cx, top, scale, 74f * scale, hgt, 2, 1, new[] { 0 });
+        }
+#endif
+
+        // Battlerite-style frame: a head-shot portrait with the health bar under it, and the ally's upgrades in a grid
+        // beside the portrait (hover one for its name).
+        void DrawAllyFrame(ref float y, string name, string key, float current, float max, float energyNow, float energyMax, List<UpgradeDef> owned)
+        {
+            const int PerRow = 5;
+            float portrait = 84f * scale, barH = 18f * scale, gap = 8f * scale;
+            float pip = 24f * scale, pipGap = 4f * scale, nameH = 20f * scale;
+            float x = 26f * scale;
+            bool dead = current <= 0f;
+
+            // Portrait.
+            var pr = new Rect(x, y, portrait, portrait);
+            DrawRect(new Rect(pr.x - 3f * scale, pr.y - 3f * scale, pr.width + 6f * scale, pr.height + 6f * scale), Panel);
+            DrawRect(pr, new Color(0.10f, 0.12f, 0.18f, 1f));
+            Texture tex = Net.AllyPortraits.Get(key);
+            if (tex != null) GUI.DrawTexture(pr, tex, ScaleMode.ScaleAndCrop, false);
+            if (dead) DrawRect(pr, new Color(0f, 0f, 0f, 0.65f));
+            DrawBorder(pr, 3f * scale);
+
+            // Health bar under the portrait, same width.
+            var bar = new Rect(pr.x, pr.yMax + 7f * scale, portrait, barH);
+            DrawBorder(bar, 2f * scale);
+            DrawRect(bar, Color.black);
+            Rect fill = DrawFill(bar, max > 0f ? Mathf.Clamp01(current / max) : 0f, HealthColor, true);
+            if (fill.width > 0f) GUI.DrawTexture(new Rect(fill.x, fill.y, fill.width, fill.height * 0.55f), sheen);
+            DrawText(bar, dead ? "DOWN" : Mathf.CeilToInt(current).ToString(), Mathf.RoundToInt(13f * scale), FontStyle.Bold, Color.white);
+
+            // Energy: a slimmer blue bar directly under the health bar.
+            float energyH = 10f * scale;
+            var ebar = new Rect(bar.x, bar.yMax + 5f * scale, portrait, energyH);
+            DrawBorder(ebar, 2f * scale);
+            DrawRect(ebar, Color.black);
+            Rect efill = DrawFill(ebar, energyMax > 0f ? Mathf.Clamp01(energyNow / energyMax) : 0f, EnergyColor, true);
+            if (efill.width > 0f) GUI.DrawTexture(new Rect(efill.x, efill.y, efill.width, efill.height * 0.55f), sheen);
+
+            // Name and upgrades to the right of the portrait.
+            float gx = pr.xMax + gap + 3f * scale;
+            var nameRect = new Rect(gx, pr.y, 190f * scale, nameH);
+            var nameStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleLeft, fontSize = Mathf.Max(8, Mathf.RoundToInt(15f * scale)), fontStyle = FontStyle.Bold };
+            nameStyle.normal.textColor = new Color(0f, 0f, 0f, 0.85f);
+            GUI.Label(new Rect(nameRect.x + 1.5f * scale, nameRect.y + 1.5f * scale, nameRect.width, nameRect.height), name, nameStyle);
+            nameStyle.normal.textColor = dead ? new Color(0.6f, 0.6f, 0.6f) : Gold;
+            GUI.Label(nameRect, name, nameStyle);
+
+            Vector2 mouse = Event.current.mousePosition;
+            for (int n = 0; n < owned.Count; n++)
+            {
+                var r = new Rect(gx + n % PerRow * (pip + pipGap), pr.y + nameH + 6f * scale + n / PerRow * (pip + pipGap), pip, pip);
+                Color c = UpgradeDef.CategoryColor(owned[n].Category);
+                DrawRect(new Rect(r.x - 1.5f * scale, r.y - 1.5f * scale, r.width + 3f * scale, r.height + 3f * scale), Panel);
+                DrawRect(r, new Color(c.r * 0.55f, c.g * 0.55f, c.b * 0.55f));
+                GUI.DrawTexture(new Rect(r.x, r.y, r.width, r.height * 0.5f), sheen);
+                string nm = owned[n].Name;
+                DrawText(r, string.IsNullOrEmpty(nm) ? "?" : nm.Substring(0, 1), Mathf.RoundToInt(14f * scale), FontStyle.Bold, Color.white);
+                if (r.Contains(mouse)) { hoverTip = nm; hoverRect = r; hoverColor = c; }
+            }
+
+            int pipRows = owned.Count > 0 ? Mathf.CeilToInt(owned.Count / (float)PerRow) : 0;
+            float upgradesH = nameH + 6f * scale + pipRows * (pip + pipGap);
+            float frameH = Mathf.Max(portrait + 7f * scale + barH + 5f * scale + energyH, upgradesH);
+            y += frameH + 22f * scale;
+        }
+
+        string hoverTip;
+        Rect hoverRect;
+        Color hoverColor;
+
+        void DrawHoverTip()
+        {
+            if (string.IsNullOrEmpty(hoverTip)) return;
+            float w = Mathf.Max(120f, hoverTip.Length * 9.5f) * scale, h = 26f * scale;
+            var r = new Rect(hoverRect.xMax + 8f * scale, hoverRect.center.y - h * 0.5f, w, h);
+            DrawRect(new Rect(r.x - 2f * scale, r.y - 2f * scale, r.width + 4f * scale, r.height + 4f * scale), hoverColor);
+            DrawRect(r, new Color(0.04f, 0.05f, 0.08f, 0.96f));
+            DrawText(r, hoverTip, Mathf.RoundToInt(15f * scale), FontStyle.Bold, Color.white);
+            hoverTip = null;
         }
 
         // ---------- Passives and upgrades ----------

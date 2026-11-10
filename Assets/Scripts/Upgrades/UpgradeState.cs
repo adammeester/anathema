@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Abilities.KhorneBerserker;
 using Anathema.Combat;
 using Anathema.Net;
@@ -60,6 +61,8 @@ namespace Anathema.Upgrades
                 gameObject.AddComponent<TwoHandedGrip>();
             if (character == "KhorneBerserker" && GetComponent<BerserkerWeaponVisual>() == null)
                 gameObject.AddComponent<BerserkerWeaponVisual>();
+            if (character == "GreyKnight" && GetComponent<GreyKnightArmament>() == null)
+                gameObject.AddComponent<GreyKnightArmament>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!NetGame.Online && GetComponent<UpgradeTestPanel>() == null) gameObject.AddComponent<UpgradeTestPanel>();
 #endif
@@ -173,6 +176,7 @@ namespace Anathema.Upgrades
         void Recompute()
         {
             float bonusHealth = 0f, armor = 0f, ccScale = 1f;
+            bool lastStand = false;
             UpgradeDef[] all = UpgradeCatalog.For(character);
             if (all != null)
             {
@@ -182,6 +186,7 @@ namespace Anathema.Upgrades
                     bonusHealth += def.BonusHealth;
                     armor += def.Armor;
                     ccScale *= def.CrowdControlScale;
+                    lastStand |= def.GrantsLastStand;
                 }
             }
 
@@ -190,6 +195,7 @@ namespace Anathema.Upgrades
                 health.SetBonusMaxHealth(bonusHealth);
                 health.Armor = armor;
                 health.CrowdControlScale = ccScale;
+                health.LastStand = lastStand;
             }
             Changed?.Invoke(this);
         }

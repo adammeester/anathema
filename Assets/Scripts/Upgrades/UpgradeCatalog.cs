@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Abilities.KhorneBerserker;
 using Anathema.Abilities.Psyker;
 
@@ -16,6 +17,7 @@ namespace Anathema.Upgrades
         {
             { "KhorneBerserker", BerserkerUpgrade.All },
             { "Psyker", PsykerUpgrade.All },
+            { "GreyKnight", GreyKnightUpgrade.All },
         };
 
         // The pick on which a character may trade its weapon for another (weapon-group exclusivity is lifted for that pick).
@@ -29,6 +31,7 @@ namespace Anathema.Upgrades
         {
             { "KhorneBerserker", BerserkerUpgrade.Sets },
             { "Psyker", PsykerUpgrade.Sets },
+            { "GreyKnight", GreyKnightUpgrade.Sets },
         };
 
         // The offers for the pick after round `round` (1-based). Characters with fixed sets get exactly those (minus

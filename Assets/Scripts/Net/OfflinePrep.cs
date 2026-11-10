@@ -65,9 +65,9 @@ namespace Anathema.Net
             health.Invulnerable = true;
 
             Vector3 spawn = respawner != null ? respawner.SpawnPosition : fallbackSpawn;
-            area = PrepArea.Show(spawn);
+            area = ReadyRoom.AnyContains(spawn) ? null : PrepArea.Show(spawn); // a ready room's gate holds you in instead
 
-            GasZone gas = FindFirstObjectByType<GasZone>();
+            GasZone gas = FindAnyObjectByType<GasZone>();
             if (gas != null) gas.Restart();
             HealingOrb.ClearAll();
 
@@ -99,7 +99,7 @@ namespace Anathema.Net
         {
             Leave();
             Teleport();
-            GasZone gas = FindFirstObjectByType<GasZone>();
+            GasZone gas = FindAnyObjectByType<GasZone>();
             if (gas != null) gas.Restart();
         }
 

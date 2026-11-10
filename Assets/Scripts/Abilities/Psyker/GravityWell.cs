@@ -111,8 +111,9 @@ namespace Anathema.Abilities.Psyker
             float blast = radius * 0.7f;
             PsykerFx.Ring(center, 0.3f, blast, 0.3f, Color.white, 0.35f);
             PsykerFx.Ring(center, 0.3f, blast * 1.2f, 0.4f, Violet, 0.2f);
-            if (!pulls || detonationDamage <= 0f) return;
 
+            // Every machine marks whoever is caught in the blast as Charged (so everyone sees the rune), but only the
+            // owner's copy deals damage. The detonation itself never gets the Charged bonus: it is applied as a plain hit.
             bool hitAny = false;
             foreach (Collider col in Physics.OverlapSphere(center + Vector3.up, blast + 1f, ~0, QueryTriggerInteraction.Ignore))
             {
@@ -123,7 +124,8 @@ namespace Anathema.Abilities.Psyker
                 to.y = 0f;
                 if (to.magnitude > blast) continue;
 
-                if (target.TakeDamage(detonationDamage, owner, true)) hitAny = true;
+                if (pulls && detonationDamage > 0f && target.TakeDamage(detonationDamage, owner, true)) hitAny = true;
+                if (!target.IsDead) Charged.Apply(target.gameObject, Charged.DefaultDuration);
             }
 
             if (hitAny) HitMarkerSound.Play();

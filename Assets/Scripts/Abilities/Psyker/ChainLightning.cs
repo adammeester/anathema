@@ -22,6 +22,7 @@ namespace Anathema.Abilities.Psyker
         [SerializeField] float energyPerHit = 6f;
         [SerializeField] float originHeight = 1.25f;
         [SerializeField] float chargedDuration = Charged.DefaultDuration;
+        [SerializeField] float chargedBonus = 0.4f;   // extra damage against enemies that are already Charged
 
         [Header("Kine Slam (Force Stave)")]
         [SerializeField] float slamDamage = 18f;
@@ -178,11 +179,13 @@ namespace Anathema.Abilities.Psyker
                 points.Add(ChestOf(current));
 
                 // Passive: every victim is left charged. Applied on replicas too, so everyone sees the rune.
+                // The bonus is read first, so only a victim that was already Charged takes it (a follow-up hit).
+                float bonus = ChargedScale(current);
                 Charged.Apply(current.gameObject, chargedDuration);
 
                 if (!IsReplica)
                 {
-                    float dealt = damage * Mathf.Pow(falloff, jump);
+                    float dealt = damage * Mathf.Pow(falloff, jump) * bonus;
                     if (current.TakeDamage(dealt, gameObject, true))
                     {
                         HitMarkerSound.Play();
@@ -193,12 +196,13 @@ namespace Anathema.Abilities.Psyker
                 current = NextTarget(current, struck);
             }
 
-            // Arc Conduit upgrade: the bolt then runs on to every Charged enemy (the first target included), once each.
+            // Arc Conduit upgrade: the bolt then runs on to every other Charged enemy on the map (anyone already struck
+            // by the bolt is skipped, so nobody is hit twice) and finally returns to the original target.
             if (Anathema.Upgrades.UpgradeState.Has(gameObject, PsykerUpgrade.ArcConduit))
             {
                 var remaining = new List<Health>();
-                foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
-                    if (!h.IsDead && h.Team != Health.Team && Charged.IsCharged(h.gameObject)) remaining.Add(h);
+                foreach (Health h in FindObjectsByType<Health>())
+                    if (!struck.Contains(h) && !h.IsDead && h.Team != Health.Team && Charged.IsCharged(h.gameObject)) remaining.Add(h);
 
                 Vector3 at = points[points.Count - 1];
                 while (remaining.Count > 0)
@@ -215,23 +219,33 @@ namespace Anathema.Abilities.Psyker
 
                     at = ChestOf(next);
                     points.Add(at);
-                    if (!IsReplica && next.TakeDamage(damage * PsykerUpgrade.ConduitDamageScale, gameObject, true))
-                    {
-                        HitMarkerSound.Play();
-                        if (energy != null) energy.Gain(energyPerHit);
-                    }
-                    Charged.Apply(next.gameObject, chargedDuration); // the bolt keeps them charged
+                    ConduitHit(next);
                 }
+
+                // The bolt returns to where it started (visual only: the first target was already struck).
+                if (first != null && !first.IsDead && points.Count > struck.Count + 1) points.Add(ChestOf(first));
             }
 
             PsykerFx.Bolt(points, 0.3f);
+        }
+
+        void ConduitHit(Health target)
+        {
+            float bonus = ChargedScale(target);
+            Charged.Apply(target.gameObject, chargedDuration); // the bolt keeps them charged
+            if (IsReplica) return;
+            if (target.TakeDamage(damage * PsykerUpgrade.ConduitDamageScale * bonus, gameObject, true))
+            {
+                HitMarkerSound.Play();
+                if (energy != null) energy.Gain(energyPerHit);
+            }
         }
 
         Health NextTarget(Health from, List<Health> struck)
         {
             Health best = null;
             float bestDistance = jumpRange;
-            foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+            foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead || h.Team == Health.Team || struck.Contains(h)) continue;
                 float d = Vector3.Distance(h.transform.position, from.transform.position);
@@ -240,6 +254,12 @@ namespace Anathema.Abilities.Psyker
                 bestDistance = d;
             }
             return best;
+        }
+
+        // Passive: Chain Lightning (and Kine Slam) hit already-Charged enemies harder, like Warp Bolt.
+        float ChargedScale(Health target)
+        {
+            return Charged.IsCharged(target.gameObject) ? 1f + chargedBonus : 1f;
         }
 
         static Vector3 ChestOf(Health h)
@@ -255,7 +275,7 @@ namespace Anathema.Abilities.Psyker
             PsykerFx.Ring(centre, 0.4f, slamRadius, 0.35f, PsykerFx.Cyan, 0.3f);
             PsykerFx.Ring(centre, 0.2f, slamRadius * 0.7f, 0.3f, new Color(1f, 1f, 1f, 0.8f), 0.16f);
 
-            foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+            foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead || h.Team == Health.Team) continue;
 
@@ -263,10 +283,11 @@ namespace Anathema.Abilities.Psyker
                 offset.y = 0f;
                 if (offset.magnitude > slamRadius) continue;
 
+                float bonus = ChargedScale(h);
                 Charged.Apply(h.gameObject, chargedDuration);
                 if (IsReplica) continue;
 
-                if (h.TakeDamage(slamDamage, gameObject, true))
+                if (h.TakeDamage(slamDamage * bonus, gameObject, true))
                 {
                     HitMarkerSound.Play();
                     if (energy != null) energy.Gain(slamEnergyPerHit);

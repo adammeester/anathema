@@ -17,11 +17,13 @@ namespace Anathema.Arena
             public float dps;       // damage per second while standing in gas during/after this phase
         }
 
-        [SerializeField] float startRadius = 28f;
+        [SerializeField] float startRadius = 48f; // reaches past the far end of the ready rooms (about 44m out), so the gas closes in through them like any other part of the arena
         [SerializeField] float tickInterval = 0.5f;
+        [SerializeField] float startDelay = 20f; // extra seconds before the first phase's hold timer starts
+        float startDelayTimer;
         [SerializeField] Phase[] phases =
         {
-            new Phase { radius = 21f, holdTime = 15f, shrinkTime = 15f, dps = 4f },
+            new Phase { radius = 21f, holdTime = 15f, shrinkTime = 30f, dps = 4f }, // 48 -> 21 now, so a longer first shrink
             new Phase { radius = 14f, holdTime = 12f, shrinkTime = 12f, dps = 8f },
             new Phase { radius = 8f,  holdTime = 10f, shrinkTime = 10f, dps = 14f },
             new Phase { radius = 3f,  holdTime = 8f,  shrinkTime = 8f,  dps = 24f },
@@ -52,6 +54,7 @@ namespace Anathema.Arena
         {
             phaseIndex = 0;
             phaseTimer = 0f;
+            startDelayTimer = startDelay;
             CurrentRadius = fromRadius = startRadius;
             currentDps = 0f;
             tickTimer = 0f;
@@ -65,7 +68,8 @@ namespace Anathema.Arena
             // The prep area between rounds: the gas waits for the round to begin.
             if (Anathema.Net.NetGame.InPrep) return;
 
-            UpdateRadius();
+            if (startDelayTimer > 0f) startDelayTimer -= Time.deltaTime; // the gas holds still at the start of a round
+            else UpdateRadius();
             ApplyVisuals();
 
             tickTimer += Time.deltaTime;
@@ -106,12 +110,12 @@ namespace Anathema.Arena
             if (amount <= 0f) return;
 
             Vector3 center = transform.position;
-            foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+            foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead) continue;
                 Vector3 offset = h.transform.position - center;
                 offset.y = 0f;
-                if (offset.magnitude > CurrentRadius) h.TakeDamage(amount, gameObject, true);
+                if (offset.magnitude > CurrentRadius) h.TakeDamage(amount, gameObject, true, dot: true);
             }
         }
 

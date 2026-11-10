@@ -112,7 +112,7 @@ namespace Anathema.Abilities.PlagueSurgeon
 
             Infestation.BurstEffect.Spawn(center, SpreadRadius);
 
-            foreach (Health h in FindObjectsByType<Health>(FindObjectsSortMode.None))
+            foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead || h.Team == team) continue;
 

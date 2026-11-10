@@ -15,7 +15,10 @@
       "staveArc": 110,
       "staveWindup": 0.2,
       "staveCooldown": 0.7,
-      "staveKnockback": 1.2
+      "staveKnockback": 1.8,
+      "staveComboLength": 3,
+      "staveComboWindow": 1.1,
+      "staveFinisherDamage": 1.3
     },
     "ChainLightning": {
       "cooldown": 5,

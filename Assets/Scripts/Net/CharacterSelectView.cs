@@ -12,7 +12,7 @@ namespace Anathema.Net
         public class AbilityInfo
         {
             public string key, name, description, stats;
-            public bool ultimate, ex;
+            public bool ultimate, ex, passive;
             public Texture2D icon;
         }
 
@@ -22,6 +22,7 @@ namespace Anathema.Net
             public Role role;
             public Color accent;
             public AbilityInfo[] abilities;
+            public AbilityInfo passive;   // null when the champion has no passive
             public string footnote;
         }
 
@@ -57,6 +58,8 @@ namespace Anathema.Net
                 role = Role.Melee, accent = new Color(1f, 0.32f, 0.22f),
                 blurb = "Frenzied melee brawler. Closes the gap fast and wins by staying on top of you.",
                 footnote = "Hold Shift in game to use EX abilities",
+                passive = P("Rage", "Consecutive hits build Rage stacks, each speeding up your attacks. All stacks fall away at once if no hit lands within the window; at full Rage the window is longer. Replaced by the weapon's own passive when you take the Eviscerator or Heavy Chainaxe.",
+                    "+6% attack speed per stack  |  Max 5 stacks  |  2.2s window (+0.8s at full Rage)"),
                 abilities = new[]
                 {
                     A("LMB", "Chain-Axe Chops", "Hold to hack with the chain axes, left and right in turn. C during the wind-up cancels a chop. After a counter, the next chop hits twice as hard and reaches further.",
@@ -91,7 +94,7 @@ namespace Anathema.Net
                         "Enemy 6/s  |  Ally heal 7/s  |  Lasts 4s  |  Cooldown 6s  |  Range 13"),
                     A("E", "Restorative Cloud", "Vent a cloud at the cursor that lingers on the ground and heals every ally standing in it, you included. The poison is halved, so enemies still suffer. C during the wind-up cancels it.",
                         "Heal 10/s  |  Enemy damage 4.5/s  |  Cooldown 7s  |  Range 10  |  Radius 3  |  Lasts 5s"),
-                    A("Space", "Winged Escape", "You have no counter. Wings tear out of your back: you become invulnerable and fly in a straight line to the cursor, then drop back to the ground. Walls stop the flight short; C ends it early.",
+                    A("Space", "Winged Escape", "You have no counter. Wings tear out of your back: you become invulnerable and fly in a straight line to the cursor, then drop back to the ground. You fly over walls; C ends it early.",
                         "Cooldown 8s  |  Range 9  |  Invulnerable while flying"),
                     A("R", "Ward of Plague", "Costs a full energy bar. Wrap the ally nearest your cursor (or yourself, if none) in a shield of plague-light. When its strength or time runs out it ruptures and infects every enemy near the holder with heavy Festering.",
                         "Shield 60  |  Lasts 8s  |  Range 14  |  Costs 100 energy", true),
@@ -107,26 +110,26 @@ namespace Anathema.Net
                 role = Role.Ranged, accent = new Color(0.7f, 0.5f, 1f),
                 blurb = "Fragile warp caster. Fast bolts, chain lightning and crowd control, with a blink that leaves fire behind. No counter.",
                 footnote = "Hold Shift in game to use EX abilities",
+                passive = P("Charged", "Chain Lightning leaves everything it strikes Charged. Warp Bolt, Chain Lightning and Kine Slam all hit Charged enemies harder, and Gravity Well Charges whoever it catches.",
+                    "Charged for 6s  |  +40% damage against Charged enemies"),
                 abilities = new[]
                 {
-                    A("LMB", "Warp Bolt", "Hold to hurl crackling bolts of warp energy along your aim. Fast and accurate. Each hit builds energy.",
-                        "Damage 9  |  Cooldown 0.55s  |  Range 14  |  +8 energy per hit"),
-                    A("RMB", "Chain Lightning", "An instant bolt of white lightning strikes the first enemy along your aim, then leaps to the nearest other enemies, each jump weaker than the last.",
-                        "Damage 16 (x0.7 per jump)  |  Cooldown 5s  |  Range 12  |  2 jumps  |  +6 energy per hit"),
+                    A("LMB", "Warp Bolt", "Hold to hurl crackling bolts of warp energy along your aim. Fast and accurate. Each hit builds energy. Deals 40% more damage to Charged enemies.",
+                        "Damage 9 (12.6 vs Charged)  |  Cooldown 0.55s  |  Range 14  |  +8 energy per hit"),
+                    A("RMB", "Chain Lightning", "An instant bolt of white lightning strikes the first enemy along your aim, then leaps to the nearest other enemies, each jump weaker than the last. Everything it strikes is left Charged for 6s, and enemies that are already Charged take 40% more damage.",
+                        "Damage 16 (22.4 vs Charged, x0.7 per jump)  |  Cooldown 5s  |  Range 12  |  2 jumps  |  +6 energy per hit"),
                     A("Q", "Cripple", "Fire a slow, heavy bolt of crippling warp force at the first enemy in its path. It does a little damage and stuns the target. C during the wind-up cancels it.",
                         "Damage 5  |  Stun 1.5s  |  Cooldown 8s  |  Range 14  |  +12 energy per hit"),
                     A("E", "Kine Shield", "Wrap yourself in a telekinetic shield that soaks damage, area and over-time damage included. It fades if unused, and recasting replaces it. C drops it.",
                         "Absorbs 50  |  Lasts 5s  |  Cooldown 10s"),
-                    A("Space", "Warp Step", "You have no counter. Step through the warp, vanishing and reappearing at the cursor (stopped short of walls). A pool of warp-fire is left where you land, burning enemies inside it.",
+                    A("Space", "Warp Step", "You have no counter. Step through the warp, vanishing and reappearing at the cursor (over walls, but never into one). A pool of warp-fire is left where you land, burning enemies inside it.",
                         "Cooldown 6s  |  Range 8  |  Fire 12/s  |  Radius 2.2  |  Lasts 4s"),
                     A("R", "Psychic Blast", "Costs a full energy bar. After a brief gather you stand planted and channel a beam of white lightning that pierces everything in its path. The beam follows your cursor at a limited turn rate, so sweep it across enemies. Stuns, panic, silence and knockback interrupt it; C during the gather cancels and refunds.",
                         "Damage 7 per 0.25s  |  Channel 3s  |  Range 15  |  Costs 100 energy", true),
-                    EX("Shift+Q", "Gravity Well", "Instead of the bolt, a singularity opens at the cursor and drags every enemy inside to its centre, then collapses in a burst that damages whoever is left near it.",
+                    EX("Shift+Q", "Gravity Well", "Instead of the bolt, a singularity opens at the cursor and drags every enemy inside to its centre, then collapses in a burst that damages and Charges whoever is left near it.",
                         "Detonation 25  |  Range 12  |  Radius 4  |  Lasts 1.8s  |  Costs 35 energy"),
                     EX("Shift+E", "Psychic Scream", "Lost if you take the Force Stave. Instead of the shield, a wail of fear rolls out from you. Every enemy in range is gripped by panic and runs from you, unable to attack or use abilities. It does no damage.",
-                        "Panic 2s  |  Radius 4.2  |  Costs 40 energy"),
-                    EX("Shift+RMB", "Mind Leech", "Force Stave only. Instead of Kine Slam, tether yourself to the enemy nearest the cursor. It interrupts and silences them at once, then drains their health, healing you and feeding your energy. Breaks if the target dies or strays out of range, or if you are disrupted.",
-                        "Drain 16/s  |  Heal 16/s  |  Silence 2s  |  Range 11  |  Lasts 2s  |  Costs 40 energy")
+                        "Panic 2s  |  Radius 4.2  |  Costs 40 energy")
                 }
             },
             new CharacterInfo
@@ -160,6 +163,9 @@ namespace Anathema.Net
         static AbilityInfo A(string key, string name, string description, string stats, bool ultimate = false)
             => new AbilityInfo { key = key, name = name, description = description, stats = stats, ultimate = ultimate };
 
+        static AbilityInfo P(string name, string description, string stats)
+            => new AbilityInfo { key = "Passive", name = name, description = description, stats = stats, passive = true };
+
         static AbilityInfo EX(string key, string name, string description, string stats)
             => new AbilityInfo { key = key, name = name, description = description, stats = stats, ex = true };
 
@@ -177,7 +183,6 @@ namespace Anathema.Net
 
         int shown = -1;
         float yaw = 20f;
-        float spinVelocity;
         bool alive;
 
         public bool Alive => alive;
@@ -190,8 +195,11 @@ namespace Anathema.Net
             alive = true;
 
             foreach (var c in Roster)
+            {
                 foreach (var a in c.abilities)
                     if (a.icon == null) a.icon = MakeIcon(a, c.accent);
+                if (c.passive != null && c.passive.icon == null) c.passive.icon = MakeIcon(c.passive, c.accent);
+            }
 
             stage = new GameObject("CharacterSelectStage");
             stage.transform.position = StageOrigin;
@@ -231,6 +239,8 @@ namespace Anathema.Net
                 model.transform.localPosition = Vector3.zero;
                 model.transform.localRotation = Quaternion.identity;
                 models[i] = model;
+
+                HideExtraGear(model);
 
                 Bounds b = Measure(model);
                 focus[i] = new Vector3(0f, b.center.y - StageOrigin.y, 0f);
@@ -285,16 +295,38 @@ namespace Anathema.Net
 
         // --- Rendering ---------------------------------------------------------------------------------------------
 
+        // The Berserker mesh carries every weapon, each on its own bone; in-game BerserkerWeaponVisual hides the ones
+        // not wielded. Here only the starting dual chainaxes should show.
+        // Likewise the Grey Knight mesh carries every order's gear and every weapon; show only the starting kit
+        // (halberd + bolter), not the Purifier/Paladin helms and pauldrons or the unlocked weapons.
+        public static void HideExtraGear(GameObject model)
+        {
+            foreach (Transform t in model.GetComponentsInChildren<Transform>(true))
+                switch (t.name)
+                {
+                    case "Heavy_Chainaxe": case "Eviscerator":
+                    case "Helm_White": case "Pauldron_White_L": case "Pauldron_White_R":
+                    case "Helm_Gold": case "Pauldron_Gold_L": case "Pauldron_Gold_R":
+                    case "Daemonhammer": case "Psycannon":
+                        t.localScale = Vector3.zero;
+                        break;
+                }
+        }
+
         void RenderPortrait(int index, GameObject model)
         {
             var rt = new RenderTexture(PortraitSize, PortraitSize, 24, RenderTextureFormat.ARGB32) { antiAliasing = 4 };
             Portraits[index] = rt;
+            RenderHeadShot(stageCamera, model, rt);
+        }
 
+        // Frames the model's head and renders it into rt with the given (disabled, hand-rendered) camera.
+        public static void RenderHeadShot(Camera cam, GameObject model, RenderTexture rt)
+        {
             Transform head = FindDeep(model.transform, "Head");
             Vector3 headPos = head != null ? head.position : model.transform.position + Vector3.up * 1.7f;
 
             model.SetActive(true);
-            var cam = stageCamera;
             float oldFov = cam.fieldOfView;
             cam.fieldOfView = 24f;
             cam.targetTexture = rt;
@@ -326,13 +358,11 @@ namespace Anathema.Net
                 models[index].SetActive(true);
                 shown = index;
                 yaw = 20f;
-                spinVelocity = 0f;
             }
 
             if (Mathf.Abs(dragDelta) > 0.01f)
             {
                 yaw -= dragDelta * 0.6f;
-                spinVelocity = 0f;
             }
             else
             {

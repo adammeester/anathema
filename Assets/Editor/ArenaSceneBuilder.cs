@@ -74,10 +74,16 @@ namespace Anathema.EditorTools
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
             CreateLight();
-            CreateArena();
+            CreateArena(MapColosseum, readyRooms: true);
             new GameObject("Gas Zone").AddComponent<GasZone>();
             new GameObject("Orb Spawner").AddComponent<OrbSpawner>();
             GameObject player = CreatePlayer(character);
+            // The training player starts in the left ready room (the gate opens when prep ends), like an online match.
+            foreach (ReadyRoom room in Object.FindObjectsByType<ReadyRoom>())
+            {
+                if (!room.IsLeft) continue;
+                player.transform.SetPositionAndRotation(room.SlotPosition(0, 1, out Quaternion facing), facing);
+            }
             CreateCamera(player.transform);
             GameObject shooter = CreateDummy(new Vector3(10f, 1f, 8f));
             shooter.name = "Training Dummy (Shooter)";
@@ -129,11 +135,17 @@ namespace Anathema.EditorTools
             RenderSettings.ambientLight = new Color(0.32f, 0.2f, 0.18f);
         }
 
-        internal static void CreateArena(int map = MapColosseum)
+        // Wall segments 0 and 12 sit on the -X/+X axis; with ready rooms they become the doorways.
+        static bool IsDoorSegment(int i) => i == 0 || i == 12;
+        // Stand/spire pieces within one segment of a doorway are dropped so the ready rooms are not buried in the stands.
+        static bool IsDoorStand(int i) => i == 0 || i == 1 || i == 23 || i == 11 || i == 12 || i == 13;
+        static bool InReadyRoomZone(Vector3 p) => Mathf.Abs(p.z) < 12f && Mathf.Abs(p.x) > 28f;
+
+        internal static void CreateArena(int map = MapColosseum, bool readyRooms = false)
         {
             if (map == MapShrine)
             {
-                CreateShrineArena();
+                CreateShrineArena(readyRooms);
                 return;
             }
 
@@ -178,6 +190,8 @@ namespace Anathema.EditorTools
             float chord = 2f * (ArenaRadius + 1f) * Mathf.Tan(Mathf.PI / WallSegments) + 0.25f;
             for (int i = 0; i < WallSegments; i++)
             {
+                if (readyRooms && IsDoorSegment(i)) continue; // doorway into a ready room
+
                 float angle = i * 360f / WallSegments;
                 float yaw = 90f - angle;
 
@@ -253,9 +267,12 @@ namespace Anathema.EditorTools
                 for (int i = 0; i < WallSegments; i++)
                 {
                     float angle = i * 360f / WallSegments;
+                    // (Built then dropped, rather than skipped, so the crowd's random layout elsewhere stays the same.)
+                    bool dropped = readyRooms && IsDoorStand(i);
                     var tier = Box($"Stand {t}-{i}", RadialPos(tierRadius[t], angle, tierHeight[t] * 0.5f), new Vector3(tierChord, tierHeight[t], 4.6f), stands);
                     tier.transform.rotation = Quaternion.Euler(0f, 90f - angle, 0f);
                     RemoveCollider(tier);
+                    if (dropped) Object.DestroyImmediate(tier);
 
                     for (int c = 0; c < 4; c++)
                     {
@@ -263,17 +280,24 @@ namespace Anathema.EditorTools
                         float depth = ((float)rng.NextDouble() - 0.5f) * 3.4f;
                         Vector3 tangent = new Vector3(-Mathf.Sin(angle * Mathf.Deg2Rad), 0f, Mathf.Cos(angle * Mathf.Deg2Rad));
                         Vector3 pos = RadialPos(tierRadius[t] + depth, angle, tierHeight[t] + 0.45f) + tangent * offset;
-                        var fan = Box($"Fan {t}-{i}-{c}", pos, new Vector3(0.6f, 0.9f, 0.5f), crowd[rng.Next(crowd.Length)]);
+                        Material crowdMaterial = crowd[rng.Next(crowd.Length)];
+                        if (dropped) continue;
+                        var fan = Box($"Fan {t}-{i}-{c}", pos, new Vector3(0.6f, 0.9f, 0.5f), crowdMaterial);
                         RemoveCollider(fan);
                     }
                 }
             }
+
+            // Khorne-worshipping chaos dressing: the two insignia decals, blood and skeletons.
+            AddChaosDressing(new System.Random(666), ArenaRadius, WallSegments, GetMaterial("ChaosBone", new Color(0.62f, 0.58f, 0.46f)), wallDark, 1.9f, readyRooms, ground);
+
+            if (readyRooms) CreateReadyRooms(ArenaRadius, ground, wall, wallDark, 3f);
         }
 
         // Ruined gothic shrine: same footprint and layout as the colosseum (round 28m floor, glowing centre ring, four
         // diagonal cover clusters, buttressed perimeter) but dressed as a derelict Imperial chapel -- cracked flagstones,
         // sickly green lamplight, bone piles, torn banners and drifting servo-skulls.
-        static void CreateShrineArena()
+        static void CreateShrineArena(bool readyRooms = false)
         {
             const float ArenaRadius = 28f;
             const int WallSegments = 24;
@@ -334,16 +358,21 @@ namespace Anathema.EditorTools
                 Quaternion rot = Quaternion.Euler(0f, yaw, 0f);
                 float h = 3f + (float)rng.NextDouble() * 1.8f;
 
-                var seg = Box($"Wall {i}", RadialPos(ArenaRadius + 1.1f, angle, h * 0.5f), new Vector3(chord, h, 1.6f), stone);
-                seg.transform.rotation = rot;
+                bool door = readyRooms && IsDoorSegment(i); // doorway into a ready room: no wall here (random draws still made)
 
-                var trim = Box($"Wall Trim {i}", RadialPos(ArenaRadius + 0.28f, angle, 0.1f), new Vector3(chord, 0.14f, 0.32f), glowDim);
-                trim.transform.rotation = rot;
-                RemoveCollider(trim);
+                if (!door)
+                {
+                    var seg = Box($"Wall {i}", RadialPos(ArenaRadius + 1.1f, angle, h * 0.5f), new Vector3(chord, h, 1.6f), stone);
+                    seg.transform.rotation = rot;
 
-                var cap = Box($"Wall Cap {i}", RadialPos(ArenaRadius + 1.1f, angle, h + 0.12f), new Vector3(chord, 0.25f, 1.9f), stoneDark);
-                cap.transform.rotation = rot;
-                RemoveCollider(cap);
+                    var trim = Box($"Wall Trim {i}", RadialPos(ArenaRadius + 0.28f, angle, 0.1f), new Vector3(chord, 0.14f, 0.32f), glowDim);
+                    trim.transform.rotation = rot;
+                    RemoveCollider(trim);
+
+                    var cap = Box($"Wall Cap {i}", RadialPos(ArenaRadius + 1.1f, angle, h + 0.12f), new Vector3(chord, 0.25f, 1.9f), stoneDark);
+                    cap.transform.rotation = rot;
+                    RemoveCollider(cap);
+                }
 
                 // Buttress pier on the seam to the next segment, topped with a pinnacle and a candle.
                 float seam = angle + 180f / WallSegments;
@@ -356,7 +385,11 @@ namespace Anathema.EditorTools
                 var flame = Box($"Pier Candle {i}", RadialPos(ArenaRadius + 0.6f, seam, 1.3f), new Vector3(0.14f, 0.28f, 0.14f), candle);
                 RemoveCollider(flame);
 
-                if (i % 2 == 0)
+                if (door)
+                {
+                    // nothing hangs in a doorway
+                }
+                else if (i % 2 == 0)
                 {
                     // Lancet window: slim glowing slab with a diamond forming the pointed arch.
                     var win = Box($"Window {i}", RadialPos(ArenaRadius + 0.22f, angle, 2.0f), new Vector3(0.7f, 1.8f, 0.08f), glowDim);
@@ -384,6 +417,7 @@ namespace Anathema.EditorTools
                     var rubble = Box($"Rubble {i}", RadialPos(ArenaRadius - 1.1f, rAngle, 0.25f), new Vector3(1.1f, 0.5f, 0.9f), stoneDark);
                     rubble.transform.rotation = Quaternion.Euler((float)rng.NextDouble() * 18f, (float)rng.NextDouble() * 360f, (float)rng.NextDouble() * 18f);
                     RemoveCollider(rubble);
+                    if (door) Object.DestroyImmediate(rubble); // keep the doorway clear
                 }
             }
 
@@ -486,6 +520,9 @@ namespace Anathema.EditorTools
                 AddServoSkull($"Servo Skull Crate {i}", RadialPos(21.5f, angle, 4.2f), 1.2f, (i % 2 == 0 ? -0.35f : 0.35f), new Color(1f, 0.25f, 0.15f), bone, iron);
             }
 
+            // Chaos corruption: Khorne sigils branded into the floor and hung on the walls, skeletons strewn about.
+            AddChaosDressing(rng, ArenaRadius, WallSegments, bone, iron, 3.6f, readyRooms, flag, false);
+
             // Outside the wall: jagged ruined spires against the void, with the occasional dying lamp.
             for (int i = 0; i < 28; i++)
             {
@@ -495,12 +532,74 @@ namespace Anathema.EditorTools
                 var spire = Box($"Spire {i}", RadialPos(radius, angle, h * 0.5f), new Vector3(2f + (float)rng.NextDouble() * 2f, h, 2f + (float)rng.NextDouble() * 2f), stoneDark);
                 spire.transform.rotation = Quaternion.Euler((float)(rng.NextDouble() - 0.5) * 8f, (float)rng.NextDouble() * 90f, (float)(rng.NextDouble() - 0.5) * 8f);
                 RemoveCollider(spire);
+                bool inRoomZone = readyRooms && InReadyRoomZone(spire.transform.position);
+                if (inRoomZone) Object.DestroyImmediate(spire);
                 if (i % 4 == 0)
                 {
                     var lampGlow = Box($"Spire Lamp {i}", RadialPos(radius - 2.2f, angle, h * 0.6f), new Vector3(0.3f, 0.9f, 0.3f), glowDim);
                     RemoveCollider(lampGlow);
+                    if (readyRooms && InReadyRoomZone(lampGlow.transform.position)) Object.DestroyImmediate(lampGlow);
                 }
             }
+
+            if (readyRooms) CreateReadyRooms(ArenaRadius, flag, stone, stoneDark, 3.6f);
+        }
+
+        // Two ready rooms outside the perimeter wall, one through each doorway (-X "left" and +X "right"). Each is a walled
+        // pen with a floor, a glowing threshold and a gate that ReadyRoom raises/lowers with the ready phase. Local space:
+        // the root sits on the wall line with +Z pointing out of the arena (see ReadyRoom).
+        static void CreateReadyRooms(float arenaRadius, Material floorMat, Material wallMat, Material capMat, float wallHeight)
+        {
+            Material gateMat = GetUnlitMaterial("ReadyGate", new Color(0.95f, 0.75f, 0.3f, 0.55f));
+            Material edgeMat = GetUnlitMaterial("ReadyRoomEdge", new Color(0.95f, 0.75f, 0.3f));
+
+            for (int side = 0; side < 2; side++)
+            {
+                float angle = side == 0 ? 180f : 0f;
+                string label = side == 0 ? "Left" : "Right";
+
+                var root = new GameObject($"Ready Room {label}");
+                root.transform.position = RadialPos(arenaRadius + 1.1f, angle, 0f);
+                root.transform.rotation = Quaternion.LookRotation(RadialDir(angle), Vector3.up);
+                Transform t = root.transform;
+
+                float length = ReadyRoom.FarZ + 0.5f;   // from the wall line to the end wall
+                float side0 = -0.5f;                    // side walls start inside the neighbouring perimeter segments
+                float sideLen = length - side0;
+                float sideX = ReadyRoom.HalfWidth + 0.55f;
+
+                RoomBox(t, "Floor", new Vector3(0f, -0.45f, side0 + sideLen * 0.5f), new Vector3(sideX * 2f, 1f, sideLen), floorMat, false); // walked on via the ground collider
+                RoomBox(t, "Threshold Glow", new Vector3(0f, 0.06f, 1.6f), new Vector3(ReadyRoom.HalfWidth * 2f, 0.04f, 0.3f), edgeMat, false);
+                for (int s = -1; s <= 1; s += 2)
+                {
+                    RoomBox(t, $"Side Wall {s}", new Vector3(s * sideX, wallHeight * 0.5f, side0 + sideLen * 0.5f), new Vector3(1.1f, wallHeight, sideLen), wallMat);
+                    RoomBox(t, $"Side Cap {s}", new Vector3(s * sideX, wallHeight + 0.12f, side0 + sideLen * 0.5f), new Vector3(1.4f, 0.25f, sideLen + 0.3f), capMat, false);
+                }
+                RoomBox(t, "End Wall", new Vector3(0f, wallHeight * 0.5f, length), new Vector3(sideX * 2f + 1.1f, wallHeight, 1.1f), wallMat);
+                RoomBox(t, "End Cap", new Vector3(0f, wallHeight + 0.12f, length), new Vector3(sideX * 2f + 1.4f, 0.25f, 1.4f), capMat, false);
+                RoomBox(t, "End Glow", new Vector3(0f, 0.12f, length - 0.65f), new Vector3(sideX * 2f - 1f, 0.1f, 0.14f), edgeMat, false);
+
+                var lightGo = new GameObject("Room Light");
+                lightGo.transform.SetParent(t, false);
+                lightGo.transform.localPosition = new Vector3(0f, 3.5f, 7f);
+                AddLight(lightGo, new Color(0.95f, 0.75f, 0.3f), 15f, 1.3f);
+
+                // The gate fills the doorway between the two neighbouring wall segments (a little wider, so it bites into them).
+                float gateH = wallHeight + 0.6f;
+                RoomBox(t, "Gate", new Vector3(0f, gateH * 0.5f, 0f), new Vector3(7.4f, gateH, 0.5f), gateMat);
+
+                root.AddComponent<ReadyRoom>();
+            }
+        }
+
+        // A box in a ready room's local space, parented to it.
+        static GameObject RoomBox(Transform room, string name, Vector3 local, Vector3 scale, Material material, bool collider = true)
+        {
+            GameObject box = Box(name, room.TransformPoint(local), scale, material);
+            box.transform.rotation = room.rotation;
+            box.transform.SetParent(room, true);
+            if (!collider) RemoveCollider(box);
+            return box;
         }
 
         static void AddLight(GameObject go, Color color, float range, float intensity)
@@ -535,6 +634,252 @@ namespace Anathema.EditorTools
             lightGo.transform.SetParent(root.transform, false);
             lightGo.transform.localPosition = Vector3.up * 1.7f;
             AddLight(lightGo, new Color(0.35f, 1f, 0.35f), 7f, 1.3f);
+        }
+
+        // Khorne dressing for the shrine: blood-red sigils on the floor and walls, skeletons slumped and impaled around the arena.
+        static void AddChaosDressing(System.Random rng, float arenaRadius, int wallSegments, Material bone, Material iron, float plateHeight, bool readyRooms = false, Material floor = null, bool centreInsignia = true)
+        {
+            Material blood = GetUnlitMaterial("ChaosBlood", new Color(0.75f, 0.04f, 0.03f));
+            Material poolMat = GetMaterial("ChaosPool", new Color(0.16f, 0.01f, 0.01f));
+            var gore = new System.Random(1337); // its own stream, so the layout below doesn't shift the skeleton placement
+
+            // The Khorne insignia (cut out of the reference image) laid in the middle of the arena, on a pool of blood. It is
+            // the same shape carved into the floor: a lit, floor-coloured material with the original's bevels as relief.
+            // (The original rusted and enamel-pin versions are also in Assets/Textures/Khorne, currently unused.)
+            Disc("Chaos Blood Pool", 14f, 0.035f, poolMat);
+            if (centreInsignia) AddInsigniaDecal("Khorne Insignia", "KhorneInsigniaFloor", new Vector3(0f, 0.125f, 0f), 13f, floor);
+            var sigilLight = new GameObject("Chaos Sigil Light");
+            sigilLight.transform.position = new Vector3(0f, 0.8f, 0f);
+            AddLight(sigilLight, new Color(1f, 0.1f, 0.05f), 14f, 1.1f);
+
+            // Between the cover: pools of blood, alternating with a corpse lying in its own pool.
+            for (int i = 0; i < 8; i++)
+            {
+                float angle = i * 45f + 22.5f;
+                Vector3 pos = RadialPos(i % 2 == 0 ? 16f : 24f, angle, 0f);
+                if (i % 2 == 0)
+                {
+                    AddBloodPool($"Blood Pool {i}", pos, 2.4f, gore, poolMat);
+                }
+                else
+                {
+                    AddBloodPool($"Blood Pool {i}", pos, 1.7f, gore, poolMat);
+                    AddSkeleton($"Skeleton Slain {i}", pos, (float)gore.NextDouble() * 360f, SkeletonPose.Sprawled, bone, iron);
+                }
+            }
+
+            // Blood run down the wall in place of the old plates: a few drips and a pool at the foot.
+            for (int i = 0; i < wallSegments; i += 3)
+            {
+                if (readyRooms && IsDoorSegment(i)) continue; // that segment is a ready-room doorway
+                float angle = i * 360f / wallSegments;
+                Quaternion rot = Quaternion.Euler(0f, 90f - angle, 0f);
+                float top = plateHeight + 0.7f;
+                for (int d = -1; d <= 1; d++)
+                {
+                    float length = top - (d == 0 ? 0f : (float)gore.NextDouble() * top * 0.45f);
+                    float width = d == 0 ? 0.42f : 0.16f + (float)gore.NextDouble() * 0.1f;
+                    Vector3 tangent = new Vector3(-Mathf.Sin(angle * Mathf.Deg2Rad), 0f, Mathf.Cos(angle * Mathf.Deg2Rad));
+                    Vector3 pos = RadialPos(arenaRadius + 0.2f, angle, top - length * 0.5f + 0.05f) + tangent * (d * 0.45f);
+                    var drip = Box($"Wall Blood {i}.{d}", pos, new Vector3(width, length, 0.04f), blood);
+                    drip.transform.rotation = rot;
+                    RemoveCollider(drip);
+                }
+                AddBloodPool($"Wall Blood Pool {i}", RadialPos(arenaRadius - 0.6f, angle, 0f), 1.6f, gore, poolMat);
+            }
+
+            // Skeletons: slumped against the wall, sprawled on the floor and impaled on spikes.
+            for (int i = 0; i < 9; i++)
+            {
+                float angle = i * 40f + (float)rng.NextDouble() * 20f;
+                if (!BlocksDoorway(RadialPos(arenaRadius - 1.2f, angle, 0f), readyRooms))
+                    AddSkeleton($"Skeleton Slumped {i}", RadialPos(arenaRadius - 1.2f, angle, 0f), 90f - angle, SkeletonPose.Slumped, bone, iron);
+            }
+            for (int i = 0; i < 12; i++)
+            {
+                float angle = (float)rng.NextDouble() * 360f;
+                float radius = 6f + (float)rng.NextDouble() * 19f;
+                if (!BlocksDoorway(RadialPos(radius, angle, 0f), readyRooms))
+                    AddSkeleton($"Skeleton Fallen {i}", RadialPos(radius, angle, 0f), (float)rng.NextDouble() * 360f, SkeletonPose.Sprawled, bone, iron);
+            }
+            for (int i = 0; i < 6; i++)
+            {
+                float angle = i * 60f + 15f;
+                var pike = Box($"Impaling Spike {i}", RadialPos(17.5f, angle, 1.4f), new Vector3(0.1f, 2.8f, 0.1f), iron);
+                RemoveCollider(pike);
+                AddSkeleton($"Skeleton Impaled {i}", RadialPos(17.5f, angle, 0.9f), angle * 2f, SkeletonPose.Impaled, bone, iron);
+            }
+        }
+
+        static bool BlocksDoorway(Vector3 p, bool readyRooms) => readyRooms && Mathf.Abs(p.z) < 7f && Mathf.Abs(p.x) > 18f;
+
+        enum SkeletonPose { Slumped, Sprawled, Impaled }
+
+        const string InsigniaDir = "Assets/Textures/Khorne";
+
+        // Material for one of the cut-out insignia PNGs (Assets/Textures/Khorne). With a floorTone it is a lit, alpha-cutout
+        // version tinted with that floor material's colour, so the shape reads as carved into the floor; without one it is
+        // an unlit transparent sprite. Makes sure the texture is imported with alpha transparency, clamped edges and no
+        // power-of-two rescale (which would distort the shape).
+        static Material GetInsigniaMaterial(string file, Material floorTone, out float aspect)
+        {
+            aspect = 1f;
+            string texPath = $"{InsigniaDir}/{file}.png";
+            AssetDatabase.ImportAsset(texPath, ImportAssetOptions.ForceSynchronousImport);
+            if (AssetImporter.GetAtPath(texPath) is TextureImporter importer
+                && (!importer.alphaIsTransparency || importer.wrapMode != TextureWrapMode.Clamp || importer.npotScale != TextureImporterNPOTScale.None))
+            {
+                importer.alphaIsTransparency = true;
+                importer.wrapMode = TextureWrapMode.Clamp;
+                importer.npotScale = TextureImporterNPOTScale.None;
+                importer.SaveAndReimport();
+            }
+
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+            if (texture == null)
+            {
+                Debug.LogWarning($"Missing insignia texture {texPath}; skipping that decal.");
+                return null;
+            }
+            aspect = texture.width / (float)texture.height;
+
+            string matPath = floorTone != null ? $"{MaterialDir}/Insignia_{file}_{floorTone.name}.mat" : $"{MaterialDir}/Insignia_{file}.mat";
+            var material = AssetDatabase.LoadAssetAtPath<Material>(matPath);
+            if (material == null)
+            {
+                Directory.CreateDirectory(MaterialDir);
+                Shader shader = Shader.Find("Sprites/Default");
+                if (floorTone != null) shader = floorTone.shader; // the same shader as the floor, so lighting matches
+                material = new Material(shader);
+                AssetDatabase.CreateAsset(material, matPath);
+            }
+            material.mainTexture = texture;
+            material.color = floorTone != null ? floorTone.color : Color.white;
+            if (floorTone != null && material.shader.name == "Standard")
+            {
+                // Standard shader's "Cutout" rendering mode: solid where the texture is opaque, nothing elsewhere.
+                material.SetFloat("_Mode", 1f);
+                material.SetOverrideTag("RenderType", "TransparentCutout");
+                material.SetInt("_SrcBlend", (int)BlendMode.One);
+                material.SetInt("_DstBlend", (int)BlendMode.Zero);
+                material.SetInt("_ZWrite", 1);
+                material.SetFloat("_Cutoff", 0.5f);
+                material.EnableKeyword("_ALPHATEST_ON");
+                material.DisableKeyword("_ALPHABLEND_ON");
+                material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                material.renderQueue = (int)RenderQueue.AlphaTest;
+            }
+            EditorUtility.SetDirty(material);
+            return material;
+        }
+
+        // A flat decal of an insignia image lying on the floor, `width` metres wide, upright on screen (top towards +Z).
+        // Pass the floor material to carve it into the floor (lit, floor-coloured) instead of an unlit sprite.
+        static void AddInsigniaDecal(string name, string file, Vector3 centre, float width, Material floorTone = null)
+        {
+            Material material = GetInsigniaMaterial(file, floorTone, out float aspect);
+            if (material == null) return;
+
+            var quad = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            quad.name = name;
+            quad.transform.position = centre;
+            quad.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+            quad.transform.localScale = new Vector3(width, width / aspect, 1f);
+            var renderer = quad.GetComponent<Renderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.receiveShadows = floorTone != null; // carved into the floor, so it takes the same shadows
+            RemoveCollider(quad);
+        }
+
+        // An irregular pool of blood: a handful of overlapping flat discs.
+        static void AddBloodPool(string name, Vector3 centre, float radius, System.Random rng, Material material)
+        {
+            var root = new GameObject(name);
+            root.transform.position = new Vector3(centre.x, 0f, centre.z);
+            int lumps = 5;
+            for (int i = 0; i < lumps; i++)
+            {
+                float a = (float)rng.NextDouble() * Mathf.PI * 2f;
+                float r = i == 0 ? 0f : (float)rng.NextDouble() * radius * 0.5f;
+                float d = radius * (i == 0 ? 1.1f : 0.5f + (float)rng.NextDouble() * 0.5f);
+                var lump = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                lump.name = "Pool Lump";
+                lump.transform.SetParent(root.transform, false);
+                lump.transform.localPosition = new Vector3(Mathf.Cos(a) * r, 0.09f + i * 0.002f, Mathf.Sin(a) * r); // above the floor rings (top at 0.08)
+                lump.transform.localScale = new Vector3(d, 0.005f, d * (0.7f + (float)rng.NextDouble() * 0.5f));
+                lump.transform.localRotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 180f, 0f);
+                lump.GetComponent<Renderer>().sharedMaterial = material;
+                lump.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
+                RemoveCollider(lump);
+            }
+        }
+
+        // Blocky skeleton from bone cubes: skull, jaw, spine, ribs, pelvis and limbs. Built upright, then posed.
+        static void AddSkeleton(string name, Vector3 position, float yaw, SkeletonPose pose, Material bone, Material metal)
+        {
+            var root = new GameObject(name);
+            root.transform.position = position;
+            root.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+
+            var body = new GameObject("Body");
+            body.transform.SetParent(root.transform, false);
+            switch (pose)
+            {
+                case SkeletonPose.Sprawled: // lying on its back
+                    body.transform.localPosition = new Vector3(0f, 0.08f, 0f);
+                    body.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                    break;
+                case SkeletonPose.Slumped: // sitting up against the wall, tilted back
+                    body.transform.localPosition = new Vector3(0f, 0.04f, 0f);
+                    body.transform.localRotation = Quaternion.Euler(-10f, 0f, 0f);
+                    break;
+                default: // dangling off a spike
+                    body.transform.localRotation = Quaternion.Euler(0f, 0f, 6f);
+                    break;
+            }
+
+            void B(string part, Vector3 local, Vector3 scale, Vector3 euler)
+            {
+                var p = Box($"{name} {part}", Vector3.zero, scale, bone);
+                p.transform.SetParent(body.transform, false);
+                p.transform.localPosition = local;
+                p.transform.localRotation = Quaternion.Euler(euler);
+                RemoveCollider(p);
+            }
+
+            bool sit = pose == SkeletonPose.Slumped;
+            float seatDrop = sit ? -0.45f : 0f; // sitting lowers everything above the legs
+
+            B("Skull", new Vector3(0f, 1.62f + seatDrop, 0f), new Vector3(0.24f, 0.26f, 0.26f), sit ? new Vector3(25f, 0f, 0f) : Vector3.zero);
+            B("Jaw", new Vector3(0f, 1.46f + seatDrop, 0.05f), new Vector3(0.18f, 0.07f, 0.2f), new Vector3(pose == SkeletonPose.Impaled ? 22f : 8f, 0f, 0f));
+            B("Spine", new Vector3(0f, 1.1f + seatDrop, 0f), new Vector3(0.07f, 0.7f, 0.07f), Vector3.zero);
+            for (int r = 0; r < 4; r++)
+                B($"Rib {r}", new Vector3(0f, 1.32f - r * 0.12f + seatDrop, 0f), new Vector3(0.42f - r * 0.04f, 0.04f, 0.24f), Vector3.zero);
+            B("Pelvis", new Vector3(0f, 0.72f + seatDrop, 0f), new Vector3(0.34f, 0.12f, 0.2f), Vector3.zero);
+
+            for (int side = -1; side <= 1; side += 2)
+            {
+                B($"Arm {side}", new Vector3(side * 0.3f, 1.12f + seatDrop, 0f), new Vector3(0.06f, 0.6f, 0.06f), new Vector3(0f, 0f, side * (pose == SkeletonPose.Impaled ? 12f : 28f)));
+                if (sit)
+                {
+                    B($"Thigh {side}", new Vector3(side * 0.12f, 0.3f, 0.3f), new Vector3(0.08f, 0.08f, 0.6f), new Vector3(0f, side * 10f, 0f));
+                    B($"Shin {side}", new Vector3(side * 0.14f, 0.34f, 0.6f), new Vector3(0.07f, 0.7f, 0.07f), new Vector3(-8f, 0f, 0f));
+                }
+                else
+                {
+                    B($"Leg {side}", new Vector3(side * 0.12f, 0.36f, 0f), new Vector3(0.08f, 0.72f, 0.08f), new Vector3(0f, 0f, side * (pose == SkeletonPose.Impaled ? 4f : 14f)));
+                }
+            }
+
+            if (pose == SkeletonPose.Sprawled)
+            {
+                var blade = Box($"{name} Rusted Blade", Vector3.zero, new Vector3(0.08f, 0.02f, 0.9f), metal);
+                blade.transform.SetParent(root.transform, false);
+                blade.transform.localPosition = new Vector3(0.45f, 0.03f, 0.2f);
+                blade.transform.localRotation = Quaternion.Euler(0f, 18f, 0f);
+                RemoveCollider(blade);
+            }
         }
 
         // Floating skull with a jaw, glowing lens, antenna and a small lamp; ServoSkull animates it at runtime.

@@ -256,6 +256,10 @@ MonoBehaviour:
   energyPerHit: 10
   originHeight: 1.2
   telegraphColor: {r: 1, g: 1, b: 1, a: 0.25}
+  flameDuration: 2
+  flameRange: 7
+  flameHalfAngle: 20
+  flameTotalDamage: 32
   beamColor: {r: 0.5, g: 0.8, b: 1, a: 0.95}
 --- !u!114 &6674872844131464224
 MonoBehaviour:
@@ -276,6 +280,7 @@ MonoBehaviour:
   delay: 0.6
   rootDuration: 0.75
   energyPerHit: 8
+  fireDuration: 2
   telegraphColor: {r: 1, g: 1, b: 1, a: 0.15}
   fillColor: {r: 1, g: 1, b: 1, a: 0.3}
   exEnergyCost: 35

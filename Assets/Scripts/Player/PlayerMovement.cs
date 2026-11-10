@@ -77,7 +77,8 @@ namespace Anathema.Player
             controller.Move(velocity * Time.deltaTime);
 
             // Prep area between rounds: you can walk about, but not out of your spawn zone.
-            if (Anathema.Net.NetGame.InPrep && TryGetComponent(out Respawner spawn))
+            // (A ready room's own walls and gate hold you in, so the leash only applies to a spawn out in the arena.)
+            if (Anathema.Net.NetGame.InPrep && TryGetComponent(out Respawner spawn) && !Anathema.Arena.ReadyRoom.AnyContains(spawn.SpawnPosition))
             {
                 Vector3 offset = transform.position - spawn.SpawnPosition;
                 offset.y = 0f;
