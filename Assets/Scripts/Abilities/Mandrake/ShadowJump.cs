@@ -3,9 +3,9 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Mandrake
 {
-    // Space: the Mandrake steps into one shadow and out of another at the cursor (pulled in to max range; it passes over
-    // walls but never lands inside one). Arriving charges its blade: the next strike within a few seconds (Glimmersteel or
-    // Ambush) deals bonus damage. Jumping doesn't break stealth, and while hidden from a viewer it leaves no flash there.
+    // Q: the Mandrake steps into one shadow and out of another at the cursor (pulled in to max range; it passes over
+    // walls but never lands inside one). Arriving charges its blade: the next strike within a few seconds (Glimmersteel, Balefire
+    // or Shadow Rend) deals bonus damage. Jumping doesn't break stealth, and while hidden from a viewer it leaves no flash there.
     public class ShadowJump : Ability
     {
         [SerializeField] float range = 7f;
@@ -18,7 +18,7 @@ namespace Anathema.Abilities.Mandrake
         Material auraMaterial;
 
         public override string DisplayName => "Shadow Jump";
-        public override string KeyLabel => "Space";
+        public override string KeyLabel => "Q";
         public override float MovementRange => range;
 
         // Online: the owner publishes the charge so every machine shows the glowing blade aura.
@@ -65,7 +65,7 @@ namespace Anathema.Abilities.Mandrake
             return bonusDamage;
         }
 
-        protected override bool IsTriggered() => Input.GetKeyDown(KeyCode.Space);
+        protected override bool IsTriggered() => Input.GetKeyDown(KeyCode.Q);
 
         protected override void Activate()
         {

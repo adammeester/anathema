@@ -21,31 +21,33 @@
       "poisonDamagePerSecond": 1,
       "poisonDuration": 4
     },
-    "Ambush": {
+    "BalefireBolt": {
       "cooldown": 8,
-      "damage": 14,
-      "stealthBonusDamage": 14,
-      "stunDuration": 0.9,
-      "stealthPoisonStacks": 2,
-      "poisonDamagePerSecond": 1,
-      "poisonDuration": 4,
-      "range": 3,
-      "arcDegrees": 80,
-      "energyPerHit": 10,
-      "windup": 0.15,
-      "exEnergyCost": 35,
-      "hookRange": 6.5,
-      "hookSpeed": 26,
-      "hookRadius": 0.35,
-      "hookDamage": 8,
-      "hookSlow": 0.3,
-      "hookSlowDuration": 2.5,
-      "hookHasteBonus": 0.15,
-      "hookHasteDuration": 2.5
+      "windup": 0.2,
+      "boltDamage": 6,
+      "burnDamagePerSecond": 5,
+      "burnDuration": 6,
+      "boltRange": 13,
+      "boltSpeed": 22,
+      "boltRadius": 0.3
     },
     "ShadowVeil": {
       "cooldown": 12,
-      "duration": 5
+      "duration": 5,
+      "exEnergyCost": 35,
+      "exWindup": 0.15,
+      "slashDamage": 14,
+      "slashStealthBonusDamage": 14,
+      "slashStunDuration": 1.25,
+      "slashStealthPoisonStacks": 2,
+      "slashPoisonDamagePerSecond": 1,
+      "slashPoisonDuration": 4,
+      "slashRange": 3,
+      "slashArcDegrees": 80,
+      "slashEnergyPerHit": 10
+    },
+    "UmbralRiposte": {
+      "cooldown": 6
     },
     "ShadowJump": {
       "cooldown": 9,

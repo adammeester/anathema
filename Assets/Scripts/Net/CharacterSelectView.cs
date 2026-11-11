@@ -198,20 +198,18 @@ namespace Anathema.Net
                 {
                     A("LMB", "Glimmersteel Blade", "Click or hold to cut in a three-strike chain: a forehand, a backhand, then a wide spinning cleave that hits harder, reaches further and poisons everything it cuts. The first two strikes come quickly; after the cleave there is a longer pause before the chain starts again. Each strike is its own attack, and a click made just before the next strike is ready is remembered. A strike thrown from Shadow Veil also briefly stuns.",
                         "Damage 8 / 8 / 16 cleave  |  0.5s between strikes, 1.1s after the cleave  |  Cleave 200 degrees, range 3.2  |  +1 poison stack  |  Stun 0.5s from stealth  |  +7 energy per hit"),
-                    A("RMB", "Umbral Riposte", "Counter: raise a brief guard. If an enemy hits you during it, the hit is negated, you vanish into stealth and step out of the attacker's shadow, right behind them. Your next strike within 2s counts as a strike from stealth, even once you reappear: Ambush gets its bonus damage, stun and poison. A guard that catches nothing comes back quickly.",
-                        "Guard 0.6s  |  Vanish 1s  |  Step behind within 8  |  Stealth strike within 2s  |  Cooldown 6s, 12s after a riposte"),
-                    A("Q", "Ambush", "A short, vicious cut in front of you. From Shadow Veil it becomes an ambush: bonus damage, a brief stun and two stacks of poison on everything it hits. C during the wind-up cancels it.",
-                        "Damage 14 (28 from stealth)  |  Stun 0.9s from stealth  |  +2 poison stacks from stealth  |  Range 3  |  Cooldown 8s"),
+                    A("RMB", "Balefire", "Hurl a bolt of violet witch-fire along your aim. The first enemy it strikes is set alight and burns over time. Land any hit of your own on them while it burns and the balefire bursts, dealing all of its remaining burn damage at once. C during the wind-up cancels it.",
+                        "Damage 6  |  Burn 5/s for 6s (30 total)  |  Range 13  |  Bursts on your next hit  |  Cooldown 8s"),
+                    A("Q", "Shadow Jump", "Step into one shadow and out of another at the cursor, passing over walls. Arriving charges your blade: your next strike within a few seconds deals bonus damage. Doesn't break Shadow Veil.",
+                        "Range 7  |  +10 damage on the next strike within 3s  |  Cooldown 9s"),
                     A("E", "Shadow Veil", "Melt into the shadows. Enemies can't see you at all (you and your allies see a translucent blue ghost), abilities that pick their own targets ignore you, and you move faster. Any attack breaks the veil; Shadow Jump doesn't. Enemy attacks still hit you if they happen to connect.",
                         "Lasts 5s  |  +25% move speed  |  Cooldown 12s"),
-                    A("Space", "Shadow Jump", "Step into one shadow and out of another at the cursor, passing over walls. Arriving charges your blade: your next strike within a few seconds deals bonus damage. Doesn't break Shadow Veil.",
-                        "Range 7  |  +10 damage on the next strike within 3s  |  Cooldown 9s"),
+                    A("Space", "Umbral Riposte", "Counter: raise a brief guard. If an enemy hits you during it, the hit is negated, you vanish into stealth and step out of the attacker's shadow, right behind them. Your next strike within 2s counts as a strike from stealth, even once you reappear: Shadow Rend gets its bonus damage and poison. A guard that catches nothing comes back quickly.",
+                        "Guard 0.6s  |  Vanish 1s  |  Step behind within 8  |  Stealth strike within 2s  |  Cooldown 6s, 12s after a riposte"),
                     A("R", "Shadow Cross", "Costs a full energy bar. A ghostly X is marked at the cursor; then you blink to one end of the first diagonal and tear along it in one huge slash, blink to the other diagonal and tear across it, carving an X. Everyone along either line is cut and poisoned; anyone where the lines cross is hit twice, and if they were already poisoned the stacks reach 6 and burst. You are invulnerable while slashing. Stuns, silence, panic and knockback during the wind-up interrupt it; C cancels and refunds.",
                         "Damage 25 per slash  |  +2 poison stacks per slash (2/s)  |  Each slash 9 long, 1.4 either side  |  Range 9  |  Costs 100 energy", true),
-                    EX("Shift+Q", "Chain Hook", "Instead of the cut, throw a hook on a chain along your aim. The first enemy it bites takes a little damage and is slowed, and landing it quickens your step.",
-                        "Damage 8  |  Slow 30% for 2.5s  |  +15% move speed for 2.5s  |  Range 6.5  |  Costs 35 energy"),
-                    EX("Shift+E", "Balefire", "Instead of the veil, hurl a bolt of violet witch-fire along your aim. The first enemy it strikes is set alight and burns over time. Land any hit of your own on them while it burns and the balefire bursts, dealing all of its remaining burn damage at once.",
-                        "Damage 6  |  Burn 5/s for 6s (30 total)  |  Range 13  |  Bursts on your next hit  |  Costs 35 energy")
+                    EX("Shift+E", "Shadow Rend", "Instead of the veil, a short, vicious cut in front of you that stuns everything it hits. As a strike from stealth (out of an Umbral Riposte) it also deals bonus damage and adds two stacks of poison. C during the wind-up cancels it.",
+                        "Damage 14 (28 from stealth)  |  Stun 1.25s  |  +2 poison stacks from stealth  |  Range 3  |  Costs 35 energy")
                 }
             }
         };

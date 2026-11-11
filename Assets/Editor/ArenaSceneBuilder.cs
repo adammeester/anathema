@@ -1070,14 +1070,14 @@ namespace Anathema.EditorTools
             }
             else if (mandrake)
             {
-                // Stealth assassin: a rhythmic three-strike blade chain (the cleave poisons), an ambush that stuns from
-                // stealth, a stealth veil and a teleport that charges the next strike. Its counter (Umbral Riposte) is on
-                // RMB, since Space is the jump.
+                // Stealth assassin: a rhythmic three-strike blade chain (the cleave poisons), a balefire bolt that bursts
+                // on his next hit, a teleport that charges the next strike, a stealth veil (EX: a stunning cut) and a
+                // counter (Umbral Riposte) that steps behind the attacker.
                 root.AddComponent<GlimmersteelBlade>();
-                root.AddComponent<UmbralRiposte>();
-                root.AddComponent<Ambush>();
-                root.AddComponent<ShadowVeil>();
+                root.AddComponent<BalefireBolt>();
                 root.AddComponent<ShadowJump>();
+                root.AddComponent<ShadowVeil>();
+                root.AddComponent<UmbralRiposte>();
                 root.AddComponent<ShadowCross>();
                 root.AddComponent<SoulHarvest>();
             }

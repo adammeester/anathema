@@ -15,7 +15,7 @@ namespace Anathema.Abilities.Mandrake
         // Hunter's Venom (part of his blades, not his passive): every Mandrake attack hits poisoned enemies this much harder.
         public const float VenomBonus = 0.15f;
 
-        // Any strike thrown out of Shadow Veil briefly stuns what it hits (Ambush has its own, longer stun).
+        // Any strike thrown out of Shadow Veil briefly stuns what it hits (Shadow Rend has its own, longer stun).
         public const float StealthStrikeStun = 0.5f;
 
         public static float VenomScale(Health target) =>
