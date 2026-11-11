@@ -2,9 +2,6 @@
 
 A Battlerite-style arena brawler set in the Warhammer 40k universe. Unity 6 (6000.4.2f1).
 
-## Current scope
-
-Core feel only: movement, mouse aim, camera, basic attack, health. No abilities yet.
 
 ## Getting started
 
