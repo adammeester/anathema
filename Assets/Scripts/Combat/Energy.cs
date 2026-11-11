@@ -18,6 +18,9 @@ namespace Anathema.Combat
 
         public event Action<Energy> Changed;
 
+        // Above zero while a hit on a structure reports back (see Health.Strike): on-hit energy is not earned then.
+        public static int Suppressed;
+
         void Awake()
         {
             health = GetComponent<Health>();
@@ -43,7 +46,7 @@ namespace Anathema.Combat
         {
             // Nothing charges during prep: hitting the ready-room training dummies must not build energy for the
             // ultimate (or EX abilities). Energy is also cleared when prep starts and when the round begins.
-            if (amount <= 0f || health.IsDead || Anathema.Net.NetGame.InPrep) return;
+            if (amount <= 0f || health.IsDead || Anathema.Net.NetGame.InPrep || Suppressed > 0) return;
             Current = Mathf.Min(maxEnergy, Current + amount);
             Changed?.Invoke(this);
         }

@@ -204,24 +204,5 @@ namespace Anathema.Arena
             mesh.bounds = new Bounds(Vector3.zero, Vector3.one * 100000f);
             return mesh;
         }
-
-        // --- Minimal HUD -----------------------------------------------------------------------------------------
-
-        void OnGUI()
-        {
-            string text;
-            if (phaseIndex >= phases.Length) text = "GAS: final circle";
-            else
-            {
-                Phase p = phases[phaseIndex];
-                if (phaseTimer < p.holdTime) text = $"GAS CLOSING IN {Mathf.CeilToInt(p.holdTime - phaseTimer)}s";
-                else text = "GAS CLOSING!";
-                text += $"   ({p.dps:0} dmg/s)";
-            }
-
-            var style = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter, fontSize = 18, fontStyle = FontStyle.Bold };
-            style.normal.textColor = new Color(0.6f, 1f, 0.4f);
-            GUI.Label(new Rect(0f, 16f, Screen.width, 30f), text, style);
-        }
     }
 }

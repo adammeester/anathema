@@ -1,0 +1,447 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6882082503625080852
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4819775417913708793}
+  - component: {fileID: 2209444252442671030}
+  - component: {fileID: 3541500915378504020}
+  - component: {fileID: 8254798662831998021}
+  - component: {fileID: 8701314722649761806}
+  - component: {fileID: 548396962033216059}
+  - component: {fileID: 6334908242217477520}
+  - component: {fileID: 7172418051088602895}
+  - component: {fileID: 7258289424017394532}
+  - component: {fileID: 4958421503944878511}
+  - component: {fileID: 8484230223599430807}
+  - component: {fileID: 7269797312337418369}
+  - component: {fileID: 8295218482821591522}
+  - component: {fileID: 7088536076019283163}
+  - component: {fileID: 2555930869954499321}
+  - component: {fileID: 578235058883804431}
+  - component: {fileID: 1262804917382212274}
+  - component: {fileID: 287979285434975383}
+  m_Layer: 0
+  m_Name: Player_Mandrake
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4819775417913708793
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8121174831049995037}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &2209444252442671030
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 1.9
+  m_Radius: 0.4
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0.95, z: 0}
+--- !u!114 &3541500915378504020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb8b7a76ab003be4a80b01073c0118a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Health
+  maxHealth: 155
+  team: 1
+  recoverableDecayDelay: 4
+  recoverableDecayRate: 6
+  maxRecoverableChunks: 3
+--- !u!114 &8254798662831998021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c486fe249312fb4284cb54138eca904, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.HealthBar
+  height: 2.45
+  width: 1.6
+  thickness: 0.16
+--- !u!114 &8701314722649761806
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1b891849688edf41ae382c760671a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Energy
+  maxEnergy: 100
+  startingEnergy: 0
+--- !u!114 &548396962033216059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aad082e899eb23a45bba94183514dfbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.EnergyBar
+  height: 2.25
+  width: 1.6
+  thickness: 0.1
+--- !u!114 &6334908242217477520
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 310d721b8c688ae4a8721f557dbc141f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Respawner
+  delay: 3
+--- !u!114 &7172418051088602895
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da002b6d6640a9c4790ad411519d406e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.MouseAim
+--- !u!114 &7258289424017394532
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f96c27d7c6c15984fbf83864441b4db9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.PlayerMovement
+  moveSpeed: 6.5
+  gravity: -25
+--- !u!114 &4958421503944878511
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a5fea6cadf1ff04f93470e5bd930792, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.GlimmersteelBlade
+  cooldown: 0.5
+  damage: 8
+  range: 2.5
+  arcDegrees: 90
+  finisherDamage: 16
+  finisherRange: 3.2
+  finisherArcDegrees: 200
+  windupDuration: 0.12
+  finisherWindupDuration: 0.2
+  swingDuration: 0.1
+  recoverDuration: 0.22
+  comboWindow: 1.2
+  finisherCooldown: 1.1
+  inputBuffer: 0.25
+  energyPerHit: 7
+  finisherPoisonStacks: 1
+  poisonDamagePerSecond: 3
+  poisonDuration: 4
+  spineTwist: 32
+  armRaise: 70
+--- !u!114 &8484230223599430807
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 497cdb12f10a42347be40dcfc1885af0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.Ambush
+  cooldown: 8
+  damage: 14
+  stealthBonusDamage: 14
+  stunDuration: 0.9
+  stealthPoisonStacks: 2
+  poisonDamagePerSecond: 3
+  poisonDuration: 4
+  range: 3
+  arcDegrees: 80
+  energyPerHit: 10
+  windup: 0.15
+--- !u!114 &7269797312337418369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56848a9beecdbc94ca8c996804ba23dc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.ShadowVeil
+  cooldown: 12
+  duration: 4
+--- !u!114 &8295218482821591522
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1312e436f107d3a4d84664f97f5486d8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.ShadowJump
+  cooldown: 9
+  range: 7
+  bonusDamage: 10
+  bonusWindow: 3
+--- !u!114 &7088536076019283163
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cf620fdf76aceb459465136a8368afb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.AimIndicator
+  lineHeight: 0.1
+  maxLength: 14
+  color: {r: 1, g: 1, b: 1, a: 0.35}
+--- !u!114 &2555930869954499321
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71dca0e14b933df49b60635d333e3a4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.PlayerHud
+--- !u!136 &578235058883804431
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 2
+  m_Radius: 0.4
+  m_Height: 1.9
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.95, z: 0}
+--- !u!114 &1262804917382212274
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 638397177
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  m_InScenePlacedDisabledByDefault: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  m_InScenePlaced: 0
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &287979285434975383
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e587042fc420dd4db2d759c9350e464, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Net.NetPlayer
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!1001 &8592459098030511350
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4819775417913708793}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      propertyPath: m_Name
+      value: Model
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7633328856462417079}
+  m_SourcePrefab: {fileID: 100100000, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+--- !u!4 &8121174831049995037 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+  m_PrefabInstance: {fileID: 8592459098030511350}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8935112900413204903 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 13222009b6cd49947b3ad1e58ddc767c, type: 3}
+  m_PrefabInstance: {fileID: 8592459098030511350}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7633328856462417079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8935112900413204903}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcbcca4c79d1c1b429006218b5a1c260, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.ProceduralWalk
+  strideLength: 2.3
+  referenceSpeed: 0
+  responsiveness: 14
+  thighSwing: 34
+  kneeBend: 62
+  footLevel: 0.75
+  bob: 0.045
+  forwardLean: 5
+  pelvisTwist: 5
+  shoulderTwist: 4
+  headStability: 0.75
+  armSwingLeft: 10
+  armSwingRight: 3
+  coatSway: 14

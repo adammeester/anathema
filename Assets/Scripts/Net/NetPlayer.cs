@@ -35,7 +35,9 @@ namespace Anathema.Net
             PanicBreak, // server -> owner: a solid hit snapped them out of panic
             Enrage,     // server -> owner: e.g. Defiant Roar, decided where the damage is resolved
             Barrier,    // a short damage-soaking barrier (a = amount, b = seconds, direction.x = cap), held by the server
-            Cleanse     // wash off bleeds and burns, dull other damage over time (a = reduction, b = seconds), on the server
+            Cleanse,    // wash off bleeds and burns, dull other damage over time (a = reduction, b = seconds), on the server
+            Poison,     // stacking toxin (a = damage per second per stack, b = seconds, direction.x = stacks), held by the server
+            Balefire    // the Mandrake's burst-on-hit burn (a = damage per second, b = seconds), held by the server
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -77,13 +79,13 @@ namespace Anathema.Net
 
         // Control effects (root, panic, stun...) are enforced on the machine that moves the character, so the owner
         // publishes which ones are up and replicas draw visual-only copies (see SyncStatusFx).
-        const int FxRoot = 2, FxPanic = 4, FxCharged = 8, FxEnraged = 16, FxStun = 32, FxEmpowered = 64;
+        const int FxRoot = 2, FxPanic = 4, FxCharged = 8, FxEnraged = 16, FxStun = 32, FxEmpowered = 64, FxStealth = 128, FxFaded = 256, FxHasted = 512;
         readonly NetworkVariable<int> netStatusFx = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         int appliedStatusFx;
 
         // Effects that do their work on the server's copy (the ward's absorbing, bleed and burn damage) are published
         // by the server; every other machine, the owner included, draws visual-only copies (see SyncServerFx).
-        const int ServerFxWard = 1, ServerFxBleed = 2, ServerFxBurn = 4, ServerFxBarrier = 8;
+        const int ServerFxWard = 1, ServerFxBleed = 2, ServerFxBurn = 4, ServerFxBarrier = 8, ServerFxPoison = 16, ServerFxBalefire = 32;
         readonly NetworkVariable<int> netServerFx = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         int appliedServerFx;
 
@@ -95,6 +97,8 @@ namespace Anathema.Net
             if (Bleeding.IsBleedingForReal(gameObject)) m |= ServerFxBleed;
             if (Burning.IsBurningForReal(gameObject)) m |= ServerFxBurn;
             if (Barrier.IsForReal(gameObject)) m |= ServerFxBarrier;
+            if (Poisoned.IsPoisonedForReal(gameObject)) m |= ServerFxPoison;
+            if (Balefire.IsBurningForReal(gameObject)) m |= ServerFxBalefire;
             return m;
         }
 
@@ -109,6 +113,8 @@ namespace Anathema.Net
             ToggleFx<Bleeding>(changed, mask, ServerFxBleed, Bleeding.ShowReplica);
             ToggleFx<Burning>(changed, mask, ServerFxBurn, Burning.ShowReplica);
             ToggleFx<Barrier>(changed, mask, ServerFxBarrier, Barrier.ShowReplica);
+            ToggleFx<Poisoned>(changed, mask, ServerFxPoison, Poisoned.ShowReplica);
+            ToggleFx<Balefire>(changed, mask, ServerFxBalefire, Balefire.ShowReplica);
         }
 
         int ReadStatusFx()
@@ -119,6 +125,9 @@ namespace Anathema.Net
             if (Charged.IsCharged(gameObject)) m |= FxCharged;
             if (Enraged.IsEnraged(gameObject)) m |= FxEnraged;
             if (Stunned.IsStunned(gameObject)) m |= FxStun;
+            if (Stealthed.IsStealthed(gameObject)) m |= FxStealth;
+            if (Faded.IsFaded(gameObject)) m |= FxFaded;
+            if (Hasted.IsHasted(gameObject)) m |= FxHasted;
             foreach (Ability a in abilities)
             {
                 if (!a.ShowsEmpowered) continue;
@@ -145,6 +154,9 @@ namespace Anathema.Net
             ToggleFx<Charged>(changed, mask, FxCharged, Charged.ShowReplica);
             ToggleFx<Enraged>(changed, mask, FxEnraged, Enraged.ShowReplica);
             ToggleFx<Stunned>(changed, mask, FxStun, Stunned.ShowReplica);
+            ToggleFx<Stealthed>(changed, mask, FxStealth, Stealthed.ShowReplica);
+            ToggleFx<Faded>(changed, mask, FxFaded, Faded.ShowReplica);
+            ToggleFx<Hasted>(changed, mask, FxHasted, Hasted.ShowReplica);
             if ((changed & FxStun) != 0 && (mask & FxStun) == 0 && TryGetComponent(out StunFx stunFx)) Destroy(stunFx);
             if ((changed & FxEmpowered) != 0)
                 foreach (Ability a in abilities) a.ShowReplicaEmpowered((mask & FxEmpowered) != 0);
@@ -218,6 +230,8 @@ namespace Anathema.Net
             health.ResetHealth();
             foreach (Bleeding b in GetComponents<Bleeding>()) Destroy(b);
             foreach (Burning b in GetComponents<Burning>()) Destroy(b);
+            foreach (Poisoned p in GetComponents<Poisoned>()) Destroy(p);
+            foreach (Balefire b in GetComponents<Balefire>()) Destroy(b);
             foreach (PlagueWard w in GetComponents<PlagueWard>()) Destroy(w);
             foreach (Knockback k in GetComponents<Knockback>()) Destroy(k);
             // Back to the spawn point: the server owns position, so it places everyone and the owners snap there.
@@ -577,6 +591,46 @@ namespace Anathema.Net
             return has && reference.TryGet(out NetworkObject no) ? no.gameObject : null;
         }
 
+        // --- Ability targets ---------------------------------------------------------------------------------------
+        // An ability that picks its own targets (the Hospitaller's tether) tells every other machine exactly whom it
+        // picked, just before its cue, so their copies latch onto the same characters instead of guessing from the aim.
+        // Characters that are not networked (the ready-room dummies, which every machine has its own of) arrive as null.
+
+        public void SendTargets(int abilityIndex, GameObject[] targets)
+        {
+            if (!IsSpawned || !IsOwner) return;
+            var refs = new NetworkObjectReference[targets.Length];
+            var has = new bool[targets.Length];
+            for (int i = 0; i < targets.Length; i++) refs[i] = Reference(targets[i], out has[i]);
+            TargetsServerRpc(abilityIndex, refs, has);
+        }
+
+        [ServerRpc]
+        void TargetsServerRpc(int abilityIndex, NetworkObjectReference[] refs, bool[] has)
+        {
+            if (!IsClient) ReplayTargets(abilityIndex, refs, has); // a dedicated server's own copy needs them too
+            TargetsClientRpc(abilityIndex, refs, has);
+        }
+
+        [ClientRpc]
+        void TargetsClientRpc(int abilityIndex, NetworkObjectReference[] refs, bool[] has)
+        {
+            if (IsOwner) return;
+            ReplayTargets(abilityIndex, refs, has);
+        }
+
+        void ReplayTargets(int abilityIndex, NetworkObjectReference[] refs, bool[] has)
+        {
+            if (abilities == null || abilityIndex < 0 || abilityIndex >= abilities.Length || refs == null || has == null) return;
+            var targets = new List<Health>(refs.Length);
+            for (int i = 0; i < refs.Length && i < has.Length; i++)
+            {
+                GameObject go = Resolve(refs[i], has[i]);
+                targets.Add(go != null ? go.GetComponent<Health>() : null);
+            }
+            abilities[abilityIndex].ReceiveTargets(targets);
+        }
+
         // Sanity caps on a single hit or heal; anything above them is not a real attack.
         const float MaxHitDamage = 500f;
         const float MaxHeal = 300f;
@@ -672,6 +726,49 @@ namespace Anathema.Net
 
         // Server: a shield on this character ran out of strength. Every machine removes its copy with the break effect.
         public void ServerShieldBroken(ShieldKind kind) => ShieldBrokenClientRpc((int)kind);
+
+        // Server: this character's poison burst (full stacks, or set off early). Every other machine plays the blast at
+        // the same `size` (the server's copy already did).
+        public void ServerPoisonBurst(float size)
+        {
+            if (IsServer) PoisonBurstClientRpc(size);
+        }
+
+        [ClientRpc]
+        void PoisonBurstClientRpc(float size)
+        {
+            if (IsServer) return;
+            Poisoned.PlayBurst(transform.position, size);
+        }
+
+        // Server: this (Mandrake) character's poison ticked on a low-health enemy; its owner refunds Shadow Veil
+        // (Abilities.Mandrake.SoulHarvest), which tracks the per-target allowance.
+        public void ServerSoulHarvest(GameObject victim)
+        {
+            if (!IsServer || victim == null || !victim.TryGetComponent(out NetworkObject victimObject) || !victimObject.IsSpawned) return;
+            SoulHarvestClientRpc(victimObject, ToOwner);
+        }
+
+        [ClientRpc]
+        void SoulHarvestClientRpc(NetworkObjectReference victim, ClientRpcParams rpcParams = default)
+        {
+            if (!IsOwner || !victim.TryGet(out NetworkObject victimObject)) return;
+            if (TryGetComponent(out Anathema.Abilities.Mandrake.SoulHarvest harvest) && victimObject.TryGetComponent(out Health victimHealth))
+                harvest.Harvest(victimHealth);
+        }
+
+        // Server: this character's balefire was set off by its caster's hit. Every other machine plays the burst.
+        public void ServerBalefireBurst()
+        {
+            if (IsServer) BalefireBurstClientRpc();
+        }
+
+        [ClientRpc]
+        void BalefireBurstClientRpc()
+        {
+            if (IsServer) return;
+            Balefire.PlayBurst(transform.position);
+        }
 
         [ClientRpc]
         void ShieldBrokenClientRpc(int kind)
@@ -786,6 +883,8 @@ namespace Anathema.Net
                 case StatusKind.Enrage: Enraged.Apply(gameObject, a); break;
                 case StatusKind.Barrier: Barrier.Grant(gameObject, a, b, direction.x, attacker); break;
                 case StatusKind.Cleanse: Cleanse.Apply(gameObject, a, b, attacker); break;
+                case StatusKind.Poison: Poisoned.Apply(gameObject, attacker, Mathf.RoundToInt(direction.x), a, b); break;
+                case StatusKind.Balefire: Balefire.Apply(gameObject, attacker, a, b); break;
             }
         }
     }

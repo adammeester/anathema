@@ -60,7 +60,8 @@ namespace Anathema.Player
 
             var maimed = character.GetComponent<Maimed>();
             ctx.Speed = moveSpeed * (maimed != null ? maimed.SpeedMultiplier : 1f) * Enraged.MoveSpeedMultiplier(character)
-                        * ReflectDome.SlowMultiplier(character) * Slowed.Multiplier(character);
+                        * ReflectDome.SlowMultiplier(character) * Slowed.Multiplier(character)
+                        * Stealthed.MoveSpeedMultiplier(character) * Hasted.MoveSpeedMultiplier(character);
 
             ctx.Fleeing = Panicked.TryGetFleeDirection(character, out ctx.FleeDirection);
             ctx.KnockedBack = Knockback.TryGetVelocity(character, out ctx.KnockbackVelocity);

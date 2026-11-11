@@ -88,7 +88,52 @@ namespace Anathema.Player
             }
 
             DrawPassives(centerX, slotY, abilityWidth);
+            DrawPassiveStacks(centerX, slotY);
             DrawAllies();
+        }
+
+        // ---------- Passive stacks (e.g. the Hospitaller's Faith) ----------
+
+        IPassiveStacks passiveStacks;
+
+        // A row of pips centred just above the action bar: filled for each stack, dark sockets for the rest, a thin bar
+        // under them filling towards the next stack, and a soft pulse when the passive is full.
+        void DrawPassiveStacks(float centerX, float slotY)
+        {
+            if (passiveStacks == null) passiveStacks = GetComponent<IPassiveStacks>();
+            if (passiveStacks == null || passiveStacks.MaxStacks <= 0) return;
+
+            int max = passiveStacks.MaxStacks;
+            int stacks = Mathf.Clamp(passiveStacks.Stacks, 0, max);
+            Color color = passiveStacks.StackColor;
+            float pip = 20f * scale, gap = 9f * scale;
+            float rowW = max * pip + (max - 1) * gap;
+            float y = slotY - 22f * scale - pip;
+            float x = centerX - rowW * 0.5f;
+            bool full = stacks >= max;
+            float pulse = full ? 0.75f + 0.25f * Mathf.Sin(Time.time * 6f) : 1f;
+
+            // Name to the left of the row.
+            DrawText(new Rect(x - 130f * scale, y - 4f * scale, 120f * scale, pip + 8f * scale), passiveStacks.PassiveName.ToUpperInvariant(),
+                Mathf.RoundToInt(18f * scale), FontStyle.Bold, stacks > 0 ? color : new Color(1f, 1f, 1f, 0.45f));
+
+            for (int i = 0; i < max; i++)
+            {
+                var r = new Rect(x + i * (pip + gap), y, pip, pip);
+                if (full) DrawRect(new Rect(r.x - 3f * scale, r.y - 3f * scale, r.width + 6f * scale, r.height + 6f * scale),
+                    new Color(color.r, color.g, color.b, 0.35f * pulse));
+                DrawRect(r, Color.black);
+                DrawRect(new Rect(r.x + 2f * scale, r.y + 2f * scale, r.width - 4f * scale, r.height - 4f * scale),
+                    i < stacks ? new Color(color.r * pulse, color.g * pulse, color.b * pulse, 1f) : new Color(0.14f, 0.13f, 0.12f, 1f));
+            }
+
+            float next = passiveStacks.NextStackProgress;
+            if (!full && next > 0f)
+            {
+                var bar = new Rect(x, y + pip + 4f * scale, rowW, 3f * scale);
+                DrawRect(bar, new Color(0f, 0f, 0f, 0.6f));
+                DrawRect(new Rect(bar.x, bar.y, bar.width * next, bar.height), new Color(color.r, color.g, color.b, 0.8f));
+            }
         }
 
         // ---------- Allies ----------
@@ -346,6 +391,10 @@ namespace Anathema.Player
                 DrawText(r, ability.CooldownRemaining.ToString("0.0"), Mathf.RoundToInt(30f * scale), FontStyle.Bold, Color.white);
             }
 
+            // Charge pips along the top edge: filled gold for each ready charge, dark sockets for spent ones.
+            if (ability.ChargeCapacity > 1 && !exShow)
+                DrawChargePips(r, ability.ChargeCapacity, ability.ChargesReady, f);
+
             // Key badge on the bottom edge.
             if (!string.IsNullOrEmpty(ability.KeyLabel))
             {
@@ -368,6 +417,32 @@ namespace Anathema.Player
                 DrawText(new Rect(r.x, r.y + 2f * scale, r.width, 22f * scale), $"EX {Mathf.CeilToInt(ability.ExCost)}",
                     Mathf.RoundToInt(16f * scale), FontStyle.Bold, affordable ? EnergyColor : new Color(EnergyColor.r, EnergyColor.g, EnergyColor.b, 0.5f));
             }
+        }
+
+        // A row of small squares centred on the slot's top edge, straddling the frame like the key badge does below.
+        void DrawChargePips(Rect r, int capacity, int ready, float f)
+        {
+            float size = 11f * scale, gap = 5f * scale, edge = 2f * scale;
+            float rowW = capacity * size + (capacity - 1) * gap;
+            float x = r.center.x - rowW * 0.5f;
+            float y = r.y - size * 0.5f - f * 0.5f;
+            for (int i = 0; i < capacity; i++)
+            {
+                var pip = new Rect(x + i * (size + gap), y, size, size);
+                bool lit = i < ready;
+                DrawRect(new Rect(pip.x - edge, pip.y - edge, pip.width + 2f * edge, pip.height + 2f * edge), Panel);
+                DrawRect(pip, lit ? Gold : new Color(0.04f, 0.05f, 0.08f, 1f));
+                if (lit) DrawRect(new Rect(pip.x, pip.y, pip.width, pip.height * 0.4f), new Color(1f, 0.95f, 0.7f, 0.55f));
+                else DrawBorderColored(pip, scale, DarkGold);
+            }
+        }
+
+        void DrawBorderColored(Rect r, float t, Color c)
+        {
+            DrawRect(new Rect(r.x, r.y, r.width, t), c);
+            DrawRect(new Rect(r.x, r.yMax - t, r.width, t), c);
+            DrawRect(new Rect(r.x, r.y, t, r.height), c);
+            DrawRect(new Rect(r.xMax - t, r.y, t, r.height), c);
         }
 
         // ---------- Primitives ----------

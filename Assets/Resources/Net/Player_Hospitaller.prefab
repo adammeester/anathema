@@ -1,0 +1,529 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3111486025670265819
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5971712786296768953}
+  - component: {fileID: 7337551279208141489}
+  - component: {fileID: 166721757989219388}
+  - component: {fileID: 9049595562018989486}
+  - component: {fileID: 271061925405162090}
+  - component: {fileID: 5102054494792356965}
+  - component: {fileID: 7033305745234612028}
+  - component: {fileID: 1876192406586279829}
+  - component: {fileID: 2264871270979258645}
+  - component: {fileID: 464919651702646337}
+  - component: {fileID: 3194313382394000358}
+  - component: {fileID: 4717878336103322777}
+  - component: {fileID: 4603777759089121390}
+  - component: {fileID: 379551382520722453}
+  - component: {fileID: 1548097633421666006}
+  - component: {fileID: 6786198470343834369}
+  - component: {fileID: 4826386207606045372}
+  - component: {fileID: 610114144602865960}
+  - component: {fileID: 7581173994514107412}
+  - component: {fileID: 9209423363719727249}
+  - component: {fileID: 3508095816457759075}
+  - component: {fileID: 9057740385973266371}
+  m_Layer: 0
+  m_Name: Player_Hospitaller
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5971712786296768953
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 5771346589740656562}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!143 &7337551279208141489
+CharacterController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Height: 1.85
+  m_Radius: 0.4
+  m_SlopeLimit: 45
+  m_StepOffset: 0.3
+  m_SkinWidth: 0.08
+  m_MinMoveDistance: 0.001
+  m_Center: {x: 0, y: 0.925, z: 0}
+--- !u!114 &166721757989219388
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb8b7a76ab003be4a80b01073c0118a3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Health
+  maxHealth: 160
+  team: 1
+  recoverableDecayDelay: 4
+  recoverableDecayRate: 6
+  maxRecoverableChunks: 3
+--- !u!114 &9049595562018989486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c486fe249312fb4284cb54138eca904, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.HealthBar
+  height: 2.4
+  width: 1.6
+  thickness: 0.16
+--- !u!114 &271061925405162090
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b1b891849688edf41ae382c760671a5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Energy
+  maxEnergy: 100
+  startingEnergy: 0
+--- !u!114 &5102054494792356965
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aad082e899eb23a45bba94183514dfbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.EnergyBar
+  height: 2.2
+  width: 1.6
+  thickness: 0.1
+--- !u!114 &7033305745234612028
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 310d721b8c688ae4a8721f557dbc141f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Combat.Respawner
+  delay: 3
+--- !u!114 &1876192406586279829
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: da002b6d6640a9c4790ad411519d406e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.MouseAim
+--- !u!114 &2264871270979258645
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f96c27d7c6c15984fbf83864441b4db9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.PlayerMovement
+  moveSpeed: 6.5
+  gravity: -25
+--- !u!114 &464919651702646337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9e161ec786e9014196cb295b2f1406e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Hospitaller.SanctifiedTether
+  cooldown: 6
+  duration: 4
+  range: 11
+  leashRange: 14
+  aimRadius: 0.6
+  tickInterval: 0.25
+  tickDamage: 1.5
+  energyPerTick: 2
+  shareFraction: 0.35
+  muzzleHeight: 1.4
+  exEnergyCost: 30
+  exCooldown: 8
+  exForks: 1
+  forkRange: 5
+  exDamageScale: 0.7
+--- !u!114 &3194313382394000358
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 39204d1f73fe7a44bbf1f7daf77f41b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Hospitaller.SanctusPulse
+  cooldown: 0.3
+  range: 10
+  radius: 2.2
+  delay: 0.5
+  totalHeal: 26
+  energyPerHeal: 5
+  rechargeTime: 6
+--- !u!114 &4717878336103322777
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 286903c44ae624f41af17484365c24db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Hospitaller.BlindingRadiance
+  cooldown: 8
+  range: 4
+  arc: 110
+  damage: 10
+  knockbackDistance: 3.5
+  knockbackDuration: 0.3
+  energyPerHit: 8
+--- !u!114 &4603777759089121390
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 152029bebd5382543a8152943d42f3d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Hospitaller.DoveStrike
+  cooldown: 0.25
+  range: 12
+  hitRadius: 0.5
+  damage: 8
+  rootSeconds: 0.75
+  rootLockout: 3
+  rechargeTime: 8
+  flightSpeed: 18
+  energyPerHit: 6
+  exEnergyCost: 35
+  exDamage: 10
+  exPanicSeconds: 1.25
+--- !u!114 &379551382520722453
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38cbfdcaa932f194d8d8f1b61f2cdad0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Hospitaller.MartyrsGrace
+  cooldown: 4
+  duration: 1.2
+  guardRadius: 1.6
+  guardColor: {r: 0.4, g: 0.7, b: 1, a: 0.45}
+  leanBackDegrees: 14
+  poseBlendTime: 0.1
+  glowScale: 1.06
+  glowColor: {r: 0.3, g: 0.6, b: 1, a: 0.4}
+  heal: 15
+  healRadius: 6
+  smiteDamage: 6
+  silenceSeconds: 1.2
+--- !u!114 &1548097633421666006
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 03bc18377f2d44b4d965447278e85b95, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Hospitaller.Martyrdom
+  cooldown: 1
+  energyCost: 100
+  gatherTime: 0.9
+  duration: 5
+  linkRadius: 10
+  leashRange: 14
+  shareFraction: 0.5
+  damageReduction: 0.4
+  burstRadius: 6
+  burstExpandTime: 0.55
+  burstBaseDamage: 10
+  burstPerAbsorbed: 0.8
+  burstMaxDamage: 80
+  burstKnockback: 3
+--- !u!114 &6786198470343834369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cf620fdf76aceb459465136a8368afb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.AimIndicator
+  lineHeight: 0.1
+  maxLength: 14
+  color: {r: 1, g: 1, b: 1, a: 0.35}
+--- !u!114 &4826386207606045372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71dca0e14b933df49b60635d333e3a4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.PlayerHud
+--- !u!114 &610114144602865960
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5adf64129c7020e4cbb8622397994e16, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Hospitaller.HospitallerPose
+--- !u!114 &7581173994514107412
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8026911b11889746a3509878133b7ee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Hospitaller.HospitallerDoves
+--- !u!136 &9209423363719727249
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 0
+  serializedVersion: 2
+  m_Radius: 0.4
+  m_Height: 1.85
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.925, z: 0}
+--- !u!114 &3508095816457759075
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d5a57f767e5e46a458fc5d3c628d0cbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.NetworkObject
+  GlobalObjectIdHash: 818219754
+  InScenePlacedSourceGlobalObjectIdHash: 0
+  m_InScenePlacedDisabledByDefault: 0
+  DeferredDespawnTick: 0
+  Ownership: 1
+  AlwaysReplicateAsRoot: 0
+  SynchronizeTransform: 1
+  m_InScenePlaced: 0
+  ActiveSceneSynchronization: 0
+  SceneMigrationSynchronization: 1
+  SpawnWithObservers: 1
+  DontDestroyWithOwner: 0
+  AutoObjectParentSync: 1
+  SyncOwnerTransformWhenParented: 1
+  AllowOwnerToParent: 0
+--- !u!114 &9057740385973266371
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3e587042fc420dd4db2d759c9350e464, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Net.NetPlayer
+  ShowTopMostFoldoutHeaderGroup: 1
+--- !u!1001 &6313281796571791449
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 5971712786296768953}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      propertyPath: m_Name
+      value: Model
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8984240160256909391}
+  m_SourcePrefab: {fileID: 100100000, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+--- !u!4 &5771346589740656562 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+  m_PrefabInstance: {fileID: 6313281796571791449}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6583173630414765320 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 3a374667e28f2884ab5c9f2192ad851d, type: 3}
+  m_PrefabInstance: {fileID: 6313281796571791449}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8984240160256909391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6583173630414765320}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fcbcca4c79d1c1b429006218b5a1c260, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Player.ProceduralWalk
+  strideLength: 2.3
+  referenceSpeed: 0
+  responsiveness: 14
+  thighSwing: 34
+  kneeBend: 62
+  footLevel: 0.75
+  bob: 0.045
+  forwardLean: 5
+  pelvisTwist: 5
+  shoulderTwist: 4
+  headStability: 0.75
+  armSwingLeft: 10
+  armSwingRight: 3
+  coatSway: 14

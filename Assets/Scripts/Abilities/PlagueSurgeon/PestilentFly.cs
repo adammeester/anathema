@@ -43,7 +43,9 @@ namespace Anathema.Abilities.PlagueSurgeon
             if (ExActivation && !IsReplica && energy != null) energy.Gain(exEnergyCost);
         }
 
-        public override string DisplayName => TwoCharges ? "Pestilent Fly x" + ReadyCharges : "Pestilent Fly";
+        public override string DisplayName => "Pestilent Fly";
+        public override int ChargeCapacity => TwoCharges ? 2 : 1;
+        public override int ChargesReady => TwoCharges ? ReadyCharges : 0;
 
         // Swarm: two flies in reserve, each recharging on its own.
         readonly float[] chargeReady = new float[2];
@@ -171,6 +173,9 @@ namespace Anathema.Abilities.PlagueSurgeon
                 transform.rotation = Quaternion.LookRotation(direction);
 
                 body = FlyVisual.Create(transform, ex, ex ? 1.5f : 1.1f).transform;
+                // It buzzes the whole way there, from the first moment (the recording's quiet start is skipped); the sound
+                // goes when it latches on or bursts, and the swarm on the victim takes over.
+                Sfx.Loop(Sfx.Flies2, transform, 0.3f, ex ? 0.85f : 1.15f, 0f, true); // from the moment it leaves his hand
             }
 
             void Update()

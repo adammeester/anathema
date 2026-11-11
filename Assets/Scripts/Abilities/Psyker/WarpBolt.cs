@@ -159,6 +159,7 @@ namespace Anathema.Abilities.Psyker
             trail.sharedMaterial = haloMaterial;
             trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
+            Sfx.Play(Sfx.Any(Sfx.MagicAttack1, Sfx.MagicAttack3), 0.35f, 0.3f);
             go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit, ChargedScale);
         }
 

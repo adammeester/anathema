@@ -117,6 +117,8 @@ namespace Anathema.Combat
 
             if (Bleeding.IsBleedingForReal(target)) Object.Destroy(target.GetComponent<Bleeding>());
             if (Burning.IsBurningForReal(target)) Object.Destroy(target.GetComponent<Burning>());
+            if (Balefire.IsBurningForReal(target)) Object.Destroy(target.GetComponent<Balefire>());
+            if (Poisoned.IsPoisonedForReal(target)) Object.Destroy(target.GetComponent<Poisoned>());
             holder.GrantDotWard(dotReduction, seconds);
         }
     }

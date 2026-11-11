@@ -150,7 +150,7 @@ namespace Anathema.Abilities.PlagueSurgeon
                 energy = ownerEnergy;
                 nextTick = Time.time + TickInterval;
                 BuildVisuals(ex ? PoisonColor : HealColor);
-                Sfx.Loop(Sfx.Either(Sfx.DiseaseCloud, Sfx.DiseaseCloud2), transform, 0.35f, ex ? 0.9f : 1.1f, 0.4f);
+                Sfx.Loop(Sfx.DiseaseCloud, transform, 0.35f, ex ? 0.9f : 1.1f, 0.4f);
             }
 
             void BuildVisuals(Color color)

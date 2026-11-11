@@ -117,6 +117,8 @@ namespace Anathema.Abilities.Psyker
             trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
             // The stun rides on the bolt's hit, so a countered bolt stuns nobody.
+            // A heavier cast than the Warp Bolt: the same recordings, deeper and louder.
+            Sfx.Play(Sfx.Any(Sfx.MagicAttack1, Sfx.MagicAttack2, Sfx.MagicAttack3), 0.45f, 0.78f, 0.86f);
             go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit)
                 .WithRiders(Hit.Direct(0f).WithStun(stunDuration));
         }

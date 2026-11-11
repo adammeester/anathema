@@ -199,7 +199,8 @@ namespace Anathema.Abilities.Psyker
             {
                 var remaining = new List<Health>();
                 foreach (Health h in FindObjectsByType<Health>())
-                    if (!struck.Contains(h) && !h.IsDead && h.Team != Health.Team && Charged.IsCharged(h.gameObject)) remaining.Add(h);
+                    if (!struck.Contains(h) && !h.IsDead && h.Team != Health.Team && Charged.IsCharged(h.gameObject)
+                        && !Stealthed.HiddenFrom(h.gameObject, Health.Team)) remaining.Add(h);
 
                 Vector3 at = points[points.Count - 1];
                 while (remaining.Count > 0)
@@ -251,7 +252,7 @@ namespace Anathema.Abilities.Psyker
             float bestDistance = jumpRange;
             foreach (Health h in FindObjectsByType<Health>())
             {
-                if (h.IsDead || h.Team == Health.Team || struck.Contains(h)) continue;
+                if (h.IsDead || h.Team == Health.Team || struck.Contains(h) || Stealthed.HiddenFrom(h.gameObject, Health.Team)) continue;
                 float d = Vector3.Distance(h.transform.position, from.transform.position);
                 if (d >= bestDistance) continue;
                 best = h;

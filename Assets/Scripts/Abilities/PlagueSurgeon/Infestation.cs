@@ -44,7 +44,8 @@ namespace Anathema.Abilities.PlagueSurgeon
             inf.healPerTick = allyHps * TickInterval;
             inf.energyPerTick = energyGain;
             inf.BuildFly();
-            Sfx.Loop(Sfx.Flies, inf.fly, 0.35f, Random.Range(0.95f, 1.05f), 0.2f); // buzzes for as long as the fly is on them
+            // The swarm buzzing on them for as long as the fly stays on (the loop goes with the fly).
+            Sfx.Loop(Sfx.Flies, inf.fly, 0.35f, Random.Range(0.95f, 1.05f), 0.15f);
             return inf;
         }
 
@@ -135,6 +136,7 @@ namespace Anathema.Abilities.PlagueSurgeon
                 float duration, float enemyDps, float allyHps, float energyGain)
             {
                 var go = new GameObject("Brood Hop");
+                Sfx.Loop(Sfx.Flies2, go.transform, 0.3f, Random.Range(0.95f, 1.05f), 0f, true); // in flight to the next host
                 go.transform.position = from;
                 var hop = go.AddComponent<BroodHop>();
                 hop.target = target;

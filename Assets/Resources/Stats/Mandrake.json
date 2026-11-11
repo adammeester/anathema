@@ -1,0 +1,70 @@
+{
+  "health": 155,
+  "moveSpeed": 5.2,
+  "maxEnergy": 100,
+  "abilities": {
+    "GlimmersteelBlade": {
+      "cooldown": 0.5,
+      "damage": 8,
+      "range": 2.5,
+      "arcDegrees": 90,
+      "finisherDamage": 16,
+      "finisherRange": 3.2,
+      "finisherArcDegrees": 200,
+      "windupDuration": 0.12,
+      "finisherWindupDuration": 0.2,
+      "comboWindow": 1.2,
+      "finisherCooldown": 1.1,
+      "inputBuffer": 0.25,
+      "energyPerHit": 7,
+      "finisherPoisonStacks": 1,
+      "poisonDamagePerSecond": 1,
+      "poisonDuration": 4
+    },
+    "Ambush": {
+      "cooldown": 8,
+      "damage": 14,
+      "stealthBonusDamage": 14,
+      "stunDuration": 0.9,
+      "stealthPoisonStacks": 2,
+      "poisonDamagePerSecond": 1,
+      "poisonDuration": 4,
+      "range": 3,
+      "arcDegrees": 80,
+      "energyPerHit": 10,
+      "windup": 0.15,
+      "exEnergyCost": 35,
+      "hookRange": 6.5,
+      "hookSpeed": 26,
+      "hookRadius": 0.35,
+      "hookDamage": 8,
+      "hookSlow": 0.3,
+      "hookSlowDuration": 2.5,
+      "hookHasteBonus": 0.15,
+      "hookHasteDuration": 2.5
+    },
+    "ShadowVeil": {
+      "cooldown": 12,
+      "duration": 5
+    },
+    "ShadowJump": {
+      "cooldown": 9,
+      "range": 7,
+      "bonusDamage": 10,
+      "bonusWindow": 3
+    },
+    "ShadowCross": {
+      "energyCost": 100,
+      "castRange": 9,
+      "slashLength": 9,
+      "slashWidth": 1.4,
+      "damage": 25,
+      "poisonStacks": 2,
+      "poisonDamagePerSecond": 2,
+      "poisonDuration": 4,
+      "windup": 0.35,
+      "dashDuration": 0.2,
+      "blinkPause": 0.15
+    }
+  }
+}

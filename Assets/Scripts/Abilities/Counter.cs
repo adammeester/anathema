@@ -33,6 +33,11 @@ namespace Anathema.Abilities
 
         public bool IsGuarding { get; private set; }
 
+        // Subclasses can retune the guard (e.g. a shorter, differently coloured parry on another key).
+        protected virtual float GuardDuration => duration;
+        protected virtual Color GuardColor => guardColor;
+        protected virtual Color GlowColor => glowColor;
+
         public override string DisplayName => "Counter";
         public override string KeyLabel => "Space";
 
@@ -52,7 +57,7 @@ namespace Anathema.Abilities
             guardVisual.transform.SetParent(transform, false);
             guardVisual.transform.localPosition = new Vector3(0f, 0.05f, 0f);
             guardVisual.transform.localScale = new Vector3(guardRadius * 2f, 0.02f, guardRadius * 2f);
-            guardVisual.GetComponent<Renderer>().sharedMaterial = VisualUtil.UnlitMaterial(guardColor);
+            guardVisual.GetComponent<Renderer>().sharedMaterial = VisualUtil.UnlitMaterial(GuardColor);
             guardVisual.SetActive(false);
 
             BuildGlowShell();
@@ -64,7 +69,7 @@ namespace Anathema.Abilities
             model = transform.Find("Model");
             if (model == null) return;
 
-            glowMaterial = VisualUtil.UnlitMaterial(glowColor, 3000);
+            glowMaterial = VisualUtil.UnlitMaterial(GlowColor, 3000);
             sourceBones = model.GetComponentsInChildren<Transform>(true);
             glowShell = Instantiate(model.gameObject, model);
             glowBones = glowShell.GetComponentsInChildren<Transform>(true);
@@ -115,8 +120,8 @@ namespace Anathema.Abilities
 
             if (glowMaterial != null)
             {
-                Color c = glowColor;
-                c.a = glowColor.a * (0.75f + 0.25f * Mathf.Sin((Time.time - startTime) * 14f)) * blend;
+                Color c = GlowColor;
+                c.a = GlowColor.a * (0.75f + 0.25f * Mathf.Sin((Time.time - startTime) * 14f)) * blend;
                 glowMaterial.color = c;
             }
         }
@@ -138,7 +143,7 @@ namespace Anathema.Abilities
 
             IsGuarding = true;
             startTime = Time.time;
-            endTime = startTime + duration;
+            endTime = startTime + GuardDuration;
             guardVisual.SetActive(true);
             if (glowShell != null) glowShell.SetActive(true);
             Health.DamageModifier = OnIncomingDamage;

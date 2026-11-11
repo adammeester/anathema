@@ -133,6 +133,19 @@ namespace Anathema.Combat
         // A third shield slot for a short generic barrier (see Barrier: Overdose, Chitinous Wings). It soaks first.
         public Func<float, GameObject, float> BarrierAbsorber;
 
+        // Each passes part of every hit (after armour, before shields) to someone else, in the order added. Receives
+        // (amount, source); returns the amount this character still takes. Added by the Hospitaller's Sanctified Tether
+        // and Martyrdom on allies; runs on the authority.
+        readonly System.Collections.Generic.List<Func<float, GameObject, float>> damageSharers =
+            new System.Collections.Generic.List<Func<float, GameObject, float>>();
+
+        public void AddDamageSharer(Func<float, GameObject, float> sharer)
+        {
+            if (sharer != null && !damageSharers.Contains(sharer)) damageSharers.Add(sharer);
+        }
+
+        public void RemoveDamageSharer(Func<float, GameObject, float> sharer) => damageSharers.Remove(sharer);
+
         // I-frames: while set, nothing hurts this character (including AoE, gas and bleeds, which skip DamageModifier).
         public bool Invulnerable { get; set; }
 
@@ -208,6 +221,19 @@ namespace Anathema.Combat
             // hit comes from that player's own machine.
             if (!trusted && NetPlayer.IsReplicaObject(source)) return;
 
+            // Hitting a structure (the charge orb) builds no energy: the attacker's on-hit gains all run inside this
+            // callback, so they are switched off while it runs. Only the kill pays out (see ChargeOrb).
+            if (Structure && onResult != null)
+            {
+                Action<bool> inner = onResult;
+                onResult = landed =>
+                {
+                    Energy.Suppressed++;
+                    try { inner(landed); }
+                    finally { Energy.Suppressed--; }
+                };
+            }
+
             if (!IsAuthority)
             {
                 // Environmental damage (gas) is the server's business.
@@ -225,6 +251,9 @@ namespace Anathema.Combat
         public bool ApplyHitLocal(Hit hit, GameObject source)
         {
             if (!ApplyDamageLocal(hit.Damage, source, hit.Aoe, hit.Pierce, hit.ShieldBreak, hit.Dot)) return false;
+            // A landed hit from whoever lit this character's balefire sets it off (before this hit's own riders, so the
+            // hit that lights it doesn't burst it).
+            if (!IsDead && !hit.Dot) Balefire.OnStruck(gameObject, source);
             if (!IsDead && !Structure) hit.ApplyRiders(gameObject, source);
             return true;
         }
@@ -246,6 +275,10 @@ namespace Anathema.Combat
             if (armour > 0f) amount *= 1f - armour * (1f - pierce);
             if ((aoe || dot) && areaResistance > 0f) amount *= 1f - areaResistance;
             if (dot && Time.time < dotWardEnd) amount *= 1f - dotWardFraction;
+
+            // Shares of the hit carried by someone else (the Hospitaller); each returns what is left for this one.
+            for (int i = 0; i < damageSharers.Count && amount > 0f; i++) amount = damageSharers[i](amount, source);
+            if (amount <= 0f) return true;
 
             // A fully absorbed hit still counts as landing (the attacker gets their energy) but doesn't touch health.
             // A shield-breaking hit uses up the shield faster: the shield sees the hit scaled up, and whatever it could not
@@ -315,6 +348,8 @@ namespace Anathema.Combat
                 return 0f;
             }
 
+            // Poison sours healing (orbs, below, are unaffected).
+            amount *= Poisoned.HealingMultiplier(gameObject);
             float healed = Mathf.Min(amount, Recoverable);
             Current += healed;
             Recoverable -= healed;

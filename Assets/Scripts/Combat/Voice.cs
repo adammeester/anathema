@@ -6,6 +6,7 @@ namespace Anathema.Combat
     // Character voice lines (recordings in Resources/Audio/Sfx, played through Sfx.Say). Two moments so far:
     //   "<Character>UltimateReady" - spoken on the player's own machine when their energy first reaches the ultimate's cost;
     //   the ultimate's own line    - shouted on every machine as it is cast.
+    // (The Plague Surgeon has no cast line: his ultimate is heard as the ward's disease cloud, see PlagueWard.)
     // A character whose line has not been recorded yet is simply silent: drop the file in and it plays.
     public static class Voice
     {
@@ -14,7 +15,6 @@ namespace Anathema.Combat
         public const string BerserkerUltimateReady = "BerserkerUltimateReady";
         public const string BerserkerUltimate = "BloodForTheBloodGod";
         public const string PlagueSurgeonUltimateReady = "PlagueSurgeonUltimateReady";
-        public const string PlagueSurgeonUltimate = "PlagueSurgeonUltimate";
         public const string PsykerUltimateReady = "PsykerUltimateReady";
         public const string PsykerUltimate = "PsykerUltimate";
         public const string SkitariiUltimateReady = "SkitariiUltimateReady";

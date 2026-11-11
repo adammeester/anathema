@@ -58,6 +58,10 @@ namespace Anathema.Abilities
         // For multi-charge abilities: while the slot is usable but a spent charge is still recharging, how much of that
         // recharge is left (1 = just spent, 0 = back). 0 when nothing is recharging. Drawn as a faint curtain behind the name.
         public virtual float ChargeRechargeNormalized => 0f;
+        // Multi-charge abilities: how many charges the slot can hold and how many are ready now. The HUD draws one gold
+        // pip per charge along the top of the slot when ChargeCapacity > 1.
+        public virtual int ChargeCapacity => 1;
+        public virtual int ChargesReady => 0;
         public virtual float CooldownNormalized => EffectiveCooldown > 0f ? Mathf.Clamp01(CooldownRemaining / EffectiveCooldown) : 0f;
 
         protected virtual void Awake()
@@ -215,6 +219,19 @@ namespace Anathema.Abilities
             CancelCast();
         }
 
+        // Online: an ability that picks its own targets sends them with SendTargets (owner, before its cue goes out);
+        // the other machines' copies receive them here. Entries are null for characters that are not networked.
+        public virtual void ReceiveTargets(System.Collections.Generic.List<Health> targets) { }
+
+        protected void SendTargets(System.Collections.Generic.IList<Health> targets)
+        {
+            if (Health.Net == null || !Health.Net.IsSpawned) return;
+            if (abilityIndex < 0) abilityIndex = System.Array.IndexOf(GetComponents<Ability>(), this);
+            var gos = new GameObject[targets.Count];
+            for (int i = 0; i < gos.Length; i++) gos[i] = targets[i] != null ? targets[i].gameObject : null;
+            Health.Net.SendTargets(abilityIndex, gos);
+        }
+
         protected virtual void Update()
         {
             if (IsReplica)
@@ -276,9 +293,22 @@ namespace Anathema.Abilities
             if (!IsCasting) nextUseTime = 0f;
         }
 
+        // Takes `seconds` off the cooldown still running (e.g. a passive refunding it). Does nothing during a cast.
+        public void ReduceCooldown(float seconds)
+        {
+            if (!IsCasting && seconds > 0f) nextUseTime -= seconds;
+        }
+
         protected void StartCooldown()
         {
             nextUseTime = Time.time + EffectiveCooldown;
+        }
+
+        // Puts the cooldown back to `seconds` from now, e.g. when a use that bypassed it (an add-on to something already
+        // running) should not restart it.
+        protected void SetCooldownRemaining(float seconds)
+        {
+            nextUseTime = Time.time + Mathf.Max(0f, seconds);
         }
 
         // Call from Cancel() when the ability is stopped before its effect lands (e.g. during a wind-up):

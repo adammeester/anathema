@@ -35,7 +35,7 @@ namespace Anathema.Abilities.Psyker
             float bestDistance = float.MaxValue;
             foreach (Health h in FindObjectsByType<Health>())
             {
-                if (h.IsDead || h.Team == casterHealth.Team) continue;
+                if (h.IsDead || h.Team == casterHealth.Team || Stealthed.HiddenFrom(h.gameObject, casterHealth.Team)) continue;
                 if (Vector3.Distance(h.transform.position, caster.transform.position) > range) continue;
                 float d = Vector3.Distance(h.transform.position, aimPoint);
                 if (d >= bestDistance) continue;

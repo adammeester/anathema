@@ -81,11 +81,14 @@ namespace Anathema.Combat
         void Awake()
         {
             markMaterial = VisualUtil.UnlitMaterial(new Color(1f, 0.9f, 0.2f));
-            PanicSound.Play();
+            // The hit lands, and the scream starts a beat later over the top of it. The scream belongs to the panic: if a
+            // blow snaps the victim out of it early, the scream fades with it.
+            HitMarkerSound.Play(0.45f);
 
             mark = new GameObject("Panic Mark").transform;
             mark.SetParent(transform, false);
             mark.localPosition = Vector3.up * MarkHeight;
+            Sfx.PlayFor(Sfx.Panic, mark, 0.4f, 0.06f); // tied to the "!" mark, which goes when the panic ends
 
             AddPart(PrimitiveType.Cube, new Vector3(0.14f, 0.38f, 0.14f), new Vector3(0f, 0.15f, 0f));
             AddPart(PrimitiveType.Sphere, Vector3.one * 0.17f, new Vector3(0f, -0.15f, 0f));

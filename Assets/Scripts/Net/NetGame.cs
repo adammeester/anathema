@@ -73,8 +73,8 @@ namespace Anathema.Net
             public int team; // 0 = team A, 1 = team B (only used in Teams mode)
         }
 
-        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon", "Psyker", "Skitarii Ranger" };
-        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon", "Net/Player_Psyker", "Net/Player_SkitariiRanger" };
+        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon", "Psyker", "Skitarii Ranger", "Hospitaller", "Mandrake" };
+        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon", "Net/Player_Psyker", "Net/Player_SkitariiRanger", "Net/Player_Hospitaller", "Net/Player_Mandrake" };
 
         public static NetGame Instance { get; private set; }
         public static bool Online => Instance != null && Instance.manager != null && Instance.manager.IsListening;
@@ -1855,7 +1855,7 @@ namespace Anathema.Net
             {
                 foreach (NetPlayer player in NetPlayer.All)
                 {
-                    if (player == null || player.Health.IsDead) continue;
+                    if (player == null || player.Health.IsDead || Stealthed.HiddenHere(player.gameObject)) continue;
                     Vector3 screen = cam.WorldToScreenPoint(player.transform.position + Vector3.up * 3.15f);
                     if (screen.z <= 0f) continue;
 

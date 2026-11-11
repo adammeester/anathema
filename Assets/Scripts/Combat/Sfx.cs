@@ -23,6 +23,7 @@ namespace Anathema.Combat
         public const string Fissure = "Fissure";
         public const string Flamethrower = "Flamethrower";
         public const string Flies = "Flies";
+        public const string Flies2 = "Flies2";
         public const string GroundFire = "GroundFire";
         public const string HammerSmash = "HammerSmash";
         public const string HeavyBolterShot = "HeavyBolterShot";
@@ -34,6 +35,10 @@ namespace Anathema.Combat
         public const string MeleeMiss = "MeleeMiss";
         public const string MeleeSlash = "MeleeSlash";
         public const string MeleeSlash2 = "MeleeSlash2";
+        public const string MagicAttack1 = "MagicAttack1";
+        public const string MagicAttack2 = "MagicAttack2";
+        public const string MagicAttack3 = "MagicAttack3";
+        public const string Panic = "Panic";
         public const string PlagueWeaponShot = "PlagueWeaponShot";
         public const string PsycannonShot = "PsycannonShot";
         public const string SlamExplosion = "SlamExplosion";
@@ -49,12 +54,14 @@ namespace Anathema.Combat
         const float ShotLevel = 0.55f;  // every gunshot
         const float ImpactLevel = 0.55f;      // blows and blasts landing
         const float ChainImpactLevel = 0.3f;  // chain teeth biting: the harshest recording, and it repeats the most
+        const float PlagueLevel = 0.6f;       // every Plague Surgeon sound bar the "ultimate ready" line
         static readonly Dictionary<string, float> mix = new Dictionary<string, float>
         {
             { ChainswordSwing, SwingLevel }, { ChainswordSwing2, SwingLevel },
             { MeleeSlash, SwingLevel }, { MeleeSlash2, SwingLevel }, { MeleeMiss, SwingLevel },
-            { Longrifle, ShotLevel }, { HeavyBolterShot, ShotLevel }, { PsycannonShot, ShotLevel }, { PlagueWeaponShot, ShotLevel },
+            { Longrifle, ShotLevel }, { HeavyBolterShot, ShotLevel }, { PsycannonShot, ShotLevel }, { PlagueWeaponShot, ShotLevel * PlagueLevel },
             { ChainswordImpact, ChainImpactLevel },
+            { DiseaseCloud, PlagueLevel }, { DiseaseCloud2, PlagueLevel }, { DiseaseBurst, PlagueLevel }, { Flies, PlagueLevel }, { Flies2, PlagueLevel },
             { MeleeImpact, ImpactLevel }, { HammerSmash, ImpactLevel }, { Impact, ImpactLevel }, { MagicImpact, ImpactLevel },
         };
 
@@ -63,6 +70,9 @@ namespace Anathema.Combat
 
         // One of two recordings of the same thing, picked at random.
         public static string Either(string a, string b) => Random.value < 0.5f ? a : b;
+
+        // One of several recordings of the same thing, picked at random.
+        public static string Any(params string[] names) => names[Random.Range(0, names.Length)];
 
         // A one-shot. `maxSeconds` > 0 fades it out after that long instead of letting the whole recording play.
         public static void Play(string name, float volume = 0.5f, float pitchMin = 0.95f, float pitchMax = 1.05f, float maxSeconds = 0f)
@@ -81,14 +91,34 @@ namespace Anathema.Combat
             else Object.Destroy(source.gameObject, length + 0.1f);
         }
 
+        // A one-shot that belongs to `anchor` (a status effect, say): it plays out in full, but fades out early if the
+        // anchor is destroyed first. `delay` holds it back that many seconds, e.g. to land just after another cue.
+        public static AudioSource PlayFor(string name, Transform anchor, float volume = 0.5f, float delay = 0f)
+        {
+            AudioClip clip = Clip(name);
+            if (clip == null || anchor == null) return null;
+
+            AudioSource source = NewSource(name, clip, volume, 1f, false);
+            if (delay > 0f)
+            {
+                source.Stop();
+                source.PlayDelayed(delay);
+            }
+            source.gameObject.AddComponent<SfxVoice>().Follow(anchor, 0f);
+            Object.Destroy(source.gameObject, delay + clip.length + 0.1f);
+            return source;
+        }
+
         // A looping sound that lasts as long as `anchor` exists (the beam, cloud or effect it belongs to): it fades in,
         // and fades out and removes itself once the anchor is destroyed. Stop() ends it sooner.
-        public static AudioSource Loop(string name, Transform anchor, float volume = 0.4f, float pitch = 1f, float fadeIn = 0.15f)
+        // `skipLeadIn` starts it where the sound actually begins, past any quiet run-in at the head of the recording.
+        public static AudioSource Loop(string name, Transform anchor, float volume = 0.4f, float pitch = 1f, float fadeIn = 0.15f, bool skipLeadIn = false)
         {
             AudioClip clip = Clip(name);
             if (clip == null || anchor == null) return null; // nothing to tie it to: it would never end
 
             AudioSource source = NewSource(name, clip, volume, pitch, true);
+            if (skipLeadIn) source.time = LeadIn(clip);
             source.gameObject.AddComponent<SfxVoice>().Follow(anchor, fadeIn);
             return source;
         }
@@ -124,6 +154,35 @@ namespace Anathema.Combat
             source.loop = loop;
             source.Play();
             return source;
+        }
+
+        // Seconds of quiet run-in at the head of a recording: up to the first point reaching 15% of its loudest, less a
+        // few hundredths so the attack itself isn't clipped. Worked out once per clip.
+        static readonly Dictionary<AudioClip, float> leadIns = new Dictionary<AudioClip, float>();
+
+        static float LeadIn(AudioClip clip)
+        {
+            if (leadIns.TryGetValue(clip, out float seconds)) return seconds;
+            seconds = 0f;
+            if (clip.loadState == AudioDataLoadState.Loaded || clip.LoadAudioData())
+            {
+                var data = new float[clip.samples * clip.channels];
+                if (clip.GetData(data, 0))
+                {
+                    float peak = 0f;
+                    foreach (float s in data) peak = Mathf.Max(peak, Mathf.Abs(s));
+                    for (int i = 0; i < data.Length; i++)
+                    {
+                        if (Mathf.Abs(data[i]) < peak * 0.15f) continue;
+                        seconds = Mathf.Max(0f, (float)(i / clip.channels) / clip.frequency - 0.03f);
+                        break;
+                    }
+                }
+            }
+            // Never skip so far that the loop has almost nothing left.
+            seconds = Mathf.Min(seconds, clip.length * 0.5f);
+            leadIns[clip] = seconds;
+            return seconds;
         }
 
         static AudioClip Clip(string name, bool warnIfMissing = true)

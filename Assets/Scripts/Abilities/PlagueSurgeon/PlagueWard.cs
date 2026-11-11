@@ -81,6 +81,8 @@ namespace Anathema.Abilities.PlagueSurgeon
             s.transform.localPosition = Vector3.up;
             s.transform.localScale = Vector3.one * (ShellRadius * 2f);
             shell = s.transform;
+            // The plague churning inside the ward, for as long as it holds (it goes with the shell).
+            Sfx.Loop(Sfx.DiseaseCloud2, shell, 0.35f, 1f, 0.4f);
         }
 
         float Absorb(float amount, GameObject damageSource)

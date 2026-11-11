@@ -1,0 +1,74 @@
+{
+  "health": 160,
+  "moveSpeed": 5.0,
+  "maxEnergy": 100,
+  "abilities": {
+    "SanctifiedTether": {
+      "cooldown": 6,
+      "duration": 4,
+      "range": 11,
+      "leashRange": 14,
+      "tickInterval": 0.25,
+      "tickDamage": 1.5,
+      "energyPerTick": 1,
+      "shareFraction": 0.35,
+      "exEnergyCost": 30,
+      "exCooldown": 8,
+      "exForks": 1,
+      "forkRange": 5,
+      "exDamageScale": 0.7
+    },
+    "SanctusPulse": {
+      "cooldown": 0.3,
+      "rechargeTime": 6,
+      "range": 10,
+      "radius": 2.2,
+      "delay": 0.5,
+      "totalHeal": 26,
+      "energyPerHeal": 5
+    },
+    "BlindingRadiance": {
+      "cooldown": 8,
+      "range": 4,
+      "arc": 110,
+      "damage": 10,
+      "knockbackDistance": 3.5,
+      "energyPerHit": 8
+    },
+    "DoveStrike": {
+      "cooldown": 0.25,
+      "rechargeTime": 8,
+      "range": 12,
+      "hitRadius": 0.5,
+      "damage": 8,
+      "rootSeconds": 0.75,
+      "rootLockout": 3,
+      "flightSpeed": 18,
+      "energyPerHit": 6,
+      "exEnergyCost": 35,
+      "exDamage": 10,
+      "exPanicSeconds": 1.25
+    },
+    "MartyrsGrace": {
+      "cooldown": 4,
+      "heal": 15,
+      "healRadius": 6,
+      "smiteDamage": 6,
+      "silenceSeconds": 1.2
+    },
+    "Martyrdom": {
+      "energyCost": 100,
+      "gatherTime": 0.9,
+      "duration": 5,
+      "linkRadius": 10,
+      "leashRange": 14,
+      "shareFraction": 0.5,
+      "damageReduction": 0.4,
+      "burstRadius": 6,
+      "burstBaseDamage": 10,
+      "burstPerAbsorbed": 0.8,
+      "burstMaxDamage": 80,
+      "burstKnockback": 3
+    }
+  }
+}

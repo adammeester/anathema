@@ -7,14 +7,33 @@ namespace Anathema.Abilities.GreyKnightInterceptor
     //                   licking up from its leading edge, a flash at the centre and a violet light that dies away.
     //   CreateChannel() the build-up: embers drawn in from the edge towards the caster, thickening as the charge fills.
     // The radius follows Ease(t), the same curve Purgatus uses for its damage, so the fire and the hit-test agree.
+    // Colours default to the Grey Knight's violet warp-fire; other casters pass a Palette (the Hospitaller's holy fire).
+    //   UpdateWreath()  extra: flames licking up around a caster's body, for a fire that clings to someone.
     public class PsychicFireRing : MonoBehaviour
     {
+        // deep: the cool outer colour flames fade to; mid: the body of the fire; hot: the white-hot core and embers.
+        public struct Palette
+        {
+            public Color Deep, Mid, Hot, Light;
+            public bool Custom;
+
+            public static Palette Make(Color deep, Color mid, Color hot, Color light) =>
+                new Palette { Deep = deep, Mid = mid, Hot = hot, Light = light, Custom = true };
+        }
+
         const int Segments = 96;
         const float RingHeight = 0.08f;
 
-        static readonly Color Violet = new Color(0.55f, 0.25f, 1f);
-        static readonly Color Lavender = new Color(0.85f, 0.6f, 1f);
-        static readonly Color HotWhite = new Color(1f, 0.95f, 1f);
+        static readonly Palette Warp = new Palette
+        {
+            Deep = new Color(0.55f, 0.25f, 1f), Mid = new Color(0.85f, 0.6f, 1f), Hot = new Color(1f, 0.95f, 1f),
+            Light = new Color(0.7f, 0.4f, 1f)
+        };
+
+        Palette palette = Warp;
+        Color Violet => palette.Deep;
+        Color Lavender => palette.Mid;
+        Color HotWhite => palette.Hot;
 
         static Texture2D softTexture;
 
@@ -39,9 +58,11 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             return 1f - (1f - t) * (1f - t);
         }
 
-        public static PsychicFireRing Spawn(Vector3 center, float maxRadius, float duration)
+        public static PsychicFireRing Spawn(Vector3 center, float maxRadius, float duration) => Spawn(center, maxRadius, duration, Warp);
+
+        public static PsychicFireRing Spawn(Vector3 center, float maxRadius, float duration, Palette colours)
         {
-            PsychicFireRing ring = Create("Psychic Fire Ring");
+            PsychicFireRing ring = Create("Psychic Fire Ring", colours);
             ring.center = center;
             ring.maxRadius = maxRadius;
             ring.duration = duration;
@@ -57,15 +78,51 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 velocity = Vector3.zero,
                 startLifetime = 0.35f,
                 startSize = maxRadius * 1.3f,
-                startColor = new Color(Lavender.r, Lavender.g, Lavender.b, 0.55f)
+                startColor = new Color(ring.Lavender.r, ring.Lavender.g, ring.Lavender.b, 0.55f)
             };
             ring.ps.Emit(flash, 1);
             return ring;
         }
 
-        public static PsychicFireRing CreateChannel()
+        public static PsychicFireRing CreateChannel() => CreateChannel(Warp);
+
+        public static PsychicFireRing CreateChannel(Palette colours)
         {
-            return Create("Psychic Fire Channel");
+            return Create("Psychic Fire Channel", colours);
+        }
+
+        // Called every frame while someone is wreathed in this fire: flames climb around their body up to `height`.
+        public void UpdateWreath(Vector3 feet, float bodyRadius, float height, float intensity)
+        {
+            emitCarry += 70f * intensity * Time.deltaTime;
+            int n = (int)emitCarry;
+            emitCarry -= n;
+
+            for (int i = 0; i < n; i++)
+            {
+                float angle = Random.value * Mathf.PI * 2f;
+                var dir = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+                bool ember = Random.value < 0.25f;
+                var p = new ParticleSystem.EmitParams
+                {
+                    position = feet + dir * bodyRadius * Random.Range(0.6f, 1.1f) + Vector3.up * Random.Range(0f, height * 0.6f),
+                    velocity = dir * Random.Range(0f, 0.4f) + Vector3.up * Random.Range(ember ? 2.5f : 1.2f, ember ? 4.5f : 2.6f),
+                    startLifetime = ember ? Random.Range(0.6f, 1f) : Random.Range(0.3f, 0.55f),
+                    startSize = ember ? Random.Range(0.06f, 0.14f) : Random.Range(0.3f, 0.6f) * Mathf.Lerp(0.7f, 1.2f, intensity),
+                    startColor = ember ? Color.Lerp(Lavender, HotWhite, Random.value) : FlameColour()
+                };
+                ps.Emit(p, 1);
+            }
+        }
+
+        // The colour of one flame licking up from the fire.
+        Color FlameColour()
+        {
+            if (!palette.Custom)
+                return new Color(Mathf.Lerp(0.75f, 1f, Random.value), Mathf.Lerp(0.45f, 0.9f, Random.value), 1f, 0.6f);
+            Color c = Color.Lerp(Violet, Lavender, Random.value);
+            c.a = 0.6f;
+            return c;
         }
 
         // Called every frame of the channel: embers stream in from the edge of the nova towards the caster.
@@ -102,10 +159,11 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             Destroy(gameObject, 1.5f);
         }
 
-        static PsychicFireRing Create(string name)
+        static PsychicFireRing Create(string name, Palette colours)
         {
             var go = new GameObject(name);
             var ring = go.AddComponent<PsychicFireRing>();
+            ring.palette = colours;
             ring.BuildParticles();
             return ring;
         }
@@ -192,9 +250,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                         : dir * Random.Range(0f, 1.5f) + Vector3.up * Random.Range(1.5f, 3.5f),
                     startLifetime = ember ? Random.Range(0.6f, 1f) : Random.Range(0.35f, 0.65f),
                     startSize = ember ? Random.Range(0.1f, 0.22f) : Random.Range(0.6f, 1.2f),
-                    startColor = ember
-                        ? Color.Lerp(Lavender, HotWhite, Random.value)
-                        : new Color(Mathf.Lerp(0.75f, 1f, Random.value), Mathf.Lerp(0.45f, 0.9f, Random.value), 1f, 0.6f)
+                    startColor = ember ? Color.Lerp(Lavender, HotWhite, Random.value) : FlameColour()
                 };
                 ps.Emit(p, 1);
             }
@@ -218,7 +274,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             ringTransform.localScale = new Vector3(0.01f, 1f, 0.01f);
         }
 
-        static Mesh BuildBandMesh()
+        Mesh BuildBandMesh()
         {
             // Radius fraction and colour of each ring of vertices, inside to outside.
             float[] radii = { 0.55f, 0.85f, 0.97f, 1f };
@@ -273,7 +329,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             go.transform.position = center + Vector3.up * 1.5f;
             glow = go.AddComponent<Light>();
             glow.type = LightType.Point;
-            glow.color = new Color(0.7f, 0.4f, 1f);
+            glow.color = palette.Light;
             glow.range = maxRadius * 1.6f;
             glow.intensity = 4f;
             glow.shadows = LightShadows.None;

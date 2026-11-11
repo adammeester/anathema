@@ -52,7 +52,6 @@ namespace Anathema.Abilities.PlagueSurgeon
         protected override void Activate()
         {
             PlagueSurgeonPose.For(gameObject).Conjure(0.6f);
-            Voice.Say(Voice.PlagueSurgeonUltimate);
             // The owner's machine does the casting; a replica has nothing to show (the ward appears on its holder).
             if (IsReplica) return;
 

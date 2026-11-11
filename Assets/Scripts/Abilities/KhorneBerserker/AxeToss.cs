@@ -88,10 +88,13 @@ namespace Anathema.Abilities.KhorneBerserker
                 {
                     case BerserkerWeapon.HeavyChainaxe: return "Cleave";
                     case BerserkerWeapon.Eviscerator: return "Descent";
-                    default: return TwoCharges ? "Toss x" + ReadyCharges : "Toss";
+                    default: return "Toss";
                 }
             }
         }
+
+        public override int ChargeCapacity => TwoCharges ? 2 : 1;
+        public override int ChargesReady => TwoCharges ? ReadyCharges : 0;
 
         // Twin Axes: the toss holds two charges that each recharge on their own.
         readonly float[] chargeReady = new float[2];

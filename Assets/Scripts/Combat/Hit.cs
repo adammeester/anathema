@@ -32,6 +32,12 @@ namespace Anathema.Combat
         // Bleeding damage is credited to the hit's source.
         public static HitRider Bleed(float damagePerSecond, float seconds) =>
             new HitRider { Kind = (int)NetPlayer.StatusKind.Bleed, A = damagePerSecond, B = seconds };
+        // Poison damage is credited to the hit's source. Adds `stacks` stacks (see Poisoned).
+        public static HitRider Poison(int stacks, float damagePerSecondPerStack, float seconds) =>
+            new HitRider { Kind = (int)NetPlayer.StatusKind.Poison, A = damagePerSecondPerStack, B = seconds, Direction = new Vector3(stacks, 0f, 0f) };
+        // Balefire damage is credited to the hit's source, and only that source's next hit makes it burst.
+        public static HitRider Balefire(float damagePerSecond, float seconds) =>
+            new HitRider { Kind = (int)NetPlayer.StatusKind.Balefire, A = damagePerSecond, B = seconds };
         public static HitRider Maim(float seconds, float slowFraction) =>
             new HitRider { Kind = (int)NetPlayer.StatusKind.Maim, A = seconds, B = slowFraction };
 
@@ -85,7 +91,9 @@ namespace Anathema.Combat
         public Hit WithPanic(float seconds) => With(HitRider.Panic(seconds));
         public Hit WithBurn(float damagePerSecond, float seconds) => With(HitRider.Burn(damagePerSecond, seconds));
         public Hit WithBleed(float damagePerSecond, float seconds) => With(HitRider.Bleed(damagePerSecond, seconds));
+        public Hit WithBalefire(float damagePerSecond, float seconds) => With(HitRider.Balefire(damagePerSecond, seconds));
         public Hit WithMaim(float seconds, float slowFraction) => With(HitRider.Maim(seconds, slowFraction));
+        public Hit WithPoison(int stacks, float damagePerSecondPerStack, float seconds) => With(HitRider.Poison(stacks, damagePerSecondPerStack, seconds));
 
         // Runs on the machine that owns `victim`, after the damage landed.
         public void ApplyRiders(GameObject victim, GameObject attacker)
@@ -108,7 +116,9 @@ namespace Anathema.Combat
                 case NetPlayer.StatusKind.Panic: Panicked.Apply(victim, attacker, r.A); break;
                 case NetPlayer.StatusKind.Burn: Burning.Apply(victim, attacker, r.A, r.B); break;
                 case NetPlayer.StatusKind.Bleed: Bleeding.Apply(victim, attacker, r.A, r.B); break;
+                case NetPlayer.StatusKind.Balefire: Balefire.Apply(victim, attacker, r.A, r.B); break;
                 case NetPlayer.StatusKind.Maim: Maimed.Apply(victim, r.A, r.B); break;
+                case NetPlayer.StatusKind.Poison: Poisoned.Apply(victim, attacker, Mathf.RoundToInt(r.Direction.x), r.A, r.B); break;
                 default: Debug.LogWarning("Unsupported hit rider " + (NetPlayer.StatusKind)r.Kind); break;
             }
         }
