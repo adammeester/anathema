@@ -77,6 +77,7 @@ namespace Anathema.Abilities.Psyker
             coreMaterial = VisualUtil.UnlitMaterial(new Color(0.85f, 1f, 0.7f, 0.95f), 3002);
             glow = MakeLine("Leech Glow", glowMaterial, 0.35f);
             core = MakeLine("Leech Core", coreMaterial, 0.1f);
+            Sfx.Loop(Sfx.ElectricBeam, glow.transform, 0.3f, 0.7f, 0.3f); // a low hum for as long as the tether holds
         }
 
         LineRenderer MakeLine(string name, Material material, float width)

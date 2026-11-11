@@ -122,6 +122,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 if (!landed) return;
                 if (energy != null) energy.Gain(energyGain);
                 RegisterHit(berserker, dealt);
+                MeleeSound.ChainImpact();
                 if (target != null) BloodImpact.Play(target.transform.position + Vector3.up, direction, bloodScale, squelchy);
             };
         }

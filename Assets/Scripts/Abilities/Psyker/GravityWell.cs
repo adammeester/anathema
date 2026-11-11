@@ -111,6 +111,7 @@ namespace Anathema.Abilities.Psyker
             float blast = radius * 0.7f;
             PsykerFx.Ring(center, 0.3f, blast, 0.3f, Color.white, 0.35f);
             PsykerFx.Ring(center, 0.3f, blast * 1.2f, 0.4f, Violet, 0.2f);
+            Sfx.Play(Sfx.MagicImpact, 0.5f, 0.78f, 0.88f);
 
             // Every machine marks whoever is caught in the blast as Charged (so everyone sees the rune), but only the
             // owner's copy deals damage. The detonation itself never gets the Charged bonus: it is applied as a plain hit.

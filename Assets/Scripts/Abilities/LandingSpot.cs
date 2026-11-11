@@ -14,7 +14,11 @@ namespace Anathema.Abilities
         public static float Clear(Transform self, Vector3 from, Vector3 dir, float distance)
         {
             for (float d = distance; d > 0f; d -= Step)
+            {
+                // During prep a leap can't carry anyone out of their ready room (over the gate or a wall).
+                if (Anathema.Arena.ReadyRoom.LeavesRoomInPrep(from, from + dir * d)) continue;
                 if (!Blocked(self, from + dir * d)) return d;
+            }
             return 0f;
         }
 

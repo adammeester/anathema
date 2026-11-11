@@ -83,6 +83,8 @@ namespace Anathema.Abilities.SkitariiRanger
             Vector3 dir = to.sqrMagnitude < 0.0001f ? transform.forward : to.normalized;
             RangerFx.Tracer(here + Vector3.up * muzzleHeight + dir * 1.2f, centre + Vector3.up * 0.3f, 0.12f, RangerFx.Ember, 0.18f);
             PsykerFx.Ring(centre, 0.3f, fieldRadius, 0.4f, RangerFx.Ember, 0.25f);
+            Sfx.Play(Sfx.Longrifle, 0.4f, 0.85f, 0.92f, 0.6f);
+            Sfx.Play(Sfx.Impact, 0.45f, 0.9f, 1.05f);
             ShrapnelPool.Spawn(gameObject, Health.Team, centre, fieldRadius, fieldDuration, fieldDamagePerSecond, fieldSlow, !IsReplica);
         }
 
@@ -104,6 +106,7 @@ namespace Anathema.Abilities.SkitariiRanger
                 RangerFx.Tracer(origin, origin + d * blastRange * Random.Range(0.7f, 1f), 0.09f, RangerFx.Ember, 0.16f);
             }
             PsykerFx.Ring(transform.position + dir * 1.5f, 0.2f, 2f, 0.22f, RangerFx.Ember, 0.3f);
+            Sfx.Play(Sfx.HeavyBolterShot, 0.55f, 0.7f, 0.78f); // the shotgun blast
 
             if (IsReplica) return;
 

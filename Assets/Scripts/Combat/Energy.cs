@@ -41,7 +41,9 @@ namespace Anathema.Combat
 
         public void Gain(float amount)
         {
-            if (amount <= 0f || health.IsDead) return;
+            // Nothing charges during prep: hitting the ready-room training dummies must not build energy for the
+            // ultimate (or EX abilities). Energy is also cleared when prep starts and when the round begins.
+            if (amount <= 0f || health.IsDead || Anathema.Net.NetGame.InPrep) return;
             Current = Mathf.Min(maxEnergy, Current + amount);
             Changed?.Invoke(this);
         }

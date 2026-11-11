@@ -62,6 +62,7 @@ namespace Anathema.Abilities.Psyker
         {
             base.Awake();
             energy = GetComponent<Energy>();
+            Voice.AnnounceUltimateReady(energy, Health, Voice.PsykerUltimateReady, () => energyCost);
         }
 
         void OnDestroy()
@@ -124,6 +125,7 @@ namespace Anathema.Abilities.Psyker
                 if (t >= 1f)
                 {
                     phase = Phase.Channel;
+                    Voice.Say(Voice.PsykerUltimate); // spoken as the beam fires: the gather before it can still be cancelled
                     phaseStart = Time.time;
                     nextTick = Time.time;
                     struck.Clear();
@@ -223,6 +225,7 @@ namespace Anathema.Abilities.Psyker
         {
             DestroyBeam();
             beamRoot = new GameObject("Psychic Blast");
+            Sfx.Loop(Sfx.ElectricBeam, beamRoot.transform, 0.45f, 0.9f);
             AddLayer(2, beamRadius * 3.2f, 0.04f, 0.28f, 3000);
             for (int i = 0; i < Arcs; i++) AddLayer(Segments, beamRadius * 0.45f, 0.5f, 0.95f, 3001);
             AddLayer(2, beamRadius * 0.9f, 0.03f, 1f, 3002);

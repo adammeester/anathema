@@ -44,7 +44,7 @@ namespace Anathema.Abilities.PlagueSurgeon
             inf.healPerTick = allyHps * TickInterval;
             inf.energyPerTick = energyGain;
             inf.BuildFly();
-            PlagueSurgeonSound.FlyBuzz();
+            Sfx.Loop(Sfx.Flies, inf.fly, 0.35f, Random.Range(0.95f, 1.05f), 0.2f); // buzzes for as long as the fly is on them
             return inf;
         }
 
@@ -199,6 +199,7 @@ namespace Anathema.Abilities.PlagueSurgeon
             float damage, float heal, float panic, bool visualOnly)
         {
             BurstEffect.Spawn(center, radius);
+            Sfx.Play(Sfx.DiseaseBurst, 0.5f, 0.95f, 1.05f, 1.6f);
             if (visualOnly) return;
 
             // Parasitic Bond: the burst heals the surgeon once, on the first enemy it actually hurts.

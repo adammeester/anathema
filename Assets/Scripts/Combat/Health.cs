@@ -108,7 +108,16 @@ namespace Anathema.Combat
         // The machine whose copy of this character is the truth for health, shields and damage: the server (dedicated
         // or host) when online, this machine otherwise. Everywhere else the numbers are copied from the server.
         // (Movement, aim and the enforcement of stuns and roots stay with the owner: see IsReplica.)
-        public bool IsAuthority => net == null || !net.IsSpawned || net.IsServer;
+        public bool IsAuthority => StrikeRelay == null && (net == null || !net.IsSpawned || net.IsServer);
+
+        // A neutral object rather than a character (the arena's charge orb): only a character's attacks hurt it (no
+        // gas, bleeds or burns), status effects never take hold, it cannot be shoved or healed, and none of its
+        // lost health is healable.
+        public bool Structure { get; set; }
+
+        // Set on a client's copy of a server-owned object that has no NetPlayer (the charge orb): this copy is then
+        // not the authority, and attacks on it are handed to this to pass on to the server.
+        public Action<Hit, GameObject, Action<bool>> StrikeRelay;
 
         // Lets an ability (e.g. a counter) rewrite or negate incoming damage. Receives (amount, source); returns the new amount.
         public Func<float, GameObject, float> DamageModifier;
@@ -203,7 +212,8 @@ namespace Anathema.Combat
             {
                 // Environmental damage (gas) is the server's business.
                 if (source != null && !source.TryGetComponent(out NetPlayer _)) return;
-                net.SendHit(hit, source, onResult);
+                if (StrikeRelay != null) StrikeRelay(hit, source, onResult);
+                else net.SendHit(hit, source, onResult);
                 return;
             }
 
@@ -215,7 +225,7 @@ namespace Anathema.Combat
         public bool ApplyHitLocal(Hit hit, GameObject source)
         {
             if (!ApplyDamageLocal(hit.Damage, source, hit.Aoe, hit.Pierce, hit.ShieldBreak, hit.Dot)) return false;
-            if (!IsDead) hit.ApplyRiders(gameObject, source);
+            if (!IsDead && !Structure) hit.ApplyRiders(gameObject, source);
             return true;
         }
 
@@ -226,6 +236,7 @@ namespace Anathema.Combat
         public bool ApplyDamageLocal(float amount, GameObject source, bool aoe = false, float pierce = 0f, float shieldBreak = 1f, bool dot = false)
         {
             if (IsDead || Invulnerable || Time.time < lastStandUntil || amount <= 0f || NetGame.Frozen) return false;
+            if (Structure && (dot || source == null || !source.TryGetComponent(out Health _))) return false;
 
             if (!aoe && DamageModifier != null) amount = DamageModifier(amount, source);
             if (amount <= 0f) return false;
@@ -262,7 +273,7 @@ namespace Anathema.Combat
             RoundDamageTaken += dealt;
             DamageTaken?.Invoke(dealt, source);
             // Only so much damage can ever be healed back; anything beyond that is lost for good (orbs only).
-            Recoverable = Mathf.Min(Recoverable + dealt, maxHealth - Current, maxRecoverableChunks * ChunkSize);
+            Recoverable = Structure ? 0f : Mathf.Min(Recoverable + dealt, maxHealth - Current, maxRecoverableChunks * ChunkSize);
             lastDamageTime = Time.time;
             if (Current <= 0f) Recoverable = 0f;
             if (!dot && dealt >= maxHealth * PanicBreakFraction) Panicked.Cancel(gameObject);
@@ -297,7 +308,7 @@ namespace Anathema.Combat
         // the heal had to be sent to the server, which applies and credits it). `source` is the healer, for credit.
         public float Heal(float amount, GameObject source = null)
         {
-            if (IsDead || amount <= 0f) return 0f;
+            if (IsDead || Structure || amount <= 0f) return 0f;
             if (!IsAuthority)
             {
                 net.SendHeal(amount, false, source);
@@ -317,7 +328,7 @@ namespace Anathema.Combat
         // then the healable (black) part. Returns how much was actually healed (0 when sent to the server).
         public float HealPermanent(float amount, GameObject source = null)
         {
-            if (IsDead || amount <= 0f) return 0f;
+            if (IsDead || Structure || amount <= 0f) return 0f;
             if (!IsAuthority)
             {
                 net.SendHeal(amount, true, source);

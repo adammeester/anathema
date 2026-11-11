@@ -44,7 +44,6 @@ namespace Anathema.Abilities.KhorneBerserker
         BloodFissure fissure;
         Transform telegraph;
         Transform telegraphFill;
-        AudioSource roar;
         bool winding;
         bool charging;
         bool posed;
@@ -88,6 +87,7 @@ namespace Anathema.Abilities.KhorneBerserker
             base.Awake();
             controller = GetComponent<CharacterController>();
             energy = GetComponent<Energy>();
+            Voice.AnnounceUltimateReady(energy, Health, Voice.BerserkerUltimateReady, () => Cost);
             pose = new LimbPose(transform.Find("Model"), BoneNames);
 
             telegraph = CreateStrip("Blood God Telegraph", telegraphColor);
@@ -183,7 +183,6 @@ namespace Anathema.Abilities.KhorneBerserker
 
             winding = true;
             windupStart = Time.time;
-            roar = RoarSound.Play();
             telegraph.gameObject.SetActive(true);
             telegraphFill.gameObject.SetActive(true);
         }
@@ -194,7 +193,6 @@ namespace Anathema.Abilities.KhorneBerserker
             if (winding)
             {
                 winding = false;
-                RoarSound.Stop(roar);
                 HideTelegraph();
                 recoverFromLean = lastLean;
                 recoverFromArms = lastArms;
@@ -217,6 +215,8 @@ namespace Anathema.Abilities.KhorneBerserker
         void Release()
         {
             winding = false;
+            // The war cry starts with the charge, the moment the cast can no longer be cancelled (the brace before it is silent).
+            Voice.Say(Voice.BerserkerUltimate);
             HideTelegraph();
 
             charging = true;

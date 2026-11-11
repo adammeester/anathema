@@ -426,7 +426,12 @@ namespace Anathema.Net
         public void ResetForRematch()
         {
             if (!IsOwner) return;
-            if (abilities != null) foreach (Ability a in abilities) a.ReplayCancel();
+            if (abilities != null)
+                foreach (Ability a in abilities)
+                {
+                    a.ReplayCancel();
+                    a.ResetCooldown(); // nothing used on the ready-room dummies carries into the round
+                }
             if (respawner != null) respawner.ResetNow();
             if (energy != null) energy.Clear();
         }

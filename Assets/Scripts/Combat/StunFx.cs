@@ -31,7 +31,12 @@ namespace Anathema.Combat
             if (target == null || duration <= 0f) return;
 
             var fx = target.GetComponent<StunFx>();
-            if (fx == null) fx = target.AddComponent<StunFx>();
+            if (fx == null)
+            {
+                fx = target.AddComponent<StunFx>();
+                // Heard once as the stun takes hold (not again when it is extended), cut to the stun's length.
+                Sfx.Play(Sfx.Stun, 0.45f, 0.95f, 1.05f, Mathf.Clamp(duration, 0.6f, 2.5f));
+            }
             fx.endTime = Mathf.Max(fx.endTime, Time.time + duration);
         }
 

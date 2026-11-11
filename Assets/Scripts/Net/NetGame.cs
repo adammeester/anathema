@@ -381,6 +381,8 @@ namespace Anathema.Net
             msg.RegisterNamedMessageHandler("orbSpawn", OnOrbSpawnMessage);
             msg.RegisterNamedMessageHandler("orbClaim", OnOrbClaimMessage);
             msg.RegisterNamedMessageHandler("orbTaken", OnOrbTakenMessage);
+            msg.RegisterNamedMessageHandler("chargeOrb", OnChargeOrbMessage);
+            msg.RegisterNamedMessageHandler("chargeOrbHit", OnChargeOrbHitMessage);
             msg.RegisterNamedMessageHandler("bestOf", OnBestOfMessage);
             msg.RegisterNamedMessageHandler("mode", OnModeMessage);
             msg.RegisterNamedMessageHandler("matchChoice", OnMatchChoiceMessage);
@@ -509,6 +511,62 @@ namespace Anathema.Net
             reader.ReadValueSafe(out int id);
             reader.ReadValueSafe(out ulong claimer);
             HealingOrb.Collect(id, claimer == manager.LocalClientId);
+        }
+
+        // --- Charge orb (the server owns its health; see ChargeOrb) -------------------------------------------------
+
+        // Server -> everyone: the orb appeared (value = max health), was damaged (value = health left) or was
+        // destroyed (team = who destroyed it).
+        public void BroadcastChargeOrb(int evt, Vector3 position, float value, int team)
+        {
+            if (!manager.IsServer) return;
+            using var writer = new FastBufferWriter(32, Allocator.Temp);
+            writer.WriteValueSafe(evt);
+            writer.WriteValueSafe(position);
+            writer.WriteValueSafe(value);
+            writer.WriteValueSafe(team);
+            manager.CustomMessagingManager.SendNamedMessageToAll("chargeOrb", writer);
+        }
+
+        void OnChargeOrbMessage(ulong sender, FastBufferReader reader)
+        {
+            if (manager.IsServer) return;
+            reader.ReadValueSafe(out int evt);
+            reader.ReadValueSafe(out Vector3 position);
+            reader.ReadValueSafe(out float value);
+            reader.ReadValueSafe(out int team);
+            ChargeOrb.OnServerEvent(evt, position, value, team);
+        }
+
+        // Client -> server: my character hit the orb.
+        public void SendChargeOrbHit(float damage, bool aoe, float pierce)
+        {
+            using var writer = new FastBufferWriter(16, Allocator.Temp);
+            writer.WriteValueSafe(damage);
+            writer.WriteValueSafe(aoe);
+            writer.WriteValueSafe(pierce);
+            manager.CustomMessagingManager.SendNamedMessage("chargeOrbHit", NetworkManager.ServerClientId, writer);
+        }
+
+        const float MaxChargeOrbHit = 500f;
+
+        void OnChargeOrbHitMessage(ulong sender, FastBufferReader reader)
+        {
+            if (!manager.IsServer) return;
+            reader.ReadValueSafe(out float damage);
+            reader.ReadValueSafe(out bool aoe);
+            reader.ReadValueSafe(out float pierce);
+
+            ChargeOrb orb = ChargeOrb.Current;
+            if (orb == null || phase != Phase.Playing || !(damage > 0f) || damage > MaxChargeOrbHit) return;
+
+            // The hit is credited to the sender's own living character.
+            foreach (NetPlayer p in NetPlayer.All)
+            {
+                if (p == null || p.OwnerClientId != sender || p.Health.IsDead) continue;
+                orb.Health.ApplyDamageLocal(damage, p.gameObject, aoe, pierce);
+                return;
+            }
         }
 
         void OnClientConnected(ulong clientId)
@@ -1155,6 +1213,7 @@ namespace Anathema.Net
             GasZone gas = FindAnyObjectByType<GasZone>();
             if (gas != null) gas.Restart();
             HealingOrb.ClearAll();
+            ChargeOrb.Despawn();
         }
 
         void ServerLockPrep()
@@ -1266,7 +1325,11 @@ namespace Anathema.Net
             if (gas != null) gas.Restart();
             OrbSpawner orbs = FindAnyObjectByType<OrbSpawner>();
             if (orbs != null) orbs.Restart();
-            else HealingOrb.ClearAll();
+            else
+            {
+                HealingOrb.ClearAll();
+                ChargeOrb.Despawn();
+            }
         }
 
         // --- GUI --------------------------------------------------------------------------------------------------

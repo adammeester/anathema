@@ -70,6 +70,7 @@ namespace Anathema.Net
             GasZone gas = FindAnyObjectByType<GasZone>();
             if (gas != null) gas.Restart();
             HealingOrb.ClearAll();
+            Anathema.Arena.ChargeOrb.Despawn();
 
             if (state != null) state.BeginPick(round);
         }
@@ -98,6 +99,13 @@ namespace Anathema.Net
         void StartRound()
         {
             Leave();
+            // Whatever was used on the ready-room dummies doesn't carry into the round.
+            foreach (Ability a in GetComponents<Ability>())
+            {
+                a.ReplayCancel();
+                a.ResetCooldown();
+            }
+            if (energy != null) energy.Clear();
             Teleport();
             GasZone gas = FindAnyObjectByType<GasZone>();
             if (gas != null) gas.Restart();

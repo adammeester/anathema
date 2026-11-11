@@ -76,6 +76,7 @@ namespace Anathema.Abilities.KhorneBerserker
             {
                 strikePending = false;
                 DealDamage();
+                MeleeSound.ChainSwing();
                 SlashEffect.Spawn(transform.position, Aim.AimDirection, range, arcDegrees, swingDuration * 2f, slashColor);
             }
         }

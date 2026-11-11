@@ -119,7 +119,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 channelEnd = Time.time + flameDuration;
                 nextFlameTick = Time.time;
                 jet = FlameJet.Create();
-                chargeSound = GreyKnightSound.SmiteCharge();
+                chargeSound = Sfx.Loop(Sfx.Flamethrower, jet.transform, 0.18f, 1f, 0.1f); // a quiet roar of flame for the channel
                 return;
             }
             charging = true;
@@ -188,7 +188,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         {
             channeling = false;
             struck.Clear();
-            GreyKnightSound.Stop(chargeSound);
+            Sfx.Stop(chargeSound, 0.3f);
             if (jet != null) { jet.Stop(); jet = null; }
         }
 

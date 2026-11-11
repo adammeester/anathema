@@ -111,6 +111,7 @@ namespace Anathema.Abilities.PlagueSurgeon
             trail.sharedMaterial = haloMaterial;
             trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
+            Sfx.Play(Sfx.PlagueWeaponShot, 0.4f, 0.95f, 1.1f, 0.8f);
             var glob = go.AddComponent<Projectile>();
             glob.Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit);
             // Tonic Spit: globs stop on allies and heal them (a replica's glob stops there too, but only looks the part).

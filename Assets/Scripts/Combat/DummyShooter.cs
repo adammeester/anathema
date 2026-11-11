@@ -49,7 +49,7 @@ namespace Anathema.Combat
 
             foreach (Health h in FindObjectsByType<Health>())
             {
-                if (h.Team == health.Team || h.IsDead) continue;
+                if (h.Team == health.Team || h.IsDead || h.Structure) continue;
                 float d = (h.transform.position - transform.position).sqrMagnitude;
                 if (d < bestDistance)
                 {

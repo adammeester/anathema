@@ -174,6 +174,8 @@ namespace Anathema.Abilities.SkitariiRanger
             PsykerFx.Ring(transform.position + dir * muzzleForward, 0.2f, Mathf.Lerp(0.8f, 2.4f, t), 0.25f, RangerFx.Cyan);
 
             RangerPose.For(gameObject).Aim(0.3f, false); // hold the aim through the recoil
+            // A fuller charge is a heavier shot: louder and deeper.
+            Sfx.Play(Sfx.Longrifle, Mathf.Lerp(0.45f, 0.65f, t), Mathf.Lerp(0.95f, 0.72f, t), Mathf.Lerp(1f, 0.78f, t));
 
             float damage = Mathf.Lerp(minDamage, maxDamage, t);
             float stun = Mathf.Lerp(minStun, maxStun, t);

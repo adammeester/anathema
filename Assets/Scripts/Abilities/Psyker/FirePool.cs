@@ -41,6 +41,10 @@ namespace Anathema.Abilities.Psyker
             pool.dealsDamage = dealsDamage;
             pool.nextTick = Time.time + TickInterval;
             pool.Build();
+            // A quiet crackle for as long as it burns. Several pools often burn at once, so each starts at a different
+            // point in the recording (identical copies in step would just sound like one louder fire).
+            AudioSource crackle = Sfx.Loop(Sfx.GroundFire, go.transform, 0.12f, Random.Range(0.92f, 1.08f), 0.3f);
+            if (crackle != null) crackle.time = Random.Range(0f, crackle.clip.length * 0.8f);
             return pool;
         }
 

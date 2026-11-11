@@ -1,15 +1,17 @@
 {
   "health": 150,
-  "moveSpeed": 5.6,
+  "moveSpeed": 4.8,
   "maxEnergy": 100,
   "abilities": {
     "GalvanicShot": {
       "cooldown": 0.75,
-      "damage": 11,
+      "damage": 3.67,
+      "burstCount": 3,
+      "burstInterval": 0.08,
       "range": 22,
-      "projectileSpeed": 37.8,
+      "projectileSpeed": 34,
       "projectileRadius": 0.2,
-      "energyPerHit": 9
+      "energyPerHit": 3
     },
     "TransuranicShot": {
       "cooldown": 6,

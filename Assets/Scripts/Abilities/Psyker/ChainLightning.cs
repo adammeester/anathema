@@ -95,6 +95,7 @@ namespace Anathema.Abilities.Psyker
             ClearTelegraph();
             telegraph = new GameObject("Chain Lightning Telegraph").AddComponent<TelegraphBeam>();
             telegraph.Init(this, WindupDuration);
+            Sfx.Loop(Sfx.ElectricBeam, telegraph.transform, 0.25f, 1.3f, 0.3f); // crackles until the bolt fires
         }
 
         protected override void OnWindupCancel()
@@ -277,6 +278,7 @@ namespace Anathema.Abilities.Psyker
             Vector3 centre = transform.position;
             PsykerFx.Ring(centre, 0.4f, slamRadius, 0.35f, PsykerFx.Cyan, 0.3f);
             PsykerFx.Ring(centre, 0.2f, slamRadius * 0.7f, 0.3f, new Color(1f, 1f, 1f, 0.8f), 0.16f);
+            Sfx.Play(Sfx.SlamExplosion, 0.45f, 1.1f, 1.2f);
 
             foreach (Health h in FindObjectsByType<Health>())
             {

@@ -34,6 +34,7 @@ namespace Anathema.Abilities.KhorneBerserker
 
             var fissure = go.AddComponent<BloodFissure>();
             fissure.Build(length, width);
+            Sfx.Play(Sfx.Fissure, 0.4f, 0.95f, 1.05f); // the ground tearing open as the charge begins
             return fissure;
         }
 

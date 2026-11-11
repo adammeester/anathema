@@ -14,6 +14,7 @@ namespace Anathema.Combat
         {
             direction.y = 0f;
             if (direction.sqrMagnitude < 0.0001f || duration <= 0f) return;
+            if (target.TryGetComponent(out Health structure) && structure.Structure) return;
 
             if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Knockback, distance, duration, direction)) return;
 

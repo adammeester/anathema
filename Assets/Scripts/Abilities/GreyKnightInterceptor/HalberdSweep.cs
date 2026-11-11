@@ -192,8 +192,8 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 cooldownPending = true;
                 bool empowered = swingEmpowered;
                 int hits = DealDamage(empowered ? empoweredDamageMultiplier : 1f, empowered ? empoweredRangeBonus : 0f);
-                GreyKnightSound.Swing(empowered);
-                GreyKnightSound.Impact(hits);
+                GreyKnightSound.Swing(empowered, hits > 0 || IsReplica);
+                MeleeSound.Impact(hits);
                 bool purifier = GreyKnightUpgrade.HasPurifier(gameObject);
                 float reach = range + (empowered ? empoweredRangeBonus : 0f);
                 SlashEffect.Spawn(transform.position, Aim.AimDirection, reach,

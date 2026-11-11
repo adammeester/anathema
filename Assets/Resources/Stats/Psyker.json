@@ -1,6 +1,6 @@
 {
   "health": 145,
-  "moveSpeed": 5.9,
+  "moveSpeed": 5.0,
   "maxEnergy": 100,
   "abilities": {
     "WarpBolt": {

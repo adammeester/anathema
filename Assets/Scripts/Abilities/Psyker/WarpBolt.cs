@@ -84,7 +84,12 @@ namespace Anathema.Abilities.Psyker
         {
             Vector3 origin = transform.position;
             PsykerFx.Arc(origin, dir, staveArc * 0.5f, staveRange, 0.2f, PsykerFx.Cyan);
-            if (IsReplica) return;
+            if (IsReplica)
+            {
+                MeleeSound.Slash();
+                return;
+            }
+            int hits = 0;
 
             // Combo: the first swings just cut; the last swing of a chain hits harder and shoves.
             if (Time.time - lastSwingTime > staveComboWindow) swingCount = 0;
@@ -106,8 +111,11 @@ namespace Anathema.Abilities.Psyker
                 Hit swing = Hit.Direct(staveDamage * swingScale * ChargedScale(h));
                 if (finisher) swing = swing.WithKnockback(to, staveKnockback, staveKnockbackDuration);
                 Health struckTarget = h;
+                hits++;
                 h.Strike(swing, gameObject, landed => { if (landed) OnHit(struckTarget); });
             }
+            MeleeSound.Swing(hits > 0);
+            MeleeSound.Impact(hits);
         }
 
         protected override void Activate()
@@ -162,7 +170,8 @@ namespace Anathema.Abilities.Psyker
 
         void OnHit(Health target)
         {
-            HitMarkerSound.Play();
+            if (!Stave) HitMarkerSound.Play(); // the stave is a melee weapon: its hits thud instead
+            if (!Stave) Sfx.Play(Sfx.MagicImpact, 0.3f, 1.05f, 1.2f, 0.8f);
             if (energy != null) energy.Gain(energyPerHit);
         }
 

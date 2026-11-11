@@ -227,7 +227,9 @@ namespace Anathema.Abilities
             bool cancelPressed = Input.GetKeyDown(CancelKey);
             if (Health.IsDead || cancelPressed) CancelCast();
             if (cancelPressed && Health.Net != null && Health.Net.IsSpawned) Health.Net.SendCue(-1, Aim.AimPoint);
-            if (Health.IsDead || Anathema.Net.NetGame.Frozen || Anathema.Net.NetGame.InPrep) return;
+            // Prep is no-fighting, except inside a ready room, where the training dummies are.
+            if (Health.IsDead || Anathema.Net.NetGame.Frozen
+                || (Anathema.Net.NetGame.InPrep && !Anathema.Arena.ReadyRoom.CanTrain(gameObject))) return;
 
             TickWindup();
 

@@ -55,6 +55,7 @@ namespace Anathema.Abilities.SkitariiRanger
         {
             base.Awake();
             energy = GetComponent<Energy>();
+            Voice.AnnounceUltimateReady(energy, Health, Voice.SkitariiUltimateReady, () => energyCost);
         }
 
         void OnDestroy()
@@ -115,6 +116,7 @@ namespace Anathema.Abilities.SkitariiRanger
                 if (t >= 1f)
                 {
                     phase = Phase.Fire;
+                    Voice.Say(Voice.SkitariiUltimate); // spoken as the volley starts: the gather before it can still be cancelled
                     nextShot = Time.time;
                 }
                 return;
@@ -147,6 +149,7 @@ namespace Anathema.Abilities.SkitariiRanger
         {
             Vector3 end = RangerFx.Trace(transform, Health.Team, start, dir, range, shotRadius, hits);
             RangerFx.Tracer(start, end, 0.8f, Color.white, 0.5f);
+            Sfx.Play(Sfx.Longrifle, 0.65f, 0.6f, 0.68f);
             RangerFx.Tracer(start, end, 1.4f, RangerFx.Cyan, 0.35f);
             PsykerFx.Ring(transform.position + dir * muzzleForward, 0.2f, 3f, 0.3f, RangerFx.Cyan, 0.3f);
             PsykerFx.Ring(end, 0.2f, 2f, 0.3f, RangerFx.Cyan, 0.2f);

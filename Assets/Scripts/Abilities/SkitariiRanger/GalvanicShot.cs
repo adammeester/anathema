@@ -3,17 +3,19 @@ using UnityEngine;
 
 namespace Anathema.Abilities.SkitariiRanger
 {
-    // LMB: a fast galvanic round from the arquebus. Modest damage, long reach; every hit feeds the energy bar that
-    // powers the EX shotgun blast and the ultimate.
+    // LMB: a three-round burst of galvanic fire from the arquebus. Each round deals modest damage over a long reach;
+    // every hit feeds the energy bar that powers the EX shotgun blast and the ultimate.
     public class GalvanicShot : Ability
     {
-        [SerializeField] float damage = 11f;
+        [SerializeField] float damage = 3.67f;        // per round
+        [SerializeField] int burstCount = 3;
+        [SerializeField] float burstInterval = 0.08f; // seconds between rounds in a burst
         [SerializeField] float range = 22f;
         [SerializeField] float projectileSpeed = 42f;
         [SerializeField] float projectileRadius = 0.2f;
         [SerializeField] float muzzleHeight = 1.3f;
         [SerializeField] float muzzleForward = 1.5f;
-        [SerializeField] float energyPerHit = 9f;
+        [SerializeField] float energyPerHit = 3f;     // per round
         [SerializeField, Range(0f, 1f)] float aimLift = 0.65f; // 1 = full sniper shoulder aim
         [SerializeField] Color boltColor = new Color(0.5f, 0.95f, 1f);
         [Header("EX: Arc Round (tick to enable; off = no EX on this ability)")]
@@ -25,6 +27,11 @@ namespace Anathema.Abilities.SkitariiRanger
         Energy energy;
         Material boltMaterial;
         Material haloMaterial;
+
+        // Rounds of the current burst still to fire, and when the next one goes.
+        int roundsLeft;
+        float nextRoundTime;
+        bool burstArc;
 
         public override string DisplayName => "Galvanic Shot";
         public override string KeyLabel => "LMB";
@@ -61,11 +68,39 @@ namespace Anathema.Abilities.SkitariiRanger
             if (!IsReplica) ExActivation = arcRoundEnabled && TrySpendEx(energy, exEnergyCost);
             bool arc = ExActivation && arcRoundEnabled;
 
+            // Each round of the burst follows the cursor as it fires; the remaining rounds follow from Update().
+            burstArc = arc;
+            roundsLeft = Mathf.Max(1, burstCount);
+            FireRound();
+        }
+
+        protected override void Update()
+        {
+            base.Update();
+            if (roundsLeft <= 0) return;
+            if (Health.IsDead) { roundsLeft = 0; return; }
+            if (!IsReplica && IsDisabled)
+            {
+                // Stunned / knocked back mid-burst: the rest of the burst is lost, and replicas are told to stop too.
+                roundsLeft = 0;
+                InterruptSelf();
+                return;
+            }
+            if (Time.time >= nextRoundTime) FireRound();
+        }
+
+        void FireRound()
+        {
+            roundsLeft--;
+            nextRoundTime = Time.time + burstInterval;
+
+            // Read the aim fresh for every round, so sweeping the mouse mid-burst steers the later rounds.
+            // (On replicas, MouseAim tracks the owner's synced aim point.)
             Vector3 dir = Aim.AimDirection;
             dir.y = 0f;
             if (dir.sqrMagnitude < 0.0001f) dir = transform.forward;
             dir.Normalize();
-
+            bool arc = burstArc;
             Vector3 origin = transform.position + Vector3.up * muzzleHeight + dir * muzzleForward;
 
             // Raise the rifle part-way toward the aim line (no sniper stance) so firing reads clearly while still moving.
@@ -97,6 +132,7 @@ namespace Anathema.Abilities.SkitariiRanger
             trail.sharedMaterial = haloMaterial;
             trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
+            Sfx.Play(Sfx.Longrifle, 0.3f, 1.08f, 1.2f, 0.5f);
             if (arc) go.name = "Arc Round";
             go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir,
                 arc ? (System.Action<Health>)OnArcHit : OnHit);
@@ -136,6 +172,7 @@ namespace Anathema.Abilities.SkitariiRanger
 
         protected override void Cancel()
         {
+            roundsLeft = 0;
         }
     }
 }

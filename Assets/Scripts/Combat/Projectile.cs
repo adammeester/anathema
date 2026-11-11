@@ -99,6 +99,10 @@ namespace Anathema.Combat
                     strike.Damage = damage * scale;
                     target.Strike(strike, owner, landed => { if (landed) hitCallback?.Invoke(target); });
                 }
+                else
+                {
+                    Sfx.Play(Sfx.Impact, 0.25f, 0.9f, 1.15f, 0.6f); // spent against a wall or pillar
+                }
                 Destroy(gameObject);
                 return;
             }

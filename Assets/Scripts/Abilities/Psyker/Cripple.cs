@@ -125,6 +125,7 @@ namespace Anathema.Abilities.Psyker
         void OnHit(Health target)
         {
             HitMarkerSound.Play();
+            Sfx.Play(Sfx.MagicImpact, 0.45f, 0.9f, 1f);
             if (energy != null) energy.Gain(energyPerHit);
         }
 

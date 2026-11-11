@@ -73,7 +73,9 @@ namespace Anathema.Abilities.SkitariiRanger
             }
 
             // Don't land inside something we vaulted: shorten until the landing spot is clear.
-            while (travel >= 0.5f && !LandingClear(from + away * travel)) travel -= 0.5f;
+            // During prep, don't vault out of the ready room either.
+            while (travel >= 0.5f && (!LandingClear(from + away * travel)
+                                      || Anathema.Arena.ReadyRoom.LeavesRoomInPrep(from, from + away * travel))) travel -= 0.5f;
 
             Vector3 to = from + away * travel;
             PsykerFx.Ring(from, 0.3f, 2.2f, 0.3f, RangerFx.Cyan, 0.25f);

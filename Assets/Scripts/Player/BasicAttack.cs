@@ -103,6 +103,7 @@ namespace Anathema.Player
 
         void FireProjectile()
         {
+            Sfx.Play(Sfx.HeavyBolterShot, 0.4f, 0.95f, 1.08f); // the storm bolter
             Vector3 dir = Aim.AimDirection;
             Vector3 origin = muzzle != null
                 ? muzzle.position
@@ -163,6 +164,7 @@ namespace Anathema.Player
                 Health struckTarget = target;
                 target.Strike(Hit.Direct(damage), gameObject, landed => { if (landed) OnHit(struckTarget); });
             }
+            MeleeSound.Swing(struck.Count > 0);
         }
     }
 }

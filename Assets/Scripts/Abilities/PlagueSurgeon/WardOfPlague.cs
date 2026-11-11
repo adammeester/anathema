@@ -41,6 +41,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         {
             base.Awake();
             energy = GetComponent<Energy>();
+            Voice.AnnounceUltimateReady(energy, Health, Voice.PlagueSurgeonUltimateReady, () => energyCost);
         }
 
         protected override bool IsTriggered()
@@ -51,6 +52,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         protected override void Activate()
         {
             PlagueSurgeonPose.For(gameObject).Conjure(0.6f);
+            Voice.Say(Voice.PlagueSurgeonUltimate);
             // The owner's machine does the casting; a replica has nothing to show (the ward appears on its holder).
             if (IsReplica) return;
 

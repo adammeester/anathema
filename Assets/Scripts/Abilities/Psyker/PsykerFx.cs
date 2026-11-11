@@ -27,6 +27,7 @@ namespace Anathema.Abilities.Psyker
         {
             if (points.Count < 2) return;
             new GameObject("Psyker Bolt").AddComponent<LightningBolt>().Init(points, duration);
+            Sfx.Play(Sfx.ElectricShock, 0.5f, 0.95f, 1.1f);
         }
 
         class LightningBolt : MonoBehaviour

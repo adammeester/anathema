@@ -193,6 +193,8 @@ namespace Anathema.Abilities.KhorneBerserker
             {
                 strikePending = false;
                 DealDamage();
+                bool heavy = weapon != BerserkerWeapon.DualChainaxes;
+                MeleeSound.ChainSwing(heavy ? 0.5f : 0.42f, heavy ? 0.82f : 0.98f, heavy ? 0.92f : 1.1f, heavy ? 1.2f : 0.8f);
                 float reach = strikeEmpowered ? curRange * empoweredRangeMultiplier : curRange;
                 SlashEffect.Spawn(transform.position, Aim.AimDirection, reach, curArc, curSwing * 2f,
                     strikeEmpowered ? empoweredColor : slashColor);

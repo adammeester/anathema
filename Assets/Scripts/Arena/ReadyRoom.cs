@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Anathema.Net;
+using Anathema.Upgrades;
 using UnityEngine;
 
 namespace Anathema.Arena
@@ -29,13 +30,43 @@ namespace Anathema.Arena
         const float GateTravel = 4.5f;   // how far the gate sinks into the floor when open (more than its height)
         const float GateSpeed = 2.5f;    // open fraction per second
 
+        // Training dummies along the back wall, behind the start slots, so nobody spawns facing one. Prep only.
+        static readonly float[] DummyX = { -4.5f, 0f, 4.5f };
+        const float DummyZ = 12.0f;
+
         Transform gate;
         Collider gateCollider;
         Renderer[] gateRenderers;
         Vector3 gateClosedLocal;
         float open;
+        readonly List<TrainingDummy> dummies = new List<TrainingDummy>();
+        bool dummiesShown = true;
 
         public bool IsLeft => transform.position.x < 0f;
+
+        void Start()
+        {
+            foreach (float x in DummyX)
+            {
+                Vector3 world = transform.TransformPoint(new Vector3(x, 0f, DummyZ));
+                world.y = 1f; // a capsule is 2m tall, centred on its middle
+                dummies.Add(TrainingDummy.Create(transform, world, Quaternion.LookRotation(-transform.forward, Vector3.up)));
+            }
+            ShowDummies(NetGame.InPrep);
+        }
+
+        // Out during prep, gone for the round itself (so they can't be farmed mid-fight), fresh each time they return.
+        void ShowDummies(bool show)
+        {
+            if (show == dummiesShown) return;
+            dummiesShown = show;
+            foreach (TrainingDummy dummy in dummies)
+            {
+                if (dummy == null) continue;
+                dummy.gameObject.SetActive(show);
+                if (show) dummy.ResetDummy();
+            }
+        }
 
         void Awake()
         {
@@ -53,6 +84,7 @@ namespace Anathema.Arena
 
         void Update()
         {
+            if (dummies.Count > 0) ShowDummies(NetGame.InPrep);
             if (gate == null) return;
             open = Mathf.MoveTowards(open, NetGame.InPrep ? 0f : 1f, GateSpeed * Time.deltaTime);
             ApplyGate();
@@ -91,6 +123,30 @@ namespace Anathema.Arena
             foreach (ReadyRoom room in All)
                 if (room != null && room.Contains(world)) return true;
             return false;
+        }
+
+        public static ReadyRoom Containing(Vector3 world)
+        {
+            foreach (ReadyRoom room in All)
+                if (room != null && room.Contains(world)) return room;
+            return null;
+        }
+
+        // Prep only: a character standing in a ready room may fight (the training dummies) once their upgrade pick is
+        // made, so clicking a card never fires an attack. Out in the arena, prep stays a no-fighting zone.
+        public static bool CanTrain(GameObject character)
+        {
+            if (Containing(character.transform.position) == null) return false;
+            return !character.TryGetComponent(out UpgradeState upgrades) || !upgrades.Pending;
+        }
+
+        // Prep only: true if a leap or dash from `from` to `to` would carry a character out of the ready room they are
+        // in (Warp Step and Winged Escape pass over walls, and the gate is a wall).
+        public static bool LeavesRoomInPrep(Vector3 from, Vector3 to)
+        {
+            if (!NetGame.InPrep) return false;
+            ReadyRoom room = Containing(from);
+            return room != null && !room.Contains(to);
         }
 
         public static ReadyRoom Find(bool left)

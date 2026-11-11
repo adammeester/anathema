@@ -292,7 +292,6 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                     if (landed && energy != null) energy.Gain(energyGain);
                 });
             }
-            if (hits > 0) HitMarkerSound.Play();
             return hits;
         }
 
@@ -308,8 +307,8 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             bool fire = Purifier(gameObject);
             int hits = Replica ? 0 : ArcHits(SweepRange, SweepArc, SweepDamage, 0f, 0f, SweepEnergy);
             SlashEffect.Spawn(transform.position, aim.AimDirection, SweepRange, SweepArc, SweepStrike * 2f + 0.1f, fire ? FireSlashColor : SlashColor);
-            GreyKnightSound.Swing(false);
-            GreyKnightSound.Impact(hits);
+            GreyKnightSound.Swing(false, hits > 0 || Replica);
+            if (hits > 0) Sfx.Play(Sfx.HammerSmash, Mathf.Min(0.4f + 0.05f * hits, 0.55f), 0.95f, 1.08f, 1.2f);
         }
 
         void HammerSlam(float damageScale)
@@ -337,12 +336,11 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                         if (landed && energy != null) energy.Gain(SlamEnergy);
                     });
                 }
-                if (hits > 0) HitMarkerSound.Play();
             }
 
             BlastFx.Spawn(centre, SlamRadius, fire, true);
-            GreyKnightSound.ConsecrateBoom();
-            GreyKnightSound.Impact(hits);
+            Sfx.Play(Sfx.HammerSmash, 0.55f, 0.82f, 0.92f);
+            Sfx.Play(Sfx.SlamExplosion, 0.5f, 0.95f, 1.05f);
             if (fire) GroundFire(centre, GreyKnightUpgrade.GroundFireRadius * 1.3f);
         }
 
@@ -373,7 +371,9 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 if (energy != null && hits > 0) energy.Gain(ShellEnergy * hits);
             }, damageScale, radiusScale, panicSeconds);
             kick = 1f;
-            GreyKnightSound.SmiteFire(0.18f);
+            // The Overcharged Round is a bigger shell: deeper and louder.
+            bool big = radiusScale > 1f;
+            Sfx.Play(Sfx.PsycannonShot, big ? 0.6f : 0.45f, big ? 0.78f : 0.96f, big ? 0.86f : 1.06f, big ? 0f : 1.2f);
         }
 
         // ================================================================================================================

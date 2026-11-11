@@ -34,7 +34,7 @@ namespace Anathema.Combat
                 Ray(position + Vector3.up * chest, dir, radius * 0.5f, radius * UnityEngine.Random.Range(1.6f, 2.4f), 0.28f, i % 2 == 0 ? white : gold);
             }
 
-            Play(Get("counter", BuildCounter), 0.65f, 0.97f, 1.03f);
+            Sfx.Play(Sfx.CounterHit, 0.65f, 0.97f, 1.03f);
         }
 
         // A teleport from `from` to `to`: the origin collapses in a flash, a streak of energy links the two points, and the
@@ -60,7 +60,7 @@ namespace Anathema.Combat
             Beam(to, 6f, 0.5f, 0.35f, white);
             Sparks(to, 16, 0.6f, 3.0f, 0.55f, glow);
 
-            Play(Get("teleport", BuildTeleport), 0.7f, 0.97f, 1.03f);
+            Sfx.Play(Sfx.TeleportCrackle, 0.6f, 0.97f, 1.03f);
         }
 
         // ---- Visual building blocks -------------------------------------------------------------------------------

@@ -16,10 +16,10 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         // ---- Cues -------------------------------------------------------------------------------------------------
 
-        // A halberd cutting the air; the empowered swing is lower and carries an electric surge.
-        public static void Swing(bool empowered)
+        // A blade cutting the air (the shared melee slash); the empowered swing is lower and carries an electric surge.
+        public static void Swing(bool empowered, bool connected = true)
         {
-            Play(Get("swing", BuildSwing), empowered ? 0.4f : 0.32f, empowered ? 0.8f : 0.95f, empowered ? 0.9f : 1.1f);
+            Anathema.Combat.MeleeSound.Swing(connected, 0.5f, empowered ? 0.8f : 0.92f, empowered ? 0.9f : 1.08f);
             if (empowered) Play(Get("shimmer", BuildShimmer), 0.2f, 1.1f, 1.3f);
         }
 
@@ -40,8 +40,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         public static void PsychicImpact(int hits = 1)
         {
             if (hits <= 0) return;
-            Play(Get("impact", BuildImpact), Mathf.Min(0.16f + 0.05f * hits, 0.32f), 0.7f, 0.9f);
-            Play(Get("crackle", BuildCrackle), Mathf.Min(0.18f + 0.04f * hits, 0.32f), 0.9f, 1.2f);
+            Anathema.Combat.Sfx.Play(Anathema.Combat.Sfx.MagicImpact, Mathf.Min(0.3f + 0.05f * hits, 0.5f), 0.92f, 1.08f);
         }
 
         // The focus before Smite: a low buzzing hum with snapping arcs. Returns the source so a cancel can cut it.
@@ -83,7 +82,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         // A violent electric snap.
         public static void Parry()
         {
-            Play(Get("parry", BuildParry), 0.4f, 0.95f, 1.05f);
+            Anathema.Combat.Sfx.Play(Anathema.Combat.Sfx.ElectricShock, 0.5f, 0.95f, 1.05f);
         }
 
         // A crackling blink.
@@ -186,27 +185,6 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         }
 
         // ---- Clips ------------------------------------------------------------------------------------------------
-
-        // Psychic whoosh: air rushing past with an electric buzz riding it and a few crackles as the blade passes.
-        static AudioClip BuildSwing()
-        {
-            var noise = new Noise(11);
-            var gate = new System.Random(12);
-            float phase = 0f, spark = 0f;
-            return Make("GKSwing", 0.4f, t =>
-            {
-                float p = Mathf.Clamp01(t / 0.4f);
-                float shape = Mathf.Sin(p * Mathf.PI);
-                shape *= shape;
-                float air = noise.Lowpass(0.05f + 0.35f * shape) * shape * 1.6f;
-                phase += (70f + 90f * shape) / SampleRate;
-                float saw = (phase - Mathf.Floor(phase)) * 2f - 1f;
-                float buzz = saw * (0.6f + 0.4f * Mathf.Sin(t * TwoPi * 90f)) * shape * 0.25f;
-                if (gate.NextDouble() < 0.003 * shape) spark = 1f;
-                spark *= 0.997f;
-                return air + buzz + noise.Highpass(0.06f) * spark * 0.5f;
-            });
-        }
 
         // Psychic surge: a pulsing electric hum that swells and fades, with arcing snaps.
         static AudioClip BuildShimmer()

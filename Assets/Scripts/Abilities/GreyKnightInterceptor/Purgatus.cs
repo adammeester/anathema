@@ -54,6 +54,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         {
             base.Awake();
             energy = GetComponent<Energy>();
+            Voice.AnnounceUltimateReady(energy, Health, Voice.GreyKnightUltimateReady, () => energyCost);
 
             telegraphDisc = CreateDisc("Purgatus Telegraph", telegraphColor);
             chargeDisc = CreateDisc("Purgatus Charge", chargeColor);
@@ -157,6 +158,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
             struck.Clear();
             EndChannelFire();
             PsychicFireRing.Spawn(center, radius, expandDuration);
+            Voice.Say(Voice.GreyKnightUltimate); // spoken as the wave is loosed: the channel before it can still be cancelled
             GreyKnightSound.FireRelease();
             StartCooldown();
         }

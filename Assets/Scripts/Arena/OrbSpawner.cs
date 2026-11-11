@@ -9,6 +9,8 @@ namespace Anathema.Arena
     // Each interval the next line (north, east, south, west, ...) refills any empty spots. Offline it spawns them
     // itself; online only the host spawns (and tells the other player through NetGame), so both machines see the same
     // orbs. Spots outside the closing gas are skipped.
+    // It also keeps the charge orb (see ChargeOrb) in the centre of the arena: one appears a little into each round and
+    // again a while after it is destroyed.
     public class OrbSpawner : MonoBehaviour
     {
         [SerializeField] float firstDelay = 8f;
@@ -19,6 +21,9 @@ namespace Anathema.Arena
         [SerializeField] float eastWestDistance = 14f;    // energy lines (kept inside the fighters' spawns at x = +-20)
         [SerializeField] int orbsPerLine = 5;
         [SerializeField] float orbSpacing = 3f;
+        [SerializeField] float chargeOrbFirstDelay = 15f;
+        [SerializeField] float chargeOrbRespawn = 30f; // after it is destroyed
+        [SerializeField] float chargeOrbHealth = ChargeOrb.DefaultHealth;
 
         // Order the lines refill in: direction from the centre, and the orb kind on that line.
         static readonly Vector3[] LineDirections = { Vector3.forward, Vector3.right, Vector3.back, Vector3.left };
@@ -27,29 +32,54 @@ namespace Anathema.Arena
         float nextSpawn;
         int nextId = 1;
         int nextLine;
+        float nextChargeOrb;
 
         void Start()
         {
             gas = FindAnyObjectByType<GasZone>();
             nextSpawn = Time.time + firstDelay;
+            nextChargeOrb = Time.time + chargeOrbFirstDelay;
         }
 
         // Called on rematch.
         public void Restart()
         {
             HealingOrb.ClearAll();
+            ChargeOrb.Despawn();
             nextSpawn = Time.time + firstDelay;
+            nextChargeOrb = Time.time + chargeOrbFirstDelay;
             nextLine = 0;
         }
 
         void Update()
         {
             if (NetGame.Online && (!NetGame.IsHost || NetPlayer.All.Count < 2)) return;
-            if (NetGame.Frozen || NetGame.InPrep || Time.time < nextSpawn) return;
+            if (NetGame.Frozen || NetGame.InPrep) return;
+
+            UpdateChargeOrb();
+            if (Time.time < nextSpawn) return;
 
             nextSpawn = Time.time + interval;
             SpawnLine(LineDirections[nextLine]);
             nextLine = (nextLine + 1) % LineDirections.Length;
+        }
+
+        void UpdateChargeOrb()
+        {
+            if (ChargeOrb.Current != null)
+            {
+                // The respawn clock only starts once it is gone.
+                nextChargeOrb = Time.time + chargeOrbRespawn;
+                return;
+            }
+            if (Time.time < nextChargeOrb) return;
+
+            Vector3 centre = gas != null ? gas.transform.position : Vector3.zero;
+            centre.y = 0f;
+            if (ChargeOrb.Blocked(centre)) return; // someone is standing on the spot: wait for them to move
+
+            ChargeOrb.Spawn(centre, chargeOrbHealth);
+            if (NetGame.Online) NetGame.Instance.BroadcastChargeOrb(ChargeOrb.EventSpawn, centre, chargeOrbHealth, 0);
         }
 
         void SpawnLine(Vector3 direction)

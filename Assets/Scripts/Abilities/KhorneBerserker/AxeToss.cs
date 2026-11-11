@@ -282,6 +282,7 @@ namespace Anathema.Abilities.KhorneBerserker
             var go = new GameObject("Thrown Axe");
             go.transform.position = origin;
             BuildAxeVisual(go.transform);
+            Sfx.Play(Sfx.AxeToss, 0.3f, 0.95f, 1.08f);
 
             go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit)
                 .WithRiders(Hit.Direct(0f).WithBleed(bleedDamagePerSecond, bleedDuration));
@@ -297,6 +298,7 @@ namespace Anathema.Abilities.KhorneBerserker
             float reach = cleaveRange * (earthshaker ? BerserkerUpgrade.EarthshakerRangeScale : 1f);
             float knock = cleaveKnockbackDistance * (earthshaker ? BerserkerUpgrade.EarthshakerKnockbackScale : 1f);
             SlashEffect.Spawn(origin, aim, reach, cleaveArcDegrees, curSwing * 3f, new Color(1f, 0.15f, 0.08f, 0.9f));
+            MeleeSound.ChainSwing(0.55f, 0.8f, 0.9f, 1.4f);
 
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, reach, cleaveArcDegrees))
             {
@@ -321,6 +323,7 @@ namespace Anathema.Abilities.KhorneBerserker
             float pierce = BerserkerUpgradeEffects.Pierce(gameObject, descentArmorPierce);
             float shieldBreak = BerserkerUpgradeEffects.ShieldBreak(gameObject, descentShieldBreak);
             SlashEffect.Spawn(origin, aim, descentRange, descentArcDegrees, curSwing * 4f, new Color(1f, 0.8f, 0.25f, 0.95f));
+            MeleeSound.ChainSwing(0.6f, 0.72f, 0.82f, 1.6f);
 
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, descentRange, descentArcDegrees))
             {
