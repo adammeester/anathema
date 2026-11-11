@@ -178,9 +178,13 @@ namespace Anathema.Abilities.PlagueSurgeon
             {
                 Energy energy = sourceEnergy;
                 float gain = energyPerTick;
+                Health leech = ParasiteFor(source);
+                float amount = damagePerTick;
                 host.Strike(Hit.Direct(damagePerTick).AsAoe().AsDot(), source, landed =>
                 {
-                    if (landed && energy != null) energy.Gain(gain);
+                    if (!landed) return;
+                    if (energy != null) energy.Gain(gain);
+                    if (leech != null && !leech.IsDead) Healing.Apply(leech, amount, leech.gameObject);
                 });
             }
             else
@@ -197,6 +201,16 @@ namespace Anathema.Abilities.PlagueSurgeon
             BurstEffect.Spawn(center, radius);
             if (visualOnly) return;
 
+            // Parasitic Bond: the burst heals the surgeon once, on the first enemy it actually hurts.
+            Health leech = ParasiteFor(source);
+            bool leeched = false;
+            System.Action<bool> onBurstResult = leech == null ? null : landed =>
+            {
+                if (!landed || leeched || leech == null || leech.IsDead) return;
+                leeched = true;
+                Healing.Apply(leech, damage, leech.gameObject);
+            };
+
             foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead) continue;
@@ -210,10 +224,17 @@ namespace Anathema.Abilities.PlagueSurgeon
                     // The stench sends survivors running from the surgeon.
                     Hit burst = Hit.Direct(damage).AsAoe();
                     if (panic > 0f) burst = burst.WithPanic(panic);
-                    h.Strike(burst, source);
+                    h.Strike(burst, source, onBurstResult);
                 }
                 else Healing.Apply(h, heal, source);
             }
+        }
+
+        // Parasitic Bond: the surgeon to heal for the fly's damage, or null without the upgrade.
+        static Health ParasiteFor(GameObject surgeon)
+        {
+            if (surgeon == null || !PlagueSurgeonUpgradeEffects.Has(surgeon, PlagueSurgeonUpgrade.ParasiticBond)) return null;
+            return surgeon.GetComponent<Health>();
         }
 
         void OnDestroy()

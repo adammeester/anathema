@@ -79,6 +79,12 @@ namespace Anathema.Abilities.PlagueSurgeon
             pose.Spit();
             origin = pose.MuzzlePosition(dir, origin);
 
+            // The hand sits off the body's centre line, so firing parallel to AimDirection misses the cursor by that
+            // offset. Aim from the hand at the aim point instead (flat), unless the cursor is too close to be meaningful.
+            Vector3 toAim = Aim.AimPoint - origin;
+            toAim.y = 0f;
+            if (toAim.sqrMagnitude > 0.25f) dir = toAim.normalized;
+
             if (globMaterial == null) globMaterial = VisualUtil.UnlitMaterial(globColor);
             if (haloMaterial == null) haloMaterial = VisualUtil.UnlitMaterial(new Color(globColor.r, globColor.g, globColor.b, 0.35f));
 

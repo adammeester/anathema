@@ -31,6 +31,9 @@ namespace Anathema.Abilities.PlagueSurgeon
         public const int Overdose = 12;
         public const int FieldTriage = 13;
 
+        // Endurance (appended later)
+        public const int ParasiticBond = 14;
+
         // Tunables shared with the code that applies them.
         public const float BloatedHealth = 50f;
         public const float ResilientFraction = 0.3f;          // of area and damage-over-time damage
@@ -61,13 +64,13 @@ namespace Anathema.Abilities.PlagueSurgeon
         // every upgrade is offered once. Past round 4 the leftovers come from the random draw.
         //
         //   after round 1   Bloated Constitution    Virulence                          Tonic Spit
-        //   after round 2   Disgustingly Resilient  Hungry Brood                       Swarm
+        //   after round 2   Disgustingly Resilient, Parasitic Bond  Hungry Brood       Swarm
         //   after round 3   Rotting Hide            Contagion                          Overdose, Field Triage
         //   after round 4   Chitinous Wings         Lingering Miasma, Rot Harvest      Fecund Ward
         public static readonly int[][][] Sets =
         {
             new[] { new[] { BloatedConstitution }, new[] { Virulence }, new[] { TonicSpit } },
-            new[] { new[] { DisgustinglyResilient }, new[] { HungryBrood }, new[] { Swarm } },
+            new[] { new[] { DisgustinglyResilient }, new[] { ParasiticBond }, new[] { HungryBrood }, new[] { Swarm } },
             new[] { new[] { RottingHide }, new[] { Contagion }, new[] { Overdose }, new[] { FieldTriage } },
             new[] { new[] { ChitinousWings }, new[] { LingeringMiasma }, new[] { RotHarvest }, new[] { FecundWard } },
         };
@@ -82,6 +85,8 @@ namespace Anathema.Abilities.PlagueSurgeon
                 "Enemies who hit you up close gain a stack of Festering."),
             new UpgradeDef(ChitinousWings, UpgradeCategory.Endurance, "Chitinous Wings",
                 "Winged Escape recharges 25% faster, and you land with a barrier that soaks 20 damage for 3s."),
+            new UpgradeDef(ParasiticBond, UpgradeCategory.Endurance, "Parasitic Bond",
+                "Damage your Pestilent Flies deal also heals you for the same amount."),
 
             new UpgradeDef(Virulence, UpgradeCategory.Ferocity, "Virulence",
                 "Festering holds up to 5 stacks instead of 3, and each stack from Plague Spit lasts 1s longer."),

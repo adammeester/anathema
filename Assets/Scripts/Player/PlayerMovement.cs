@@ -91,13 +91,41 @@ namespace Anathema.Player
             {
                 accumulator -= MovementSim.Dt;
                 tick++;
+                Vector3 before = transform.position;
                 switch (role)
                 {
                     case Role.Local: LocalTick(); break;
                     case Role.Predicting: PredictTick(); break;
                     case Role.Server: ServerTick(); break;
                 }
+                previousTickPosition = before;
+                currentTickPosition = transform.position;
             }
+        }
+
+        // The simulation moves in 60 Hz steps, so on faster displays the character would stand still for some frames
+        // and jump on others (which also reads as "not walking" to ProceduralWalk). The visible model is drawn between
+        // the last two steps instead; the character itself (aiming, hits) stays on the latest step.
+        Vector3 previousTickPosition;
+        Vector3 currentTickPosition;
+        const float MaxInterpolatedStep = 1f; // larger steps are dashes, teleports or resets: show them as they are
+
+        Vector3 InterpolationOffset()
+        {
+            Role role = CurrentRole;
+            if (role == Role.Follower || role == Role.Server) return Vector3.zero; // nobody watches the server's copy
+            if ((transform.position - currentTickPosition).sqrMagnitude > 0.0001f) return Vector3.zero; // moved outside a step
+            Vector3 step = currentTickPosition - previousTickPosition;
+            if (step.sqrMagnitude > MaxInterpolatedStep * MaxInterpolatedStep) return Vector3.zero;
+            float alpha = Mathf.Clamp01(accumulator / MovementSim.Dt);
+            return -step * (1f - alpha);
+        }
+
+        // A correction or placement moved the character between steps: carry the interpolation along with it.
+        void ShiftTickPositions(Vector3 delta)
+        {
+            previousTickPosition += delta;
+            currentTickPosition += delta;
         }
 
         void LateUpdate()
@@ -231,7 +259,8 @@ namespace Anathema.Player
 
             // The character is at the corrected spot already (aiming and hits use it); the model eases over.
             Vector3 jump = before - transform.position;
-            visualOffset = jump.magnitude > SnapError ? Vector3.zero : visualOffset + jump;
+            ShiftTickPositions(-jump);
+            visualOffset =jump.magnitude > SnapError ? Vector3.zero : visualOffset + jump;
             UpdateCorrectionStats(error, true);
         }
 
@@ -244,6 +273,7 @@ namespace Anathema.Player
             lastSimPosition = position;
             simPositionKnown = true;
             visualOffset = Vector3.zero;
+            previousTickPosition = currentTickPosition = position;
         }
 
         void UpdateCorrectionStats(float error, bool corrected)
@@ -284,15 +314,16 @@ namespace Anathema.Player
 
         void ApplySmoothing()
         {
-            if (model == null || visualOffset == Vector3.zero) return;
-            visualOffset = Vector3.Lerp(visualOffset, Vector3.zero, 1f - Mathf.Exp(-SmoothingRate * Time.deltaTime));
-            if (visualOffset.sqrMagnitude < 0.000001f)
+            if (model == null) return;
+            if (visualOffset != Vector3.zero)
             {
-                visualOffset = Vector3.zero;
-                return;
+                visualOffset = Vector3.Lerp(visualOffset, Vector3.zero, 1f - Mathf.Exp(-SmoothingRate * Time.deltaTime));
+                if (visualOffset.sqrMagnitude < 0.000001f) visualOffset = Vector3.zero;
             }
-            model.position += visualOffset;
-            appliedOffset = visualOffset;
+            Vector3 offset = visualOffset + InterpolationOffset();
+            if (offset == Vector3.zero) return;
+            model.position += offset;
+            appliedOffset = offset;
         }
 
         // --- Server (the server's copy of a remote player) ----------------------------------------------------------
@@ -394,6 +425,7 @@ namespace Anathema.Player
             hasLastInput = false;
             verticalVelocity = 0f;
             MovementSim.Place(controller, transform, position);
+            previousTickPosition = currentTickPosition = position;
             if (net != null && net.IsSpawned) net.SendMoveReset(position);
         }
     }

@@ -100,7 +100,9 @@ namespace Anathema.EditorTools
 
             Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
             EditorSceneManager.SaveScene(scene, ScenePath);
-            EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
+            // Add the arena to the build list without dropping the Menu and Versus scenes the online game loads by name.
+            if (!EditorBuildSettings.scenes.Any(s => s.path == ScenePath))
+                EditorBuildSettings.scenes = EditorBuildSettings.scenes.Append(new EditorBuildSettingsScene(ScenePath, true)).ToArray();
             AssetDatabase.SaveAssets();
             Debug.Log($"Built {ScenePath}. Press Play.");
         }

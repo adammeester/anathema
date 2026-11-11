@@ -521,7 +521,7 @@ namespace Anathema.Net
         public void SendMoveInputs(MoveInput[] inputs) => MoveInputServerRpc(inputs);
 
         // Unreliable: every message repeats the latest inputs, so a lost one costs nothing.
-        [Rpc(SendTo.Server, Delivery = RpcDelivery.Unreliable)]
+        [Rpc(SendTo.Server, Delivery = RpcDelivery.Unreliable, InvokePermission = RpcInvokePermission.Owner)]
         void MoveInputServerRpc(MoveInput[] inputs)
         {
             if (movement != null && inputs != null) movement.ServerReceiveInputs(inputs);
