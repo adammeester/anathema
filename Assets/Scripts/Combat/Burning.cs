@@ -14,17 +14,22 @@ namespace Anathema.Combat
         float nextTickTime;
         GameObject source;
         Health health;
-        bool visualOnly; // attacker's copy of a remote victim: shows the flames, the victim's own machine takes the damage
+        bool visualOnly; // a copy drawn from the server's published state: shows the flames, the server takes the damage
 
         Transform[] flames;
         float[] phase;
         Material flameMaterial;
         Material tipMaterial;
 
+        // The burn lives on the server's copy of the victim (it deals the damage there); everyone else draws it from
+        // the server's published state (NetPlayer.SyncServerFx).
         public static Burning Apply(GameObject target, GameObject damageSource, float damagePerSecond, float duration)
         {
-            bool remote = Anathema.Net.NetPlayer.TryGetRemote(target, out var remotePlayer);
-            if (remote) remotePlayer.SendStatus(Anathema.Net.NetPlayer.StatusKind.Burn, damagePerSecond, duration, Vector3.zero, damageSource);
+            if (target.TryGetComponent(out Health targetHealth) && !targetHealth.IsAuthority)
+            {
+                targetHealth.Net.SendStatus(Anathema.Net.NetPlayer.StatusKind.Burn, damagePerSecond, duration, Vector3.zero, damageSource);
+                return null;
+            }
 
             var burning = target.GetComponent<Burning>();
             if (burning == null)
@@ -32,7 +37,7 @@ namespace Anathema.Combat
                 burning = target.AddComponent<Burning>();
                 burning.nextTickTime = Time.time + TickInterval;
             }
-            burning.visualOnly = remote;
+            burning.visualOnly = false;
             burning.source = damageSource;
             burning.endTime = Time.time + duration;
             burning.damagePerSecond = Mathf.Max(burning.damagePerSecond, damagePerSecond);
@@ -40,6 +45,19 @@ namespace Anathema.Combat
         }
 
         public static bool IsBurning(GameObject target) => target.TryGetComponent(out Burning _);
+
+        // A burn that is really doing damage here (not a drawn copy).
+        public static bool IsBurningForReal(GameObject target) => target.TryGetComponent(out Burning b) && !b.visualOnly;
+
+        // Online: draws a burn the server reports; lasts until the server says it has stopped.
+        public static void ShowReplica(GameObject target)
+        {
+            if (target == null || target.TryGetComponent(out Burning _)) return;
+            var burning = target.AddComponent<Burning>();
+            burning.visualOnly = true;
+            burning.endTime = float.MaxValue;
+            burning.nextTickTime = float.MaxValue;
+        }
 
         void Awake()
         {

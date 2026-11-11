@@ -11,11 +11,7 @@ namespace Anathema.Combat
 
         public static Silenced Apply(GameObject target, float duration, bool interrupt = false)
         {
-            if (Anathema.Net.NetPlayer.TryGetRemote(target, out var remote))
-            {
-                remote.SendStatus(Anathema.Net.NetPlayer.StatusKind.Silence, duration, interrupt ? 1f : 0f, Vector3.zero);
-                return null;
-            }
+            if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Silence, duration, interrupt ? 1f : 0f, Vector3.zero)) return null;
 
             if (Enraged.IsEnraged(target)) return null;
             duration *= Health.CrowdControlScaleOf(target);

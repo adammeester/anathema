@@ -61,7 +61,9 @@ namespace Anathema.Abilities.PlagueSurgeon
             }
 
             Health target = PickAlly();
-            PlagueWard.Apply(target.gameObject, gameObject, wardStrength, wardDuration);
+            float strength = wardStrength
+                             * (PlagueSurgeonUpgradeEffects.Has(gameObject, PlagueSurgeonUpgrade.FecundWard) ? PlagueSurgeonUpgrade.FecundStrengthScale : 1f);
+            PlagueWard.Apply(target.gameObject, gameObject, strength, wardDuration);
         }
 
         // The ally closest to the cursor, within range of the surgeon; the surgeon himself if there is no other.

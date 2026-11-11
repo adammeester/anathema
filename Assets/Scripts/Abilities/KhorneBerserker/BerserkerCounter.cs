@@ -32,10 +32,14 @@ namespace Anathema.Abilities.KhorneBerserker
 
             if (attacker == null) return;
             Health target = attacker.GetComponentInParent<Health>();
-            if (target != null && target.Team != Health.Team && target.TakeDamage(retaliationDamage * (UpgradeState.Has(gameObject, BerserkerUpgrade.VengefulBlood) ? BerserkerUpgrade.VengefulRetaliationScale : 1f), gameObject))
+            if (target != null && target.Team != Health.Team)
             {
+                float retaliation = retaliationDamage * (UpgradeState.Has(gameObject, BerserkerUpgrade.VengefulBlood) ? BerserkerUpgrade.VengefulRetaliationScale : 1f);
                 Energy energy = GetComponent<Energy>();
-                if (energy != null) energy.Gain(energyPerHit);
+                target.Strike(Hit.Direct(retaliation), gameObject, landed =>
+                {
+                    if (landed && energy != null) energy.Gain(energyPerHit);
+                });
             }
         }
     }

@@ -15,11 +15,7 @@ namespace Anathema.Combat
             direction.y = 0f;
             if (direction.sqrMagnitude < 0.0001f || duration <= 0f) return;
 
-            if (Anathema.Net.NetPlayer.TryGetRemote(target, out var remote))
-            {
-                remote.SendStatus(Anathema.Net.NetPlayer.StatusKind.Knockback, distance, duration, direction);
-                return;
-            }
+            if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Knockback, distance, duration, direction)) return;
 
             if (Enraged.IsEnraged(target)) return;
 
@@ -34,12 +30,31 @@ namespace Anathema.Combat
             controller = GetComponent<CharacterController>();
         }
 
+        // The shove a player character is under right now. Players are moved by the shared movement step
+        // (MovementSim), which adds this velocity, so the server and the predicting owner move them the same way.
+        public static bool TryGetVelocity(GameObject target, out Vector3 velocity)
+        {
+            velocity = Vector3.zero;
+            if (!target.TryGetComponent(out Knockback k) || Time.time >= k.endTime) return false;
+            velocity = k.velocity;
+            return true;
+        }
+
+        bool drivenByMovement;
+
         void Update()
         {
             var health = GetComponent<Health>();
             if (Time.time >= endTime || (health != null && health.IsDead))
             {
                 Destroy(this);
+                return;
+            }
+
+            // Player characters: MovementSim applies the shove (see TryGetVelocity). Only dummies are moved here.
+            if (drivenByMovement || TryGetComponent(out Anathema.Player.PlayerMovement _))
+            {
+                drivenByMovement = true;
                 return;
             }
 

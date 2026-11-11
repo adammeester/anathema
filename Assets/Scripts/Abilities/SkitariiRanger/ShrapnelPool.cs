@@ -149,7 +149,7 @@ namespace Anathema.Abilities.SkitariiRanger
         void Shred()
         {
             Vector3 center = transform.position;
-            bool hitAny = false;
+            bool marked = false;
             foreach (Collider col in Physics.OverlapSphere(center + Vector3.up, radius + 1f, ~0, QueryTriggerInteraction.Ignore))
             {
                 Health target = col.GetComponentInParent<Health>();
@@ -159,11 +159,13 @@ namespace Anathema.Abilities.SkitariiRanger
                 to.y = 0f;
                 if (to.magnitude > radius) continue;
 
-                if (target.TakeDamage(damagePerTick, owner, true)) hitAny = true;
-                if (!target.IsDead) Slowed.Apply(target.gameObject, TickInterval + SlowLinger, slow);
+                target.Strike(Hit.Direct(damagePerTick).AsAoe().WithSlow(TickInterval + SlowLinger, slow), owner, landed =>
+                {
+                    if (!landed || marked) return;
+                    marked = true;
+                    HitMarkerSound.Play();
+                });
             }
-
-            if (hitAny) HitMarkerSound.Play();
         }
     }
 }

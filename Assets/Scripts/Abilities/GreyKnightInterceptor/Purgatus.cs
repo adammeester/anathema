@@ -186,12 +186,10 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 away.y = 0f;
                 if (away.sqrMagnitude < 0.0001f) away = Aim.AimDirection;
 
-                if (!target.TakeDamage(damage, gameObject, true)) continue;
-                GreyKnightSound.Impact();
-                GreyKnightUpgrade.Ignite(gameObject, target);
-                if (target.IsDead) continue;
-                Knockback.Apply(target.gameObject, away, knockbackDistance, knockbackDuration);
-                Silenced.Apply(target.gameObject, silenceDuration);
+                Hit wave = GreyKnightUpgrade.Ignited(gameObject, Hit.Direct(damage).AsAoe()
+                    .WithKnockback(away, knockbackDistance, knockbackDuration)
+                    .WithSilence(silenceDuration));
+                target.Strike(wave, gameObject, landed => { if (landed) GreyKnightSound.Impact(); });
             }
 
             if (t >= 1f) EndWave();

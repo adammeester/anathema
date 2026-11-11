@@ -21,12 +21,7 @@ namespace Anathema.Combat
 
         public static Panicked Apply(GameObject target, GameObject source, float duration)
         {
-            // Online: a remote player's status is applied on their own machine.
-            if (Anathema.Net.NetPlayer.TryGetRemote(target, out var remote))
-            {
-                remote.SendStatus(Anathema.Net.NetPlayer.StatusKind.Panic, duration, 0f, Vector3.zero, source);
-                return null;
-            }
+            if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Panic, duration, 0f, Vector3.zero, source)) return null;
 
             if (Enraged.IsEnraged(target)) return null;
             duration *= Health.CrowdControlScaleOf(target);
@@ -52,6 +47,14 @@ namespace Anathema.Combat
 
         public static void Cancel(GameObject target)
         {
+            // Online: only the server decides a hit broke the panic. It ends its own copy and tells the victim's machine.
+            if (Anathema.Net.NetPlayer.TryGetRemote(target, out var remote))
+            {
+                if (!remote.IsServer) return;
+                if (IsPanicked(target))
+                    remote.ForwardStatusToOwner(Anathema.Net.NetPlayer.StatusKind.PanicBreak, 0f, 0f, Vector3.zero, null);
+            }
+
             if (target.TryGetComponent(out Panicked panicked)) Destroy(panicked);
         }
 

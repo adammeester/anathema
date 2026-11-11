@@ -121,12 +121,16 @@ namespace Anathema.Abilities.Psyker
                 if (Time.time >= nextTick)
                 {
                     nextTick += TickInterval;
-                    if (target.TakeDamage(damagePerTick, owner, true))
+                    Health healed = ownerHealth;
+                    Energy e = energy;
+                    float heal = healPerTick, gain = energyPerTick;
+                    target.Strike(Hit.Direct(damagePerTick).AsAoe(), owner, landed =>
                     {
+                        if (!landed) return;
                         HitMarkerSound.Play();
-                        ownerHealth.Heal(healPerTick);
-                        if (energy != null) energy.Gain(energyPerTick);
-                    }
+                        if (healed != null) healed.Heal(heal);
+                        if (e != null) e.Gain(gain);
+                    });
                 }
             }
             else if (CasterInterrupted())

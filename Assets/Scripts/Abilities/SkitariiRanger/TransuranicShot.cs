@@ -181,10 +181,13 @@ namespace Anathema.Abilities.SkitariiRanger
             bolt.Init(real ? gameObject : null, Health.Team, start, end, boltSpeed, shotRadius, t,
                 real ? (System.Action<Health>)(target =>
                 {
-                    if (!target.TakeDamage(damage, gameObject)) return;
-                    HitMarkerSound.Play();
-                    if (energy != null) energy.Gain(energyPerHit);
-                    if (!target.IsDead) Stunned.Apply(target.gameObject, stun);
+                    // The stun rides on the hit: if a counter (or anything else) negates the shot, there is no stun.
+                    target.Strike(Hit.Direct(damage).WithStun(stun), gameObject, landed =>
+                    {
+                        if (!landed) return;
+                        HitMarkerSound.Play();
+                        if (energy != null) energy.Gain(energyPerHit);
+                    });
                 }) : null);
 
             if (real && startsCooldown) StartCooldown();

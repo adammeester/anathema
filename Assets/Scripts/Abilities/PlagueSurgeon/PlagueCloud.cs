@@ -75,17 +75,22 @@ namespace Anathema.Abilities.PlagueSurgeon
             var go = new GameObject(ExActivation ? "Plague Cloud" : "Restorative Cloud");
             go.transform.position = center;
             var cloud = go.AddComponent<GasCloud>();
+            // Lingering Miasma: the cloud stays longer and spreads as it lingers (the mask is synced, so a replica's
+            // copy grows the same way).
+            bool miasma = PlagueSurgeonUpgradeEffects.Has(gameObject, PlagueSurgeonUpgrade.LingeringMiasma);
             cloud.Init(
                 gameObject,
                 Health.Team,
                 IsReplica,
                 radius,
-                lifetime,
+                lifetime * (miasma ? PlagueSurgeonUpgrade.MiasmaLifetimeScale : 1f),
                 damagePerSecond * (ExActivation ? 1f : healCloudDamageMultiplier),
                 ExActivation ? 0f : healPerSecond,
                 energyPerTick,
                 energy,
-                ExActivation);
+                ExActivation,
+                miasma ? PlagueSurgeonUpgrade.MiasmaGrowth : 0f,
+                PlagueSurgeonUpgradeEffects.Has(gameObject, PlagueSurgeonUpgrade.FieldTriage));
         }
 
         protected override void Cancel()
@@ -108,6 +113,11 @@ namespace Anathema.Abilities.PlagueSurgeon
             int team;
             bool visualOnly;
             float radius;
+            float baseRadius;
+            float growth;
+            bool triage;
+            float startTime;
+            float totalLifetime;
             float endTime;
             float damagePerTick;
             float healPerTick;
@@ -120,13 +130,19 @@ namespace Anathema.Abilities.PlagueSurgeon
             float[] puffPhase;
             Vector2[] puffOffset;
 
+            // `growth`: how much wider the cloud ends than it starts (0.3 = 30%). `triage`: allies it heals are also
+            // cleansed (Field Triage).
             public void Init(GameObject ownerObject, int ownerTeam, bool visual, float cloudRadius, float lifetime,
-                float dps, float hps, float energyGain, Energy ownerEnergy, bool ex)
+                float dps, float hps, float energyGain, Energy ownerEnergy, bool ex, float growth = 0f, bool triage = false)
             {
                 owner = ownerObject;
                 team = ownerTeam;
                 visualOnly = visual;
-                radius = cloudRadius;
+                radius = baseRadius = cloudRadius;
+                this.growth = growth;
+                this.triage = triage;
+                startTime = Time.time;
+                totalLifetime = Mathf.Max(0.01f, lifetime);
                 endTime = Time.time + lifetime;
                 damagePerTick = dps * TickInterval;
                 healPerTick = hps * TickInterval;
@@ -176,6 +192,11 @@ namespace Anathema.Abilities.PlagueSurgeon
                     return;
                 }
 
+                if (growth > 0f)
+                {
+                    radius = baseRadius * (1f + growth * Mathf.Clamp01((Time.time - startTime) / totalLifetime));
+                    disc.localScale = new Vector3(radius * 2f, 0.01f, radius * 2f);
+                }
                 AnimateVisuals(remaining);
 
                 if (visualOnly || Anathema.Net.NetGame.Frozen) return;
@@ -193,15 +214,16 @@ namespace Anathema.Abilities.PlagueSurgeon
                 c.a = Mathf.Lerp(0f, 0.35f, fade);
                 material.color = c;
 
+                float spread = baseRadius > 0f ? radius / baseRadius : 1f;
                 for (int i = 0; i < puffs.Length; i++)
                 {
                     float t = Time.time * 0.8f + puffPhase[i];
                     float size = 1.1f + 0.4f * Mathf.Sin(t * 1.7f);
                     puffs[i].localScale = Vector3.one * size;
                     puffs[i].localPosition = new Vector3(
-                        puffOffset[i].x + Mathf.Sin(t) * 0.3f,
+                        puffOffset[i].x * spread + Mathf.Sin(t) * 0.3f,
                         0.5f + 0.25f * Mathf.Sin(t * 1.3f),
-                        puffOffset[i].y + Mathf.Cos(t) * 0.3f);
+                        puffOffset[i].y * spread + Mathf.Cos(t) * 0.3f);
                 }
             }
 
@@ -217,12 +239,20 @@ namespace Anathema.Abilities.PlagueSurgeon
 
                     if (h.Team != team)
                     {
-                        if (damagePerTick > 0f && h.TakeDamage(damagePerTick, owner, true, dot: true) && energy != null)
-                            energy.Gain(energyPerTick);
+                        if (damagePerTick > 0f)
+                        {
+                            Energy e = energy;
+                            float gain = energyPerTick;
+                            h.Strike(Hit.Direct(damagePerTick).AsAoe().AsDot(), owner, landed =>
+                            {
+                                if (landed && e != null) e.Gain(gain);
+                            });
+                        }
                     }
                     else if (healPerTick > 0f)
                     {
-                        Healing.Apply(h, healPerTick);
+                        Healing.Apply(h, healPerTick, owner);
+                        if (triage) Cleanse.Apply(h.gameObject, PlagueSurgeonUpgrade.TriageReduction, PlagueSurgeonUpgrade.TriageSeconds, owner);
                     }
                 }
             }

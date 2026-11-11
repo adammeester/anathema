@@ -103,9 +103,10 @@ namespace Anathema.Abilities.Psyker
                 if (distance > staveRange + 0.4f) continue; // a little allowance for the target's body
                 if (distance > 0.05f && Vector3.Angle(dir, to) > staveArc * 0.5f) continue;
 
-                if (!h.TakeDamage(staveDamage * swingScale * ChargedScale(h), gameObject)) continue;
-                OnHit(h);
-                if (finisher && !h.IsDead) Knockback.Apply(h.gameObject, to, staveKnockback, staveKnockbackDuration);
+                Hit swing = Hit.Direct(staveDamage * swingScale * ChargedScale(h));
+                if (finisher) swing = swing.WithKnockback(to, staveKnockback, staveKnockbackDuration);
+                Health struckTarget = h;
+                h.Strike(swing, gameObject, landed => { if (landed) OnHit(struckTarget); });
             }
         }
 

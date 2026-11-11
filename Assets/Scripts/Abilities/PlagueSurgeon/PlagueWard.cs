@@ -45,15 +45,16 @@ namespace Anathema.Abilities.PlagueSurgeon
 
         public static PlagueWard Apply(GameObject target, GameObject wardSource, float strength, float duration)
         {
-            // Online: a remote player's ward lives on their own machine.
-            if (Anathema.Net.NetPlayer.TryGetRemote(target, out var remote))
-            {
-                remote.SendStatus(Anathema.Net.NetPlayer.StatusKind.Ward, strength, duration, Vector3.zero, wardSource);
-                return null;
-            }
-
             var holder = target.GetComponent<Health>();
             if (holder == null || holder.IsDead) return null;
+
+            // Online: the ward lives on the server's copy of the holder, where their damage is resolved; every machine
+            // (the holder's own included) draws it from the server's published state.
+            if (!holder.IsAuthority)
+            {
+                holder.Net.SendStatus(Anathema.Net.NetPlayer.StatusKind.Ward, strength, duration, Vector3.zero, wardSource);
+                return null;
+            }
 
             var existing = target.GetComponent<PlagueWard>();
             if (existing != null) DestroyImmediate(existing);
@@ -123,14 +124,25 @@ namespace Anathema.Abilities.PlagueSurgeon
 
             Vector3 center = transform.position;
             int team = health.Team;
-            // A ward on a remote ally is credited to the ally: the surgeon's character is only a replica here.
-            GameObject credit = source != null && !Anathema.Net.NetPlayer.IsReplicaObject(source) ? source : gameObject;
+            // The rupture is credited to the surgeon who cast the ward (or the holder, if the surgeon is gone).
+            GameObject credit = source != null ? source : gameObject;
 
             Infestation.BurstEffect.Spawn(center, SpreadRadius);
 
+            // Fecund Ward: the rupture also mends the holder's side.
+            bool fecund = source != null && PlagueSurgeonUpgradeEffects.Has(source, PlagueSurgeonUpgrade.FecundWard);
+
             foreach (Health h in FindObjectsByType<Health>())
             {
-                if (h.IsDead || h.Team == team) continue;
+                if (h.IsDead) continue;
+                if (h.Team == team)
+                {
+                    if (!fecund) continue;
+                    Vector3 toAlly = h.transform.position - center;
+                    toAlly.y = 0f;
+                    if (toAlly.magnitude <= SpreadRadius) Healing.Apply(h, PlagueSurgeonUpgrade.FecundHeal, credit);
+                    continue;
+                }
 
                 Vector3 offset = h.transform.position - center;
                 offset.y = 0f;

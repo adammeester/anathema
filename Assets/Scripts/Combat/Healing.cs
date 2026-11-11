@@ -2,18 +2,14 @@ using UnityEngine;
 
 namespace Anathema.Combat
 {
-    // The one way abilities heal someone else. Online, a remote player's health is owned by their machine, so the
-    // heal is forwarded there (like damage); otherwise it is applied directly. Heals only the white (recoverable) part.
+    // The one way abilities heal someone else. Health.Heal sends the heal to the server when this machine isn't the
+    // authority for the target's health. Heals only the white (recoverable) part. `source` is the healer, for credit.
     public static class Healing
     {
-        public static void Apply(Health target, float amount)
+        public static void Apply(Health target, float amount, GameObject source = null)
         {
             if (target == null || target.IsDead || amount <= 0f) return;
-
-            if (Anathema.Net.NetPlayer.TryGetRemote(target.gameObject, out var remote))
-                remote.SendStatus(Anathema.Net.NetPlayer.StatusKind.Heal, amount, 0f, Vector3.zero);
-            else
-                target.Heal(amount);
+            target.Heal(amount, source);
         }
     }
 }

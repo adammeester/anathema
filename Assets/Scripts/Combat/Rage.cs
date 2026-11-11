@@ -89,7 +89,13 @@ namespace Anathema.Combat
 
         public static float MoveSpeedMultiplier(GameObject owner)
         {
-            return owner.TryGetComponent(out Rage rage) ? 1f + rage.Stacks * rage.MovePerStack : 1f;
+            if (!owner.TryGetComponent(out Rage rage)) return 1f;
+            // Another player's character (e.g. the server simulating its movement): stacks are tracked on its owner's
+            // machine, which publishes them.
+            int stacks = owner.TryGetComponent(out Health health) && health.IsReplica && health.Net != null
+                ? health.Net.RageState & 15
+                : rage.Stacks;
+            return 1f + stacks * rage.MovePerStack;
         }
 
         void Awake()

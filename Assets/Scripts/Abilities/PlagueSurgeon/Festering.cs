@@ -19,11 +19,17 @@ namespace Anathema.Abilities.PlagueSurgeon
         Health health;
         float damagePerStackPerSecond;
         float nextTick;
+        bool trusted;
         Material material;
+        float stackDuration;     // of the latest stack laid, for Contagion's spread
+        float nextSpread;        // Contagion: when a target held at maximum next passes a stack on
 
+        // Without Virulence (see PlagueSurgeonUpgradeEffects.MaxFesteringStacks).
         public const int MaxStacks = 3;
 
         public int Stacks => expiries.Count;
+
+        int Cap => PlagueSurgeonUpgradeEffects.MaxFesteringStacks(source);
 
         // `stacks` > 1 lays several stacks at once (the ward's death-cloud uses this for a heavier rot).
         public static Festering Apply(GameObject target, GameObject damageSource, Energy sourceEnergy, float duration, float damagePerSecond, int stacks = 1)
@@ -37,11 +43,17 @@ namespace Anathema.Abilities.PlagueSurgeon
 
             festering.source = damageSource;
             festering.sourceEnergy = sourceEnergy;
+            // Laid by the server itself (a ward's rupture), crediting another player's character: its ticks are the
+            // server's own damage, not a replayed visual.
+            festering.trusted = target.TryGetComponent(out Health h) && h.IsAuthority
+                                && Anathema.Net.NetPlayer.IsReplicaObject(damageSource);
             festering.damagePerStackPerSecond = damagePerSecond;
+            festering.stackDuration = duration;
+            int cap = festering.Cap;
             for (int i = 0; i < stacks; i++)
             {
                 // At the cap, a new hit resets every stack's duration instead of adding another.
-                if (festering.expiries.Count >= MaxStacks)
+                if (festering.expiries.Count >= cap)
                 {
                     for (int j = 0; j < festering.expiries.Count; j++)
                         festering.expiries[j] = Time.time + duration;
@@ -60,6 +72,12 @@ namespace Anathema.Abilities.PlagueSurgeon
         void Update()
         {
             expiries.RemoveAll(t => Time.time >= t);
+            if (health != null && health.IsDead && expiries.Count > 0 && HasContagion)
+            {
+                // Contagion: the corpse's rot finds new hosts.
+                SpreadTo(expiries.Count, PlagueSurgeonUpgrade.ContagionRadius, false);
+                expiries.Clear();
+            }
             if (health == null || health.IsDead || expiries.Count == 0)
             {
                 Destroy(this);
@@ -69,15 +87,60 @@ namespace Anathema.Abilities.PlagueSurgeon
             SyncBlobs();
 
             if (Anathema.Net.NetGame.Frozen) return;
+
+            // Contagion: a target held at maximum passes a stack on every few seconds.
+            if (!HasContagion || expiries.Count < Cap) nextSpread = Time.time + PlagueSurgeonUpgrade.ContagionInterval;
+            else if (Time.time >= nextSpread)
+            {
+                nextSpread = Time.time + PlagueSurgeonUpgrade.ContagionInterval;
+                SpreadTo(1, PlagueSurgeonUpgrade.ContagionRadius, true);
+            }
+
+            bool harvest = PlagueSurgeonUpgradeEffects.Has(source, PlagueSurgeonUpgrade.RotHarvest);
             while (Time.time >= nextTick)
             {
                 nextTick += TickInterval;
                 if (expiries.Count == 0) break;
 
                 float amount = expiries.Count * damagePerStackPerSecond * TickInterval;
-                if (health.TakeDamage(amount, source, true) && sourceEnergy != null) sourceEnergy.Gain(0.5f);
+                Energy energy = sourceEnergy;
+                float gain = harvest ? PlagueSurgeonUpgrade.RotHarvestEnergyPerStack * expiries.Count : 0.5f;
+                health.Strike(Hit.Direct(amount).AsAoe().AsDot(), source, landed =>
+                {
+                    if (landed && energy != null) energy.Gain(gain);
+                }, trusted);
                 if (health.IsDead) return;
             }
+        }
+
+        bool HasContagion => PlagueSurgeonUpgradeEffects.Has(source, PlagueSurgeonUpgrade.Contagion);
+
+        // Lays `stacks` of this rot on the host's living teammates within `radius`: every one of them, or only the
+        // nearest when `nearestOnly`.
+        void SpreadTo(int stacks, float radius, bool nearestOnly)
+        {
+            if (source == null || stacks <= 0) return;
+
+            Health nearest = null;
+            float nearestDistance = radius;
+            foreach (Health h in FindObjectsByType<Health>())
+            {
+                if (h == health || h.IsDead || h.Team != health.Team) continue;
+
+                Vector3 offset = h.transform.position - transform.position;
+                offset.y = 0f;
+                float distance = offset.magnitude;
+                if (distance > radius) continue;
+
+                if (!nearestOnly) Festering.Apply(h.gameObject, source, sourceEnergy, stackDuration, damagePerStackPerSecond, stacks);
+                else if (distance <= nearestDistance)
+                {
+                    nearestDistance = distance;
+                    nearest = h;
+                }
+            }
+
+            if (nearest != null) Festering.Apply(nearest.gameObject, source, sourceEnergy, stackDuration, damagePerStackPerSecond, stacks);
         }
 
         void SyncBlobs()

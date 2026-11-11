@@ -186,11 +186,7 @@ namespace Anathema.Abilities.Psyker
                 if (!IsReplica)
                 {
                     float dealt = damage * Mathf.Pow(falloff, jump) * bonus;
-                    if (current.TakeDamage(dealt, gameObject, true))
-                    {
-                        HitMarkerSound.Play();
-                        if (energy != null) energy.Gain(energyPerHit);
-                    }
+                    current.Strike(Hit.Direct(dealt).AsAoe(), gameObject, OnLanded(energyPerHit));
                 }
 
                 current = NextTarget(current, struck);
@@ -234,11 +230,18 @@ namespace Anathema.Abilities.Psyker
             float bonus = ChargedScale(target);
             Charged.Apply(target.gameObject, chargedDuration); // the bolt keeps them charged
             if (IsReplica) return;
-            if (target.TakeDamage(damage * PsykerUpgrade.ConduitDamageScale * bonus, gameObject, true))
+            target.Strike(Hit.Direct(damage * PsykerUpgrade.ConduitDamageScale * bonus).AsAoe(), gameObject, OnLanded(energyPerHit));
+        }
+
+        // Hit marker and energy for a hit that landed.
+        System.Action<bool> OnLanded(float energyGain)
+        {
+            return landed =>
             {
+                if (!landed) return;
                 HitMarkerSound.Play();
-                if (energy != null) energy.Gain(energyPerHit);
-            }
+                if (energy != null) energy.Gain(energyGain);
+            };
         }
 
         Health NextTarget(Health from, List<Health> struck)
@@ -287,12 +290,8 @@ namespace Anathema.Abilities.Psyker
                 Charged.Apply(h.gameObject, chargedDuration);
                 if (IsReplica) continue;
 
-                if (h.TakeDamage(slamDamage * bonus, gameObject, true))
-                {
-                    HitMarkerSound.Play();
-                    if (energy != null) energy.Gain(slamEnergyPerHit);
-                }
-                if (!h.IsDead) Knockback.Apply(h.gameObject, offset, slamKnockback, slamKnockbackDuration);
+                h.Strike(Hit.Direct(slamDamage * bonus).AsAoe().WithKnockback(offset, slamKnockback, slamKnockbackDuration),
+                    gameObject, OnLanded(slamEnergyPerHit));
             }
         }
 

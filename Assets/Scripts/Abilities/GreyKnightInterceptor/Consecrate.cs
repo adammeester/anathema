@@ -165,10 +165,11 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 if (to.magnitude > radius) continue;
 
                 struck.Add(target);
-                if (!target.TakeDamage(damage, gameObject, true)) continue;
-                if (energy != null) energy.Gain(energyPerHit);
-                GreyKnightUpgrade.Ignite(gameObject, target);
-                if (!target.IsDead) Rooted.Apply(target.gameObject, rootDuration);
+                Hit blast = GreyKnightUpgrade.Ignited(gameObject, Hit.Direct(damage).AsAoe().WithRoot(rootDuration));
+                target.Strike(blast, gameObject, landed =>
+                {
+                    if (landed && energy != null) energy.Gain(energyPerHit);
+                });
             }
 
             StartCooldown();

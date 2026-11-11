@@ -20,11 +20,7 @@ namespace Anathema.Combat
 
         public static Maimed Apply(GameObject target, float duration, float slowFraction)
         {
-            if (Anathema.Net.NetPlayer.TryGetRemote(target, out var remote))
-            {
-                remote.SendStatus(Anathema.Net.NetPlayer.StatusKind.Maim, duration, slowFraction, Vector3.zero);
-                return null;
-            }
+            if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Maim, duration, slowFraction, Vector3.zero)) return null;
 
             if (Enraged.IsEnraged(target)) return null;
             duration *= Health.CrowdControlScaleOf(target);

@@ -147,12 +147,12 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
                     struck.Add(target);
                     float falloff = Mathf.Lerp(1f, MinFalloff, distance / BlastSize);
-                    if (!target.TakeDamage(Damage * damageScale * falloff, owner, true)) continue;
-                    hits++;
-                    GreyKnightUpgrade.Ignite(owner, target);
-                    if (panicSeconds > 0f && !target.IsDead) Panicked.Apply(target.gameObject, owner, panicSeconds);
+                    Hit blast = GreyKnightUpgrade.Ignited(owner, Hit.Direct(Damage * damageScale * falloff).AsAoe());
+                    if (panicSeconds > 0f) blast = blast.WithPanic(panicSeconds);
+                    hits++; // counted when sent, for the impact sound
+                    Action<int> reportLanded = onHits;
+                    target.Strike(blast, owner, landed => { if (landed) reportLanded?.Invoke(1); });
                 }
-                onHits?.Invoke(hits);
             }
 
             BlastFx.Spawn(point, BlastSize, fire);

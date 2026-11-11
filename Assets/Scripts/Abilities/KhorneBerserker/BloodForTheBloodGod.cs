@@ -69,6 +69,7 @@ namespace Anathema.Abilities.KhorneBerserker
         float Cost => energyCost * (Anathema.Upgrades.UpgradeState.Has(gameObject, BerserkerUpgrade.SkullthroneFavour) ? BerserkerUpgrade.SkullthroneCostScale : 1f);
 
         public override string DisplayName => "Blood God";
+        public override float MovementRange => chargeDistance;
         public override string KeyLabel => "R";
 
         // The HUD greys the slot out until the bar is full.
@@ -253,9 +254,7 @@ namespace Anathema.Abilities.KhorneBerserker
                 Health target = c.GetComponentInParent<Health>();
                 if (target == null || target.Team == Health.Team || target.IsDead || !struck.Add(target)) continue;
 
-                if (!target.TakeDamage(damage, gameObject, true) || target.IsDead) continue;
-                Stunned.Apply(target.gameObject, stunDuration);
-                Bleeding.Apply(target.gameObject, gameObject, bleedDamagePerSecond, bleedDuration);
+                target.Strike(Hit.Direct(damage).AsAoe().WithStun(stunDuration).WithBleed(bleedDamagePerSecond, bleedDuration), gameObject);
             }
         }
 

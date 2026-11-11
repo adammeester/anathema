@@ -22,6 +22,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         float healPerTick;
         float energyPerTick;
         Transform fly;
+        bool jumped;   // Hungry Brood: a fly only ever jumps once
 
         bool HostIsEnemy => host.Team != sourceTeam;
 
@@ -54,8 +55,15 @@ namespace Anathema.Abilities.PlagueSurgeon
 
         void Update()
         {
-            if (host == null || host.IsDead || source == null)
+            if (source == null || host == null)
             {
+                Destroy(this);
+                return;
+            }
+
+            if (host.IsDead)
+            {
+                TryJump();
                 Destroy(this);
                 return;
             }
@@ -69,6 +77,7 @@ namespace Anathema.Abilities.PlagueSurgeon
 
             if (Time.time >= endTime)
             {
+                TryJump();
                 Destroy(this);
                 return;
             }
@@ -82,15 +91,105 @@ namespace Anathema.Abilities.PlagueSurgeon
             }
         }
 
+        // Hungry Brood: a fly whose host died or whose time ran out hops once to the nearest character on the same side
+        // as its old host (a feeding fly finds another enemy, a tending fly another ally; never the surgeon himself).
+        void TryJump()
+        {
+            if (jumped || source == null || !PlagueSurgeonUpgradeEffects.Has(source, PlagueSurgeonUpgrade.HungryBrood)) return;
+
+            bool feeding = HostIsEnemy;
+            Health best = null;
+            float bestDistance = PlagueSurgeonUpgrade.BroodRange;
+            foreach (Health h in FindObjectsByType<Health>())
+            {
+                if (h == host || h.IsDead || h.gameObject == source) continue;
+                if ((h.Team != sourceTeam) != feeding) continue;
+
+                Vector3 offset = h.transform.position - host.transform.position;
+                offset.y = 0f;
+                if (offset.magnitude <= bestDistance)
+                {
+                    bestDistance = offset.magnitude;
+                    best = h;
+                }
+            }
+            if (best == null) return;
+
+            Vector3 from = fly != null ? fly.position : host.transform.position + Vector3.up * 1.6f;
+            BroodHop.Launch(from, best, source, sourceTeam, sourceEnergy, totalDuration * PlagueSurgeonUpgrade.BroodDurationScale,
+                damagePerTick / TickInterval, healPerTick / TickInterval, energyPerTick);
+        }
+
+        // The fly crossing to its new host. It latches on when it arrives (if the new host is still standing).
+        class BroodHop : MonoBehaviour
+        {
+            const float Speed = 16f;
+
+            Health target;
+            GameObject source;
+            int sourceTeam;
+            Energy sourceEnergy;
+            float duration, enemyDps, allyHps, energyGain;
+
+            public static void Launch(Vector3 from, Health target, GameObject source, int sourceTeam, Energy sourceEnergy,
+                float duration, float enemyDps, float allyHps, float energyGain)
+            {
+                var go = new GameObject("Brood Hop");
+                go.transform.position = from;
+                var hop = go.AddComponent<BroodHop>();
+                hop.target = target;
+                hop.source = source;
+                hop.sourceTeam = sourceTeam;
+                hop.sourceEnergy = sourceEnergy;
+                hop.duration = duration;
+                hop.enemyDps = enemyDps;
+                hop.allyHps = allyHps;
+                hop.energyGain = energyGain;
+                FlyVisual.Create(go.transform, false, 0.9f);
+            }
+
+            void Update()
+            {
+                if (target == null || target.IsDead || source == null)
+                {
+                    Destroy(gameObject);
+                    return;
+                }
+
+                Vector3 goal = target.transform.position + Vector3.up * 1.6f;
+                Vector3 to = goal - transform.position;
+                float step = Speed * Time.deltaTime;
+                if (to.magnitude <= step)
+                {
+                    Infestation inf = Apply(target, source, sourceTeam, sourceEnergy, duration, enemyDps, allyHps, energyGain);
+                    inf.jumped = true;
+                    Destroy(gameObject);
+                    return;
+                }
+
+                transform.position += to.normalized * step;
+                transform.rotation = Quaternion.LookRotation(to);
+            }
+        }
+
         void Tick()
         {
             if (HostIsEnemy)
             {
-                if (host.TakeDamage(damagePerTick, source, true, dot: true) && sourceEnergy != null) sourceEnergy.Gain(energyPerTick);
+                Energy energy = sourceEnergy;
+                float gain = energyPerTick;
+                Health leech = ParasiteFor(source);
+                float amount = damagePerTick;
+                host.Strike(Hit.Direct(damagePerTick).AsAoe().AsDot(), source, landed =>
+                {
+                    if (!landed) return;
+                    if (energy != null) energy.Gain(gain);
+                    if (leech != null && !leech.IsDead) Healing.Apply(leech, amount, leech.gameObject);
+                });
             }
             else
             {
-                Healing.Apply(host, healPerTick);
+                Healing.Apply(host, healPerTick, source);
             }
         }
 
@@ -102,6 +201,16 @@ namespace Anathema.Abilities.PlagueSurgeon
             BurstEffect.Spawn(center, radius);
             if (visualOnly) return;
 
+            // Parasitic Bond: the burst heals the surgeon once, on the first enemy it actually hurts.
+            Health leech = ParasiteFor(source);
+            bool leeched = false;
+            System.Action<bool> onBurstResult = leech == null ? null : landed =>
+            {
+                if (!landed || leeched || leech == null || leech.IsDead) return;
+                leeched = true;
+                Healing.Apply(leech, damage, leech.gameObject);
+            };
+
             foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead) continue;
@@ -112,12 +221,20 @@ namespace Anathema.Abilities.PlagueSurgeon
 
                 if (h.Team != sourceTeam)
                 {
-                    h.TakeDamage(damage, source, true);
                     // The stench sends survivors running from the surgeon.
-                    if (!h.IsDead && panic > 0f) Panicked.Apply(h.gameObject, source, panic);
+                    Hit burst = Hit.Direct(damage).AsAoe();
+                    if (panic > 0f) burst = burst.WithPanic(panic);
+                    h.Strike(burst, source, onBurstResult);
                 }
-                else Healing.Apply(h, heal);
+                else Healing.Apply(h, heal, source);
             }
+        }
+
+        // Parasitic Bond: the surgeon to heal for the fly's damage, or null without the upgrade.
+        static Health ParasiteFor(GameObject surgeon)
+        {
+            if (surgeon == null || !PlagueSurgeonUpgradeEffects.Has(surgeon, PlagueSurgeonUpgrade.ParasiticBond)) return null;
+            return surgeon.GetComponent<Health>();
         }
 
         void OnDestroy()

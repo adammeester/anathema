@@ -126,11 +126,12 @@ namespace Anathema.Abilities.SkitariiRanger
             if (best == null) return;
 
             RangerFx.Tracer(from + Vector3.up * 1.2f, best.transform.position + Vector3.up * 1.2f, 0.12f, RangerFx.Cyan, 0.2f);
-            if (best.TakeDamage(damage * arcDamageFraction, gameObject))
+            best.Strike(Hit.Direct(damage * arcDamageFraction), gameObject, landed =>
             {
+                if (!landed) return;
                 HitMarkerSound.Play();
                 if (energy != null) energy.Gain(energyPerHit * arcDamageFraction);
-            }
+            });
         }
 
         protected override void Cancel()

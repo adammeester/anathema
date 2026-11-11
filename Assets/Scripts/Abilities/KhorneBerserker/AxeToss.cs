@@ -283,7 +283,8 @@ namespace Anathema.Abilities.KhorneBerserker
             go.transform.position = origin;
             BuildAxeVisual(go.transform);
 
-            go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit);
+            go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit)
+                .WithRiders(Hit.Direct(0f).WithBleed(bleedDamagePerSecond, bleedDuration));
         }
 
         // Gorecleave: a wide frontal sweep. Everything in reach is hurt, thrown back and left bleeding.
@@ -300,20 +301,15 @@ namespace Anathema.Abilities.KhorneBerserker
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, reach, cleaveArcDegrees))
             {
                 float dealt = cleaveDamage * BerserkerUpgradeEffects.DamageScale(gameObject, target);
-                if (!target.TakeDamage(dealt, gameObject)) continue;
-
-                if (energy != null) energy.Gain(energyPerHit);
-                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
-                BloodImpact.Play(target.transform.position + Vector3.up, aim, 1f, true);
-                if (target.IsDead) continue;
-
                 Vector3 push = target.transform.position - origin;
                 push.y = 0f;
                 if (push.sqrMagnitude < 0.0001f) push = aim;
-                Knockback.Apply(target.gameObject, push, knock, cleaveKnockbackDuration);
-                Bleeding.Apply(target.gameObject, gameObject,
-                    rending ? cleaveBleedDamagePerSecond * BerserkerUpgrade.RendingBleedScale : cleaveBleedDamagePerSecond,
-                    rending ? cleaveBleedDuration + BerserkerUpgrade.RendingExtraSeconds : cleaveBleedDuration);
+                Hit cleave = Hit.Direct(dealt)
+                    .WithKnockback(push, knock, cleaveKnockbackDuration)
+                    .WithBleed(rending ? cleaveBleedDamagePerSecond * BerserkerUpgrade.RendingBleedScale : cleaveBleedDamagePerSecond,
+                               rending ? cleaveBleedDuration + BerserkerUpgrade.RendingExtraSeconds : cleaveBleedDuration);
+                target.Strike(cleave, gameObject, BerserkerUpgradeEffects.OnMeleeResult(gameObject, energy, energyPerHit, dealt,
+                    target, aim, 1f, true));
             }
         }
 
@@ -331,11 +327,8 @@ namespace Anathema.Abilities.KhorneBerserker
                 float threshold = Mathf.Min(1f, descentExecuteThreshold * (UpgradeState.Has(gameObject, BerserkerUpgrade.HeadsmansMark) ? BerserkerUpgrade.HeadsmanThresholdScale : 1f));
                 float wounded = Mathf.Clamp01((threshold - target.Normalized) / threshold);
                 float dealt = descentDamage * (1f + wounded * descentMaxBonus) * BerserkerUpgradeEffects.DamageScale(gameObject, target);
-                if (!target.TakeDamage(dealt, gameObject, false, pierce, shieldBreak)) continue;
-
-                if (energy != null) energy.Gain(energyPerHit);
-                BerserkerUpgradeEffects.RegisterHit(gameObject, dealt);
-                BloodImpact.Play(target.transform.position + Vector3.up, aim, 1f, true);
+                target.Strike(Hit.Direct(dealt).WithPierce(pierce).WithShieldBreak(shieldBreak), gameObject,
+                    BerserkerUpgradeEffects.OnMeleeResult(gameObject, energy, energyPerHit, dealt, target, aim, 1f, true));
             }
         }
 
@@ -346,7 +339,7 @@ namespace Anathema.Abilities.KhorneBerserker
             // Chain Frenzy: every axe that lands feeds Rage a second time.
             if (UpgradeState.Has(gameObject, BerserkerUpgrade.ChainFrenzy)) BerserkerUpgradeEffects.GainRage(gameObject);
             BloodImpact.Play(target.transform.position + Vector3.up, target.transform.position - transform.position, 1f, true);
-            if (!target.IsDead) Bleeding.Apply(target.gameObject, gameObject, bleedDamagePerSecond, bleedDuration);
+            // The bleed rides on the axe's hit (see LaunchAxe), so it only takes hold if the axe lands.
         }
 
         // A handle and a blade head on a spinning child, so the Projectile root keeps pointing along its path.

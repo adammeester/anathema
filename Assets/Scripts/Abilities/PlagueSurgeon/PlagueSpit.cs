@@ -24,7 +24,9 @@ namespace Anathema.Abilities.PlagueSurgeon
         [SerializeField] Color globColor = new Color(0.45f, 0.75f, 0.1f);
 
         // How long one stack of rot lasts: follows the attack rate, so changing the cooldown rescales it.
-        public float RotDuration => cooldown * StackIntervals + RotBonusSeconds;
+        // Virulence makes every stack last a little longer.
+        public float RotDuration => cooldown * StackIntervals + RotBonusSeconds
+                                    + (PlagueSurgeonUpgradeEffects.Has(gameObject, PlagueSurgeonUpgrade.Virulence) ? PlagueSurgeonUpgrade.VirulenceExtraSeconds : 0f);
 
         Energy energy;
         Material globMaterial;
@@ -77,6 +79,12 @@ namespace Anathema.Abilities.PlagueSurgeon
             pose.Spit();
             origin = pose.MuzzlePosition(dir, origin);
 
+            // The hand sits off the body's centre line, so firing parallel to AimDirection misses the cursor by that
+            // offset. Aim from the hand at the aim point instead (flat), unless the cursor is too close to be meaningful.
+            Vector3 toAim = Aim.AimPoint - origin;
+            toAim.y = 0f;
+            if (toAim.sqrMagnitude > 0.25f) dir = toAim.normalized;
+
             if (globMaterial == null) globMaterial = VisualUtil.UnlitMaterial(globColor);
             if (haloMaterial == null) haloMaterial = VisualUtil.UnlitMaterial(new Color(globColor.r, globColor.g, globColor.b, 0.35f));
 
@@ -103,7 +111,16 @@ namespace Anathema.Abilities.PlagueSurgeon
             trail.sharedMaterial = haloMaterial;
             trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
-            go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit);
+            var glob = go.AddComponent<Projectile>();
+            glob.Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir, OnHit);
+            // Tonic Spit: globs stop on allies and heal them (a replica's glob stops there too, but only looks the part).
+            if (PlagueSurgeonUpgradeEffects.Has(gameObject, PlagueSurgeonUpgrade.TonicSpit)) glob.WithAllyHit(OnAllyHit);
+        }
+
+        void OnAllyHit(Health ally)
+        {
+            if (IsReplica || ally == null || ally.IsDead) return;
+            Healing.Apply(ally, PlagueSurgeonUpgrade.TonicHeal, gameObject);
         }
 
         // The projectile only reports hits that actually dealt damage; a replica's visual glob never gets here.

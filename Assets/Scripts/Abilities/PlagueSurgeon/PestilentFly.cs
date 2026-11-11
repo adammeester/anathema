@@ -43,7 +43,50 @@ namespace Anathema.Abilities.PlagueSurgeon
             if (ExActivation && !IsReplica && energy != null) energy.Gain(exEnergyCost);
         }
 
-        public override string DisplayName => "Pestilent Fly";
+        public override string DisplayName => TwoCharges ? "Pestilent Fly x" + ReadyCharges : "Pestilent Fly";
+
+        // Swarm: two flies in reserve, each recharging on its own.
+        readonly float[] chargeReady = new float[2];
+
+        bool TwoCharges => PlagueSurgeonUpgradeEffects.Has(gameObject, PlagueSurgeonUpgrade.Swarm);
+
+        int ReadyCharges
+        {
+            get
+            {
+                int n = 0;
+                foreach (float t in chargeReady) if (Time.time >= t) n++;
+                return n;
+            }
+        }
+
+        protected override bool HasSpareCharge => TwoCharges && ReadyCharges > 0;
+
+        public override float CooldownRemaining =>
+            TwoCharges ? (ReadyCharges > 0 ? 0f : Mathf.Max(0f, Mathf.Min(chargeReady[0], chargeReady[1]) - Time.time)) : base.CooldownRemaining;
+
+        public override float CooldownNormalized
+        {
+            get
+            {
+                if (!TwoCharges) return base.CooldownNormalized;
+                float full = cooldown * CooldownScale;
+                return full > 0f ? Mathf.Clamp01(CooldownRemaining / full) : 0f;
+            }
+        }
+
+        // One fly is ready and the other is still on its way: report how far off it is.
+        public override float ChargeRechargeNormalized
+        {
+            get
+            {
+                if (!TwoCharges || ReadyCharges != 1) return 0f;
+                float full = cooldown * CooldownScale;
+                if (full <= 0f) return 0f;
+                float pending = Time.time >= chargeReady[0] ? chargeReady[1] : chargeReady[0];
+                return Mathf.Clamp01((pending - Time.time) / full);
+            }
+        }
         public override string KeyLabel => "RMB";
         public override float ExCost => exEnergyCost;
         public override string ExDescription => "Bursts when done";
@@ -74,6 +117,13 @@ namespace Anathema.Abilities.PlagueSurgeon
             dir.Normalize();
 
             PlagueSurgeonPose.For(gameObject).Throw();
+
+            if (TwoCharges && !IsReplica)
+            {
+                // Spend a ready charge (else the one closest to ready); only that one starts recharging.
+                int used = Time.time >= chargeReady[0] ? 0 : Time.time >= chargeReady[1] ? 1 : (chargeReady[0] <= chargeReady[1] ? 0 : 1);
+                chargeReady[used] = Time.time + cooldown * CooldownScale;
+            }
 
             var go = new GameObject("Pestilent Fly");
             go.transform.position = transform.position + Vector3.up * muzzleHeight + dir * 0.7f;

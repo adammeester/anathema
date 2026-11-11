@@ -82,6 +82,10 @@ namespace Anathema.Net
         // The between-rounds prep area: movement is allowed (inside PrepRadius), fighting is not.
         public static bool InPrep => (Instance != null && Instance.phase == Phase.Prep) || OfflinePrep.Active;
         public static bool IsHost => Online && Instance.manager.IsServer;
+        // A headless server with no player of its own (see StartDedicated); every fighter is a remote client.
+        public static bool IsDedicated => Instance != null && Instance.dedicated;
+
+        bool dedicated;
 
         static string pendingNotice = "";
 
@@ -108,7 +112,13 @@ namespace Anathema.Net
 
         int RoundsToWin => bestOf / 2 + 1;
         bool leaving;
-        string joinAddress = "127.0.0.1";
+        // The dedicated server players connect to. Change this to the public server's address once it is hosted;
+        // the menu's address field still lets a player override it (remembered between launches).
+        public const string DefaultServerAddress = "127.0.0.1";
+        const string ServerAddressPref = "Anathema.ServerAddress";
+        const byte IntentJoin = 0, IntentHost = 1;
+        float hostPendingUntil; // server: a host was just approved and is about to take seat 0
+        string joinAddress = DefaultServerAddress;
         string notice = "";
         string localIps = "";
 
@@ -163,6 +173,7 @@ namespace Anathema.Net
             notice = pendingNotice;
             pendingNotice = "";
             localIps = FindLocalAddresses();
+            try { joinAddress = PlayerPrefs.GetString(ServerAddressPref, DefaultServerAddress); } catch { }
         }
 
         void Start()
@@ -174,6 +185,8 @@ namespace Anathema.Net
                 if (prefab == null) Debug.LogError($"Missing player prefab Resources/{path}. Run Anathema > Rebuild Everything.");
                 else manager.AddNetworkPrefab(prefab);
             }
+
+            if (ServerLaunch.Requested(out ushort port)) StartDedicated(port);
         }
 
         void OnDestroy()
@@ -188,30 +201,71 @@ namespace Anathema.Net
 
         // --- Starting / joining -----------------------------------------------------------------------------------
 
-        void HostGame()
+        // There is no peer-to-peer hosting: every match runs on a dedicated server (StartDedicated) and every
+        // player is a client of it (JoinGame).
+
+        // Headless server: listens for players, runs the lobby and the match, but has no fighter, camera or menus.
+        // The first player in the lobby (lowest seat) chooses the mode, match length and rematch.
+        void StartDedicated(ushort port)
         {
-            notice = "";
-            transport.SetConnectionData("127.0.0.1", DefaultPort, "0.0.0.0");
+            dedicated = true;
+            Application.targetFrameRate = 60; // a headless loop would otherwise spin a whole core
+            QualitySettings.vSyncCount = 0;
+
+            transport.SetConnectionData("0.0.0.0", port, "0.0.0.0");
             manager.ConnectionApprovalCallback = Approve;
             manager.OnClientConnectedCallback += OnClientConnected;
             manager.OnClientDisconnectCallback += OnClientDisconnected;
 
-            if (!manager.StartHost())
+            if (!manager.StartServer())
             {
-                notice = "Could not start hosting (is port 7777 already in use?).";
+                Debug.LogError($"[Server] Could not listen on UDP port {port} (is it already in use?).");
+                Application.Quit(1);
                 return;
             }
 
             manager.SceneManager.OnLoadEventCompleted += OnLoadEventCompleted;
             RegisterHandlers();
-
             for (int i = 0; i < seats.Length; i++) seats[i] = default;
-            seats[0] = new Seat { used = true, clientId = manager.LocalClientId, character = myCharacter, ready = false, team = 0 };
-            myReady = false;
             phase = Phase.Lobby;
+            Debug.Log($"[Server] Dedicated server listening on UDP port {port}. Players join with: {localIps} (add :{port} if not {DefaultPort}).");
         }
 
-        void JoinGame()
+        // Dedicated server: the match is over or abandoned. Anyone still connected is sent back to their menu and the
+        // server opens a fresh, empty lobby (it never quits by itself).
+        void ServerResetToLobby(string reason)
+        {
+            Debug.Log($"[Server] {reason} Resetting to an empty lobby.");
+
+            for (int i = 0; i < seats.Length; i++) seats[i] = default; // cleared first: the disconnects below are expected
+            foreach (ulong id in new List<ulong>(manager.ConnectedClientsIds))
+                manager.DisconnectClient(id, string.IsNullOrEmpty(reason) ? "The server reset." : reason);
+
+            winnerTeam = -1;
+            lastDeadTeam = -1;
+            roundsCompleted = 0;
+            frozen = false;
+            prepLocked = false;
+            hostPendingUntil = 0f;
+
+            if (SceneManager.GetActiveScene().name == MenuScene)
+            {
+                phase = Phase.Lobby;
+            }
+            else
+            {
+                phase = Phase.Loading; // joins are refused until the Menu scene is back (OnLoadEventCompleted reopens the lobby)
+                manager.SceneManager.LoadScene(MenuScene, LoadSceneMode.Single);
+            }
+        }
+
+        // Both buttons connect to the dedicated server. Hosting opens the server's lobby (you become its leader and
+        // set the rules); joining enters a lobby someone has already opened. The intent travels in the connection
+        // payload and the server checks it in Approve.
+        void HostGame() => ConnectToServer(true);
+        void JoinGame() => ConnectToServer(false);
+
+        void ConnectToServer(bool host)
         {
             notice = "";
             string address = joinAddress.Trim();
@@ -225,11 +279,13 @@ namespace Anathema.Net
 
             if (address.Length == 0)
             {
-                notice = "Enter the host's IP address.";
+                notice = "Enter the server's address.";
                 return;
             }
+            try { PlayerPrefs.SetString(ServerAddressPref, joinAddress.Trim()); } catch { }
 
             transport.SetConnectionData(address, port);
+            manager.NetworkConfig.ConnectionData = new[] { host ? IntentHost : IntentJoin };
             manager.OnClientConnectedCallback += OnClientConnected;
             manager.OnClientDisconnectCallback += OnClientDisconnected;
 
@@ -248,8 +304,21 @@ namespace Anathema.Net
         {
             response.CreatePlayerObject = false;
             response.Pending = false;
-            response.Approved = FreeSeat() >= 0 && phase == Phase.Lobby;
-            if (!response.Approved) response.Reason = phase == Phase.Lobby ? "The game is full." : "A match is already in progress.";
+            bool wantsHost = request.Payload != null && request.Payload.Length > 0 && request.Payload[0] == IntentHost;
+            // A host approved a moment ago may not have a seat yet; this keeps a second host from slipping in.
+            bool lobbyOpen = UsedSeats() > 0 || Time.unscaledTime < hostPendingUntil;
+
+            if (phase != Phase.Lobby) response.Reason = "A match is already in progress.";
+            else if (wantsHost && lobbyOpen) response.Reason = "A game is already being hosted on this server. Join it instead.";
+            else if (!wantsHost && !lobbyOpen) response.Reason = "No game is being hosted yet. Host one, or wait for someone to.";
+            else if (FreeSeat() < 0) response.Reason = "The game is full.";
+            else
+            {
+                response.Approved = true;
+                if (wantsHost) hostPendingUntil = Time.unscaledTime + 10f;
+                return;
+            }
+            response.Approved = false;
         }
 
         int FreeSeat()
@@ -312,6 +381,71 @@ namespace Anathema.Net
             msg.RegisterNamedMessageHandler("orbSpawn", OnOrbSpawnMessage);
             msg.RegisterNamedMessageHandler("orbClaim", OnOrbClaimMessage);
             msg.RegisterNamedMessageHandler("orbTaken", OnOrbTakenMessage);
+            msg.RegisterNamedMessageHandler("bestOf", OnBestOfMessage);
+            msg.RegisterNamedMessageHandler("mode", OnModeMessage);
+            msg.RegisterNamedMessageHandler("matchChoice", OnMatchChoiceMessage);
+        }
+
+        // --- Lobby leader (sets the rules; the host, or on a dedicated server the lowest occupied seat) ------------
+
+        int LeaderSeat()
+        {
+            for (int i = 0; i < seats.Length; i++)
+                if (seats[i].used) return i;
+            return -1;
+        }
+
+        // True on the machine whose player chooses the mode, match length and rematch.
+        bool IAmLeader => manager.IsServer ? !dedicated : LeaderSeat() >= 0 && LeaderSeat() == MySeat();
+
+        bool SenderIsLeader(ulong sender)
+        {
+            int leader = LeaderSeat();
+            return leader >= 0 && seats[leader].clientId == sender;
+        }
+
+        void SendToServer(string message, int value)
+        {
+            using var writer = new FastBufferWriter(8, Allocator.Temp);
+            writer.WriteValueSafe(value);
+            manager.CustomMessagingManager.SendNamedMessage(message, NetworkManager.ServerClientId, writer);
+        }
+
+        void OnBestOfMessage(ulong sender, FastBufferReader reader)
+        {
+            if (!manager.IsServer) return;
+            reader.ReadValueSafe(out int value);
+            if (SenderIsLeader(sender) && (value == 3 || value == 5)) ServerSetBestOf(value);
+        }
+
+        void OnModeMessage(ulong sender, FastBufferReader reader)
+        {
+            if (!manager.IsServer) return;
+            reader.ReadValueSafe(out int value);
+            if (SenderIsLeader(sender)) ServerSetMode((GameMode)Mathf.Clamp(value, 0, 1));
+        }
+
+        const int ChoiceRematch = 0, ChoiceLobby = 1;
+
+        void OnMatchChoiceMessage(ulong sender, FastBufferReader reader)
+        {
+            if (!manager.IsServer) return;
+            reader.ReadValueSafe(out int choice);
+            if (!SenderIsLeader(sender) || phase != Phase.Over) return;
+            if (choice == ChoiceRematch) StartRematch();
+            else ReturnToLobby();
+        }
+
+        void ChooseRematch()
+        {
+            if (manager.IsServer) StartRematch();
+            else SendToServer("matchChoice", ChoiceRematch);
+        }
+
+        void ChooseLobby()
+        {
+            if (manager.IsServer) ReturnToLobby();
+            else SendToServer("matchChoice", ChoiceLobby);
         }
 
         // --- Healing orbs (host decides who gets each one) --------------------------------------------------------
@@ -389,6 +523,8 @@ namespace Anathema.Net
                     return;
                 }
                 seats[free] = new Seat { used = true, clientId = clientId, character = 0, ready = false, team = SmallerTeam() };
+                hostPendingUntil = 0f;
+                if (dedicated) Debug.Log($"[Server] Client {clientId} joined (seat {free}, {UsedSeats()}/{MaxSeats}).");
                 BroadcastLobby();
             }
             else if (clientId == manager.LocalClientId)
@@ -404,8 +540,20 @@ namespace Anathema.Net
             if (manager.IsServer)
             {
                 if (clientId == manager.LocalClientId) return;
+                bool hadSeat = false;
                 for (int i = 0; i < seats.Length; i++)
-                    if (seats[i].used && seats[i].clientId == clientId) seats[i] = default;
+                {
+                    if (!seats[i].used || seats[i].clientId != clientId) continue;
+                    seats[i] = default;
+                    hadSeat = true;
+                }
+
+                // A dedicated server resetting has already cleared the seats; those disconnects need no handling.
+                if (dedicated)
+                {
+                    if (!hadSeat) return;
+                    Debug.Log($"[Server] Client {clientId} left ({UsedSeats()}/{MaxSeats}).");
+                }
 
                 if (phase == Phase.Lobby) BroadcastLobby();
                 else if (phase == Phase.Loading) LeaveToMenu("A player left the match.");
@@ -416,13 +564,19 @@ namespace Anathema.Net
                 string reason = manager.DisconnectReason;
                 bool wasConnecting = phase == Phase.Connecting;
                 LeaveToMenu(!string.IsNullOrEmpty(reason) ? reason
-                    : wasConnecting ? "Could not connect. Check the IP address and that the host's port 7777 (UDP) is open."
-                    : "Disconnected from the host.");
+                    : wasConnecting ? $"Could not reach the server at {joinAddress}. Check that it is running and UDP port {DefaultPort} is open."
+                    : "Disconnected from the server.");
             }
         }
 
         public void LeaveToMenu(string message)
         {
+            if (dedicated)
+            {
+                ServerResetToLobby(message);
+                return;
+            }
+
             if (leaving) return;
             leaving = true;
             pendingNotice = message ?? "";
@@ -475,6 +629,18 @@ namespace Anathema.Net
 
         void SetBestOf(int value)
         {
+            if (manager.IsServer) ServerSetBestOf(value);
+            else if (IAmLeader) SendToServer("bestOf", value);
+        }
+
+        void SetMode(GameMode value)
+        {
+            if (manager.IsServer) ServerSetMode(value);
+            else if (IAmLeader) SendToServer("mode", (int)value);
+        }
+
+        void ServerSetBestOf(int value)
+        {
             if (!manager.IsServer || phase != Phase.Lobby || bestOf == value) return;
             bestOf = value;
             // Changing the rules un-readies everyone so nobody starts a match they didn't agree to.
@@ -483,7 +649,7 @@ namespace Anathema.Net
             BroadcastLobby();
         }
 
-        void SetMode(GameMode value)
+        void ServerSetMode(GameMode value)
         {
             if (!manager.IsServer || phase != Phase.Lobby || mode == value) return;
             mode = value;
@@ -566,7 +732,8 @@ namespace Anathema.Net
         void BroadcastLobby()
         {
             if (!manager.IsServer || phase != Phase.Lobby) return;
-            if (UsedSeats() < 2) return;
+            // A host alone has nobody to tell; a dedicated server's first player needs the lobby straight away.
+            if (UsedSeats() < (dedicated ? 1 : 2)) return;
 
             using var writer = new FastBufferWriter(256, Allocator.Temp);
             for (int i = 0; i < seats.Length; i++)
@@ -611,7 +778,7 @@ namespace Anathema.Net
         {
             if (Instance != this || manager == null) return;
 
-            if (phase == Phase.Lobby) select.Show(); else select.Hide();
+            if (phase == Phase.Lobby && !dedicated) select.Show(); else select.Hide();
 
             if (!manager.IsServer && phase == Phase.Lobby && IsArenaScene(SceneManager.GetActiveScene().name))
             {
@@ -646,6 +813,7 @@ namespace Anathema.Net
 
             if (manager.IsServer && phase == Phase.Lobby && CanStart())
             {
+                if (dedicated) Debug.Log($"[Server] Everyone is ready: starting a {UsedSeats()}-player match.");
                 phase = Phase.Loading;
                 manager.SceneManager.LoadScene(PickArenaScene(), LoadSceneMode.Single);
             }
@@ -962,6 +1130,15 @@ namespace Anathema.Net
             earliestNextRound = Time.time + PrepMin;
             countdownEnd = Time.time + PrepWindow;
 
+            // The server owns health: everyone is restored there and can't be hurt during prep.
+            if (manager.IsServer)
+                foreach (NetPlayer p in NetPlayer.All)
+                {
+                    if (p == null) continue;
+                    p.ServerResetForRound();
+                    p.Health.Invulnerable = true;
+                }
+
             if (NetPlayer.Local != null)
             {
                 NetPlayer.Local.ResetForRematch();
@@ -1077,7 +1254,14 @@ namespace Anathema.Net
                 NetPlayer.Local.Health.Invulnerable = false;
                 NetPlayer.Local.ResetForRematch();
             }
-            if (manager.IsServer) foreach (NetPlayer player in NetPlayer.All) player.ServerResetRoundStats();
+            if (manager.IsServer)
+                foreach (NetPlayer player in NetPlayer.All)
+                {
+                    if (player == null) continue;
+                    player.ServerResetRoundStats();
+                    player.ServerResetForRound();
+                    player.Health.Invulnerable = false;
+                }
             GasZone gas = FindAnyObjectByType<GasZone>();
             if (gas != null) gas.Restart();
             OrbSpawner orbs = FindAnyObjectByType<OrbSpawner>();
@@ -1152,7 +1336,7 @@ namespace Anathema.Net
 
         void OnGUI()
         {
-            if (Instance != this) return;
+            if (Instance != this || dedicated) return;
             BuildStyles();
 
             uiScale = Screen.height / 1080f;
@@ -1192,11 +1376,10 @@ namespace Anathema.Net
             Rect(new Rect(w * 0.5f - 260, 305, 520, 3), DarkGold);
 
             float bx = w * 0.5f - 230;
-            if (GUI.Button(new Rect(bx, 360, 460, 84), "HOST GAME", buttonBig)) HostGame();
-
-            GUI.Label(new Rect(bx, 485, 460, 36), "OR JOIN A FRIEND", labelCentered);
-            joinAddress = GUI.TextField(new Rect(bx, 530, 460, 62), joinAddress, 64, field);
-            if (GUI.Button(new Rect(bx, 610, 460, 84), "JOIN GAME", buttonBig)) JoinGame();
+            GUI.Label(new Rect(bx, 340, 460, 36), "SERVER ADDRESS", labelCentered);
+            joinAddress = GUI.TextField(new Rect(bx, 380, 460, 56), joinAddress, 64, field);
+            if (GUI.Button(new Rect(bx, 470, 460, 84), "HOST GAME", buttonBig)) HostGame();
+            if (GUI.Button(new Rect(bx, 574, 460, 84), "JOIN GAME", buttonBig)) JoinGame();
 
             if (GUI.Button(new Rect(bx, 730, 460, 66), "QUIT", button))
             {
@@ -1445,7 +1628,7 @@ namespace Anathema.Net
 
             // Game mode and match length: the host picks, guests see them.
             var modeLabel = new GUIStyle(label) { alignment = TextAnchor.MiddleRight, fontStyle = FontStyle.Bold, fontSize = 22 };
-            if (manager.IsServer)
+            if (IAmLeader)
             {
                 GUI.Label(new Rect(w - 700, 914, 260, 44), "GAME MODE", modeLabel);
                 DrawModeButton(new Rect(w - 420, 914, 230, 44), GameMode.FreeForAll, "FREE FOR ALL");
@@ -1456,12 +1639,11 @@ namespace Anathema.Net
                 GUI.Label(new Rect(w - 700, 914, 660, 44), mode == GameMode.Teams ? "TEAMS  (set by host)" : "FREE FOR ALL  (set by host)", modeLabel);
             }
 
-            if (manager.IsServer)
+            if (IAmLeader)
             {
                 GUI.Label(new Rect(w - 700, 962, 260, 56), "MATCH LENGTH", new GUIStyle(label) { alignment = TextAnchor.MiddleRight, fontStyle = FontStyle.Bold, fontSize = 22 });
                 DrawBestOfButton(new Rect(w - 420, 962, 180, 56), 3);
                 DrawBestOfButton(new Rect(w - 220, 962, 180, 56), 5);
-                GUI.Label(new Rect(w - 700, 1030, 660, 30), $"Friend joins with: {localIps} (UDP {DefaultPort})", new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleRight, fontSize = 16, wordWrap = false });
             }
             else
             {
@@ -1525,13 +1707,13 @@ namespace Anathema.Net
             var nameStyle = new GUIStyle(label) { fontSize = 22, fontStyle = FontStyle.Bold, wordWrap = false, normal = { textColor = Color.white } };
             var descStyle = new GUIStyle(labelSmall) { fontSize = 18 };
             var headStyle = new GUIStyle(label) { fontSize = 26, fontStyle = FontStyle.Bold, wordWrap = false, normal = { textColor = Gold } };
-            string[] catNames = { "ARMAMENT - weapon transformations", "ENDURANCE - defensive", "FEROCITY - ability enhancements" };
+            string[] catNames = { "ARMAMENT - weapon transformations", "ENDURANCE - defensive", "FEROCITY - ability enhancements", "REMEDY - support" };
 
             const float rowGap = 10f;
             float viewW = panel.width - 72f; // room for the scrollbar
             float textW = viewW - 28f;
             float total = 0f;
-            for (int c = 0; c < 3; c++)
+            for (int c = 0; c < catNames.Length; c++)
             {
                 bool any = false;
                 foreach (var u in all) if ((int)u.Category == c) { any = true; total += 30f + descStyle.CalcHeight(new GUIContent(u.Description), textW) + rowGap + 6f; }
@@ -1541,7 +1723,7 @@ namespace Anathema.Net
             var view = new Rect(panel.x + 24, panel.y + 90, panel.width - 48, panel.height - 110);
             upgradeScroll = GUI.BeginScrollView(view, upgradeScroll, new Rect(0, 0, viewW, total));
             float y = 0f;
-            for (int c = 0; c < 3; c++)
+            for (int c = 0; c < catNames.Length; c++)
             {
                 bool first = true;
                 foreach (var u in all)
@@ -1719,10 +1901,10 @@ namespace Anathema.Net
             DrawDamageReport(w, 540);
 
             float bx = w * 0.5f - 230;
-            if (manager.IsServer)
+            if (IAmLeader)
             {
-                if (GUI.Button(new Rect(bx, 740, 460, 84), "REMATCH", buttonBig)) StartRematch();
-                if (GUI.Button(new Rect(bx, 835, 460, 70), "CHARACTER SELECT", button)) ReturnToLobby();
+                if (GUI.Button(new Rect(bx, 740, 460, 84), "REMATCH", buttonBig)) ChooseRematch();
+                if (GUI.Button(new Rect(bx, 835, 460, 70), "CHARACTER SELECT", button)) ChooseLobby();
             }
             else
             {
