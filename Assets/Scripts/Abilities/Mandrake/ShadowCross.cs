@@ -22,8 +22,8 @@ namespace Anathema.Abilities.Mandrake
         [SerializeField] float poisonDamagePerSecond = 2f;
         [SerializeField] float poisonDuration = 4f;
         [SerializeField] float windup = 0.35f;
-        [SerializeField] float dashDuration = 0.2f;
-        [SerializeField] float blinkPause = 0.15f;      // between the two slashes
+        [SerializeField] float dashDuration = 0.4f;
+        [SerializeField] float blinkPause = 0.25f;      // between the two slashes
 
         enum Phase { Idle, Dash1, Blink, Dash2 }
 

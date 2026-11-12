@@ -19,8 +19,11 @@ GameObject:
   - component: {fileID: 7258289424017394532}
   - component: {fileID: 4958421503944878511}
   - component: {fileID: 8484230223599430807}
-  - component: {fileID: 7269797312337418369}
   - component: {fileID: 8295218482821591522}
+  - component: {fileID: 7269797312337418369}
+  - component: {fileID: 1664197901265150345}
+  - component: {fileID: 9087539931648789355}
+  - component: {fileID: 5805089132585312830}
   - component: {fileID: 7088536076019283163}
   - component: {fileID: 2555930869954499321}
   - component: {fileID: 578235058883804431}
@@ -202,7 +205,7 @@ MonoBehaviour:
   inputBuffer: 0.25
   energyPerHit: 7
   finisherPoisonStacks: 1
-  poisonDamagePerSecond: 3
+  poisonDamagePerSecond: 1
   poisonDuration: 4
   spineTwist: 32
   armRaise: 70
@@ -217,32 +220,17 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 497cdb12f10a42347be40dcfc1885af0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.Ambush
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.BalefireBolt
   cooldown: 8
-  damage: 14
-  stealthBonusDamage: 14
-  stunDuration: 0.9
-  stealthPoisonStacks: 2
-  poisonDamagePerSecond: 3
-  poisonDuration: 4
-  range: 3
-  arcDegrees: 80
-  energyPerHit: 10
-  windup: 0.15
---- !u!114 &7269797312337418369
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6882082503625080852}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 56848a9beecdbc94ca8c996804ba23dc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.ShadowVeil
-  cooldown: 12
-  duration: 4
+  windup: 0.2
+  boltDamage: 6
+  burnDamagePerSecond: 5
+  burnDuration: 6
+  boltRange: 13
+  boltSpeed: 22
+  boltRadius: 0.3
+  muzzleHeight: 1.2
+  muzzleForward: 0.6
 --- !u!114 &8295218482821591522
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -259,6 +247,96 @@ MonoBehaviour:
   range: 7
   bonusDamage: 10
   bonusWindow: 3
+  exEnergyCost: 35
+  returnWindow: 3
+--- !u!114 &7269797312337418369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56848a9beecdbc94ca8c996804ba23dc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.ShadowVeil
+  cooldown: 12
+  duration: 4
+  exEnergyCost: 35
+  exWindup: 0.15
+  exExtraCooldown: 2
+  slashDamage: 14
+  slashStealthBonusDamage: 14
+  slashStunDuration: 1.25
+  slashStealthPoisonStacks: 2
+  slashPoisonDamagePerSecond: 1
+  slashPoisonDuration: 4
+  slashRange: 3
+  slashArcDegrees: 80
+  slashEnergyPerHit: 10
+--- !u!114 &1664197901265150345
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad661697412d7014897f27d6d59461fd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.UmbralRiposte
+  cooldown: 6
+  duration: 1.2
+  guardRadius: 1.6
+  guardColor: {r: 0.4, g: 0.7, b: 1, a: 0.45}
+  leanBackDegrees: 14
+  poseBlendTime: 0.1
+  glowScale: 1.06
+  glowColor: {r: 0.3, g: 0.6, b: 1, a: 0.4}
+  guardDuration: 0.6
+  successCooldown: 12
+  vanishDuration: 1
+  shadowStrikeWindow: 2
+  stepReach: 8
+  behindDistance: 1.3
+--- !u!114 &9087539931648789355
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 667031e7a7208834da1be17493693791, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.ShadowCross
+  cooldown: 1
+  energyCost: 100
+  castRange: 9
+  slashLength: 9
+  slashWidth: 1.4
+  damage: 25
+  poisonStacks: 2
+  poisonDamagePerSecond: 2
+  poisonDuration: 4
+  windup: 0.35
+  dashDuration: 0.2
+  blinkPause: 0.15
+--- !u!114 &5805089132585312830
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f98723ff3033b844b570bd5b6b436b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.SoulHarvest
 --- !u!114 &7088536076019283163
 MonoBehaviour:
   m_ObjectHideFlags: 0

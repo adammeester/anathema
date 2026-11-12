@@ -17,6 +17,7 @@ namespace Anathema.Abilities.Mandrake
         [Header("EX: Shadow Rend")]
         [SerializeField] float exEnergyCost = 35f;
         [SerializeField] float exWindup = 0.15f;
+        [SerializeField] float exExtraCooldown = 2f;  // added on top of the shared cooldown when the EX is used
         [SerializeField] float slashDamage = 14f;
         [SerializeField] float slashStealthBonusDamage = 14f;
         [SerializeField] float slashStunDuration = 1.25f;
@@ -29,6 +30,7 @@ namespace Anathema.Abilities.Mandrake
 
         Energy energy;
         bool replicaFromStealth;
+        float lastCooldownTotal;  // full length of the cooldown now running (longer after an EX), for the HUD sweep
 
         public override string DisplayName => "Shadow Veil";
         public override string KeyLabel => "E";
@@ -57,8 +59,22 @@ namespace Anathema.Abilities.Mandrake
             // A replica can only tell the cut came from stealth by whether the veil is still drawn as the wind-up begins.
             if (IsReplica) replicaFromStealth = Stealthed.IsStealthed(gameObject);
             // The EX energy is spent when the wind-up starts and given back if it is cancelled.
-            else ExActivation = TrySpendEx(energy, exEnergyCost);
+            else
+            {
+                ExActivation = TrySpendEx(energy, exEnergyCost);
+                if (ExActivation)
+                {
+                    // The EX puts the shared cooldown on longer than the veil does. A cancelled wind-up refunds it all.
+                    float extra = exExtraCooldown * CooldownScale;
+                    SetCooldownRemaining(CooldownRemaining + extra);
+                    lastCooldownTotal = cooldown * CooldownScale + extra;
+                }
+            }
         }
+
+        // Keeps the HUD sweep in step with the longer cooldown after an EX.
+        public override float CooldownNormalized =>
+            lastCooldownTotal > 0f ? Mathf.Clamp01(CooldownRemaining / lastCooldownTotal) : base.CooldownNormalized;
 
         protected override void OnWindupCancel()
         {
@@ -77,6 +93,7 @@ namespace Anathema.Abilities.Mandrake
 
             // Replicas draw the veil from the owner's published status (NetPlayer), not from the cue.
             if (IsReplica) return;
+            lastCooldownTotal = 0f;  // the plain veil runs the normal cooldown
             Stealthed.Apply(gameObject, duration);
         }
 

@@ -6,8 +6,8 @@
     "SanctifiedTether": {
       "cooldown": 6,
       "duration": 4,
-      "range": 11,
-      "leashRange": 14,
+      "range": 9,
+      "leashRange": 11,
       "tickInterval": 0.25,
       "tickDamage": 1.5,
       "energyPerTick": 1,

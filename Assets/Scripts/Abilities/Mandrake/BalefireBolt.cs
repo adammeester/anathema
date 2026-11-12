@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Mandrake
 {
-    // RMB: Balefire. After a short wind-up the Mandrake hurls a bolt of violet witch-fire along the aim (a skillshot: the
+    // RMB: Balefire. After a short wind-up the Mandrake hurls a bolt of green witch-fire along the aim (a skillshot: the
     // first enemy in its path). It sets them alight with Balefire, a burn that only the Mandrake can fan: the next time
     // the Mandrake lands any hit on them, all the burn damage still to come lands at once.
     // C during the wind-up cancels it and refunds the cooldown.

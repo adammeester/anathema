@@ -198,7 +198,7 @@ namespace Anathema.Net
                 {
                     A("LMB", "Glimmersteel Blade", "Click or hold to cut in a three-strike chain: a forehand, a backhand, then a wide spinning cleave that hits harder, reaches further and poisons everything it cuts. The first two strikes come quickly; after the cleave there is a longer pause before the chain starts again. Each strike is its own attack, and a click made just before the next strike is ready is remembered. A strike thrown from Shadow Veil also briefly stuns.",
                         "Damage 8 / 8 / 16 cleave  |  0.5s between strikes, 1.1s after the cleave  |  Cleave 200 degrees, range 3.2  |  +1 poison stack  |  Stun 0.5s from stealth  |  +7 energy per hit"),
-                    A("RMB", "Balefire", "Hurl a bolt of violet witch-fire along your aim. The first enemy it strikes is set alight and burns over time. Land any hit of your own on them while it burns and the balefire bursts, dealing all of its remaining burn damage at once. C during the wind-up cancels it.",
+                    A("RMB", "Balefire", "Hurl a bolt of green witch-fire along your aim. The first enemy it strikes is set alight and burns over time. Land any hit of your own on them while it burns and the balefire bursts, dealing all of its remaining burn damage at once. C during the wind-up cancels it.",
                         "Damage 6  |  Burn 5/s for 6s (30 total)  |  Range 13  |  Bursts on your next hit  |  Cooldown 8s"),
                     A("Q", "Shadow Jump", "Step into one shadow and out of another at the cursor, passing over walls. Arriving charges your blade: your next strike within a few seconds deals bonus damage. Doesn't break Shadow Veil.",
                         "Range 7  |  +10 damage on the next strike within 3s  |  Cooldown 9s"),
@@ -209,7 +209,9 @@ namespace Anathema.Net
                     A("R", "Shadow Cross", "Costs a full energy bar. A ghostly X is marked at the cursor; then you blink to one end of the first diagonal and tear along it in one huge slash, blink to the other diagonal and tear across it, carving an X. Everyone along either line is cut and poisoned; anyone where the lines cross is hit twice, and if they were already poisoned the stacks reach 6 and burst. You are invulnerable while slashing. Stuns, silence, panic and knockback during the wind-up interrupt it; C cancels and refunds.",
                         "Damage 25 per slash  |  +2 poison stacks per slash (2/s)  |  Each slash 9 long, 1.4 either side  |  Range 9  |  Costs 100 energy", true),
                     EX("Shift+E", "Shadow Rend", "Instead of the veil, a short, vicious cut in front of you that stuns everything it hits. As a strike from stealth (out of an Umbral Riposte) it also deals bonus damage and adds two stacks of poison. C during the wind-up cancels it.",
-                        "Damage 14 (28 from stealth)  |  Stun 1.25s  |  +2 poison stacks from stealth  |  Range 3  |  Costs 35 energy")
+                        "Damage 14 (28 from stealth)  |  Stun 1.25s  |  +2 poison stacks from stealth  |  Range 3  |  Cooldown 14s  |  Costs 35 energy"),
+                    EX("Shift+Q", "Umbral Return", "Shadow Jump as normal, but you leave a shadow mark where you stood. Press Q again within 3s to snap back to it, as long as it is still within jump range. The return doesn't break Shadow Veil or charge your blade again. C lets the mark fade.",
+                        "Return window 3s  |  Range 7  |  Costs 35 energy")
                 }
             }
         };

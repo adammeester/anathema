@@ -28,8 +28,8 @@ namespace Anathema.Abilities.Hospitaller
     public class SanctifiedTether : Ability
     {
         [SerializeField] float duration = 4f;
-        [SerializeField] float range = 11f;
-        [SerializeField] float leashRange = 14f;
+        [SerializeField] float range = 9f;
+        [SerializeField] float leashRange = 11f;
         [SerializeField] float aimRadius = 0.6f;
         [SerializeField] float tickInterval = 0.25f;
         [SerializeField] float tickDamage = 1.5f;

@@ -15,10 +15,11 @@ namespace Anathema.Combat
         const int Flames = 6;
         const float RingRadius = 0.6f;
 
-        // Violet witch-fire, so it never reads as the Mandrake's green poison.
-        public static readonly Color Core = new Color(0.55f, 0.15f, 1f, 0.8f);
-        public static readonly Color Tip = new Color(1f, 0.65f, 1f, 0.9f);
-        static readonly Color RingColor = new Color(0.45f, 0.1f, 0.9f, 0.45f);
+        // Green witch-fire, matching the baleflame on the Mandrake's hand and runes. A cooler emerald with pale tips, so
+        // it stays a little apart from the yellow-green of his poison.
+        public static readonly Color Core = new Color(0.2f, 1f, 0.45f, 0.8f);
+        public static readonly Color Tip = new Color(0.75f, 1f, 0.75f, 0.9f);
+        static readonly Color RingColor = new Color(0.1f, 0.75f, 0.3f, 0.45f);
 
         float endTime;
         float damagePerSecond;
@@ -234,7 +235,7 @@ namespace Anathema.Combat
             float pulse = 1f + 0.08f * Mathf.Sin(Time.time * 6f);
             ring.localScale = new Vector3(RingRadius * 2f * pulse, 0.01f, RingRadius * 2f * pulse);
 
-            // Tall violet tongues of flame stand on the circle and lick upward, each stretching and shrinking on its
+            // Tall green tongues of flame stand on the circle and lick upward, each stretching and shrinking on its
             // own beat (they hold their places rather than drifting up, unlike poison's rising droplets).
             for (int i = 0; i < flames.Length; i++)
             {

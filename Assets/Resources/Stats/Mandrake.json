@@ -25,7 +25,7 @@
       "cooldown": 8,
       "windup": 0.2,
       "boltDamage": 6,
-      "burnDamagePerSecond": 5,
+      "burnDamagePerSecond": 3,
       "burnDuration": 6,
       "boltRange": 13,
       "boltSpeed": 22,
@@ -36,6 +36,7 @@
       "duration": 5,
       "exEnergyCost": 35,
       "exWindup": 0.15,
+      "exExtraCooldown": 2,
       "slashDamage": 14,
       "slashStealthBonusDamage": 14,
       "slashStunDuration": 1.25,
@@ -53,7 +54,9 @@
       "cooldown": 9,
       "range": 7,
       "bonusDamage": 10,
-      "bonusWindow": 3
+      "bonusWindow": 3,
+      "exEnergyCost": 35,
+      "returnWindow": 3
     },
     "ShadowCross": {
       "energyCost": 100,
@@ -65,8 +68,8 @@
       "poisonDamagePerSecond": 2,
       "poisonDuration": 4,
       "windup": 0.35,
-      "dashDuration": 0.2,
-      "blinkPause": 0.15
+      "dashDuration": 0.4,
+      "blinkPause": 0.25
     }
   }
 }

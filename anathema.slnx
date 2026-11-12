@@ -1,0 +1,5 @@
+﻿<Solution>
+  <Project Path="Anathema.Runtime.csproj" />
+  <Project Path="Anathema.Editor.csproj" />
+  <Project Path="Anathema.Tests.PlayMode.csproj" />
+</Solution>
