@@ -22,6 +22,11 @@ namespace Anathema.Combat
 
         public static AudioSource Say(string line, float volume = 0.7f) => Sfx.Say(line, volume);
 
+        // An ultimate's cast line: starts at the first spoken sound (no silent run-in) so it lands with the action.
+        // Call Preload(line) from Awake so the first cast doesn't wait on loading the recording.
+        public static AudioSource Shout(string line, float volume = 0.7f) => Sfx.Say(line, volume, true);
+        public static void Preload(string line) => Sfx.Preload(line, true);
+
         // Speaks `line` each time `energy` climbs from below the ultimate's cost to at or above it. Only the player who
         // owns the character hears it (it is a prompt for them, not something the enemy should be told).
         // `cost` is asked every time because upgrades can change it. Call once, from the ultimate's Awake.

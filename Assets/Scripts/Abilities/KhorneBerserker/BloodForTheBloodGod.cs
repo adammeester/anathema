@@ -89,6 +89,7 @@ namespace Anathema.Abilities.KhorneBerserker
             controller = GetComponent<CharacterController>();
             energy = GetComponent<Energy>();
             Voice.AnnounceUltimateReady(energy, Health, Voice.BerserkerUltimateReady, () => Cost);
+            Voice.Preload(Voice.BerserkerUltimate);
             pose = new LimbPose(transform.Find("Model"), BoneNames);
 
             telegraph = CreateStrip("Blood God Telegraph", telegraphColor);
@@ -217,7 +218,7 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             winding = false;
             // The war cry starts with the charge, the moment the cast can no longer be cancelled (the brace before it is silent).
-            Voice.Say(Voice.BerserkerUltimate);
+            Voice.Shout(Voice.BerserkerUltimate);
             HideTelegraph();
 
             charging = true;

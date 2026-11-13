@@ -26,12 +26,22 @@ namespace Anathema.Net
 
         public static bool IsArenaScene(string sceneName) => System.Array.IndexOf(ArenaScenes, sceneName) >= 0;
 
-        // Random arena, never the same one twice in a row.
+        // Random arena, never the same one twice in a row. Only arenas actually in this build are considered (an arena
+        // missing from the build would fail to load and leave the match stuck on Loading).
         static string PickArenaScene()
         {
-            int index = Random.Range(0, ArenaScenes.Length);
-            if (ArenaScenes.Length > 1 && index == lastArenaIndex) index = (index + 1 + Random.Range(0, ArenaScenes.Length - 1)) % ArenaScenes.Length;
+            var available = new List<int>();
+            for (int i = 0; i < ArenaScenes.Length; i++)
+            {
+                if (Application.CanStreamedLevelBeLoaded(ArenaScenes[i])) available.Add(i);
+                else Debug.LogWarning($"Arena scene '{ArenaScenes[i]}' is not in this build; skipping it.");
+            }
+            if (available.Count == 0) return ArenaScenes[0];
+
+            if (available.Count > 1) available.Remove(lastArenaIndex);
+            int index = available[Random.Range(0, available.Count)];
             lastArenaIndex = index;
+            if (IsDedicated) Debug.Log($"[Server] Arena: {ArenaScenes[index]}");
             return ArenaScenes[index];
         }
         public const ushort DefaultPort = 7777;

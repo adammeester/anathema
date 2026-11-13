@@ -97,10 +97,13 @@ namespace Anathema.Combat
         // The burst, at the victim's feet: a white-green flash, a fireball of witch-fire that swells and burns out, a
         // shockwave racing along the ground, a column of flame shooting up, tongues of fire and embers flung outward, and
         // a ring of green flame left smouldering on the ground. Every machine plays it (NetPlayer.ServerBalefireBurst).
+        const float BurstScale = 0.7f;
+
         public static void PlayBurst(Vector3 at)
         {
             var go = new GameObject("Balefire Burst");
             go.transform.position = at;
+            go.transform.localScale = Vector3.one * BurstScale; // every part lives in local space, so this sizes the whole blast
             go.AddComponent<BurstFx>();
         }
 

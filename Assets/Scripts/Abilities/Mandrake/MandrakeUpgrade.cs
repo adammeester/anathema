@@ -34,39 +34,40 @@ namespace Anathema.Abilities.Mandrake
         public const int CripplingMaxStacks = 3;                // ...counting at most this many (15%)
         public const float CripplingRefreshSeconds = 0.75f;     // re-applied on every poison tick (0.5s), so it ends with the poison
         public const int EnvenomedEdgeExtraStacks = 1;          // the cleave lays 2 stacks instead of 1
-        public const float HuntersPatienceVenomBonus = 0.25f;   // instead of MandrakeKit.VenomBonus (15%)
+        public const float HuntersPatienceVenomBonus = 0.2f;    // instead of MandrakeKit.VenomBonus (10%)
         public const float TwinFlamesChargeCooldown = 10f;      // each of the two charges recharges on its own
         public const float SpreadingFlameRadius = 3f;
         public const float SpreadingFlameStrength = 0.5f;       // of the burst balefire's burn
         public const float SmotheringHealingCut = 0.4f;         // instead of Balefire.BurstHealingCut (30%), same 4s
 
-        // Three cards a round: Endurance, venom, balefire. A card takes the first of its alternatives not owned yet, so
-        // the cards move on as you pick. Veilwalker is the one Endurance card after round 1, so it's always on offer
-        // straight away; round 4 brings the venom capstone.
+        // Three cards a round: Endurance, venom, balefire. A card shows the first of its alternatives not owned yet, so
+        // anything passed over comes back later. The three strongest picks (Veilwalker, Crippling Toxin, Twin Flames)
+        // are spread one per round, so taking one never means giving up another: Veilwalker is always on offer after
+        // round 1, Crippling Toxin after round 2, Twin Flames after round 3. Round 4 brings the venom capstone.
         //
-        //   after round 1   Veilwalker                                    Crippling Toxin | Envenomed Edge      Twin Flames | Smothering Fire
-        //   after round 2   Shade's Embrace | Reaping Shadows | Veilwalker  Envenomed Edge | Hunter's Patience  Smothering Fire | Spreading Flame
-        //   after round 3   Reaping Shadows | Shade's Embrace | Veilwalker  Hunter's Patience | Crippling Toxin  Spreading Flame | Twin Flames
-        //   after round 4   (any Endurance left)                          Witchfire Venom                       (any balefire left)
+        //   after round 1   Veilwalker         Envenomed Edge      Smothering Fire
+        //   after round 2   Shade's Embrace    Crippling Toxin     Spreading Flame
+        //   after round 3   Reaping Shadows    Hunter's Patience   Twin Flames
+        //   after round 4   (any Endurance left)  Witchfire Venom  (any balefire left)
         public static readonly int[][][] Sets =
         {
             new[]
             {
                 new[] { Veilwalker },
-                new[] { CripplingToxin, EnvenomedEdge },
-                new[] { TwinFlames, SmotheringFire },
+                new[] { EnvenomedEdge },
+                new[] { SmotheringFire },
             },
             new[]
             {
                 new[] { ShadesEmbrace, ReapingShadows, Veilwalker },
-                new[] { EnvenomedEdge, HuntersPatience, CripplingToxin },
-                new[] { SmotheringFire, SpreadingFlame, TwinFlames },
+                new[] { CripplingToxin, EnvenomedEdge, HuntersPatience },
+                new[] { SpreadingFlame, SmotheringFire, TwinFlames },
             },
             new[]
             {
                 new[] { ReapingShadows, ShadesEmbrace, Veilwalker },
                 new[] { HuntersPatience, CripplingToxin, EnvenomedEdge },
-                new[] { SpreadingFlame, TwinFlames, SmotheringFire },
+                new[] { TwinFlames, SpreadingFlame, SmotheringFire },
             },
             new[]
             {
@@ -90,7 +91,7 @@ namespace Anathema.Abilities.Mandrake
             new UpgradeDef(EnvenomedEdge, UpgradeCategory.Ferocity, "Envenomed Edge",
                 "Glimmersteel Blade's cleave lays 2 stacks of poison instead of 1."),
             new UpgradeDef(HuntersPatience, UpgradeCategory.Ferocity, "Hunter's Patience",
-                "Your attacks deal 25% more damage to poisoned enemies, instead of 15%."),
+                "Your attacks deal 20% more damage to poisoned enemies, instead of 10%."),
             new UpgradeDef(WitchfireVenom, UpgradeCategory.Ferocity, "Witchfire Venom",
                 "When your Balefire bursts, it also sets off the target's poison."),
 

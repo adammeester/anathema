@@ -39,7 +39,8 @@ namespace Anathema.Net
             Poison,     // stacking toxin (a = damage per second per stack, b = seconds, direction.x = stacks), held by the server
             Balefire,   // the Mandrake's burst-on-hit burn (a = damage per second, b = seconds), held by the server
             Armor,      // short extra armour (a = fraction, b = seconds), e.g. Hive Shell, held by the server
-            Leech       // Leech Draught's mark on a festering enemy (a = seconds), held by the server
+            Leech,      // Leech Draught's mark on a festering enemy (a = seconds), held by the server
+            Irradiated  // Rad-Saturation's mark: takes more damage (a = extra fraction, b = seconds); a hit rider, held where damage resolves
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -774,6 +775,16 @@ namespace Anathema.Net
         {
             if (IsServer) PoisonBurstClientRpc(size);
         }
+
+        // Festering (the Plague Surgeon's rot) is held on the machine that laid it, usually the surgeon's. That machine
+        // reports this character's stack count here and every other machine draws a visual-only copy.
+        public void SendRotStacks(int stacks, float seconds)
+        {
+            if (IsSpawned) RotStacksRpc(stacks, seconds);
+        }
+
+        [Rpc(SendTo.NotMe, InvokePermission = RpcInvokePermission.Everyone)]
+        void RotStacksRpc(int stacks, float seconds) => Festering.ShowReplica(gameObject, stacks, seconds);
 
         [ClientRpc]
         void PoisonBurstClientRpc(float size)

@@ -31,9 +31,74 @@ namespace Anathema.Abilities.SkitariiRanger
         public override float MovementRange => distance;
         public override string KeyLabel => "E";
         public override bool RootsMovement => dashing;
-        public override float ExCost => caltropBurstEnabled ? exEnergyCost : 0f;
+        public override float ExCost => CaltropsOn ? exEnergyCost : 0f;
         public override string ExName => "Caltrop Burst";
         public override string ExDescription => "Caltrop Burst";
+
+        // The EX is on when ticked in the editor or unlocked by the Caltrop Burst upgrade.
+        bool CaltropsOn => caltropBurstEnabled || RangerUpgrade.Has(gameObject, RangerUpgrade.CaltropBurst);
+
+        // ---- Servo-Leap: two leaps in reserve, each recharging on its own -------------------------------------------
+
+        readonly float[] chargeReady = new float[2];
+
+        bool TwoCharges => RangerUpgrade.Has(gameObject, RangerUpgrade.ServoLeap);
+        float ChargeCooldown => RangerUpgrade.ServoLeapChargeCooldown * CooldownScale;
+
+        int ReadyCharges
+        {
+            get
+            {
+                int n = 0;
+                foreach (float t in chargeReady) if (Time.time >= t) n++;
+                return n;
+            }
+        }
+
+        public override int ChargeCapacity => TwoCharges ? 2 : 1;
+        public override int ChargesReady => TwoCharges ? ReadyCharges : 0;
+        protected override bool HasSpareCharge => TwoCharges && ReadyCharges > 0;
+
+        public override float CooldownRemaining =>
+            TwoCharges ? (ReadyCharges > 0 ? 0f : Mathf.Max(0f, Mathf.Min(chargeReady[0], chargeReady[1]) - Time.time)) : base.CooldownRemaining;
+
+        public override float CooldownNormalized
+        {
+            get
+            {
+                if (!TwoCharges) return base.CooldownNormalized;
+                float full = ChargeCooldown;
+                return full > 0f ? Mathf.Clamp01(CooldownRemaining / full) : 0f;
+            }
+        }
+
+        public override float ChargeRechargeNormalized
+        {
+            get
+            {
+                if (!TwoCharges || ReadyCharges != 1) return 0f;
+                float full = ChargeCooldown;
+                if (full <= 0f) return 0f;
+                float pending = Time.time >= chargeReady[0] ? chargeReady[1] : chargeReady[0];
+                return Mathf.Clamp01((pending - Time.time) / full);
+            }
+        }
+
+        // Spends a ready charge (else the one closest to ready); only that one starts recharging.
+        void SpendCharge()
+        {
+            int used = Time.time >= chargeReady[0] ? 0 : Time.time >= chargeReady[1] ? 1 : (chargeReady[0] <= chargeReady[1] ? 0 : 1);
+            chargeReady[used] = Time.time + ChargeCooldown;
+        }
+
+        // The counter's payoff: Disengage is ready again (with Servo-Leap, the charge closest to ready comes back).
+        public void Refresh()
+        {
+            ResetCooldown();
+            if (!TwoCharges) return;
+            int sooner = chargeReady[0] <= chargeReady[1] ? 0 : 1;
+            chargeReady[Time.time >= chargeReady[sooner] ? 1 - sooner : sooner] = 0f;
+        }
 
         // Applied only when added in the editor.
         void Reset()
@@ -56,7 +121,8 @@ namespace Anathema.Abilities.SkitariiRanger
         protected override void Activate()
         {
             // The EX energy is spent here (owner only); replicas already have ExActivation from the owner's cue.
-            if (!IsReplica) ExActivation = caltropBurstEnabled && TrySpendEx(energy, exEnergyCost);
+            if (!IsReplica) ExActivation = CaltropsOn && TrySpendEx(energy, exEnergyCost);
+            if (TwoCharges && !IsReplica) SpendCharge();
 
             Vector3 from = transform.position;
             Vector3 away = from - Aim.AimPoint;
@@ -83,13 +149,18 @@ namespace Anathema.Abilities.SkitariiRanger
             PsykerFx.Ring(to, 0.2f, 1.6f, 0.35f, RangerFx.Cyan, 0.18f);
 
             // EX: the launch point is left strewn with caltrops that cut and slow anyone chasing through it.
-            if (ExActivation && caltropBurstEnabled)
+            if (ExActivation && CaltropsOn)
             {
                 PsykerFx.Ring(from, 0.3f, caltropRadius, 0.4f, RangerFx.Ember, 0.25f);
                 ShrapnelPool.Spawn(gameObject, Health.Team, from, caltropRadius, caltropDuration, caltropDamagePerSecond, caltropSlow, !IsReplica);
             }
 
-            if (IsReplica || travel < 0.5f) return;
+            if (IsReplica) return;
+            if (travel < 0.5f)
+            {
+                GrantRefractor(); // a blocked leap still counts as a landing
+                return;
+            }
 
             dashing = true;
             dashStart = Time.time;
@@ -118,7 +189,11 @@ namespace Anathema.Abilities.SkitariiRanger
             if (Health.IsDead || Time.time >= dashEnd)
             {
                 dashing = false;
-                if (!Health.IsDead) SetPosition(dashOrigin + dashAway * dashTravel);
+                if (!Health.IsDead)
+                {
+                    SetPosition(dashOrigin + dashAway * dashTravel);
+                    GrantRefractor();
+                }
                 return;
             }
 
@@ -126,6 +201,13 @@ namespace Anathema.Abilities.SkitariiRanger
             float t = Mathf.Clamp01((Time.time - dashStart) / duration);
             Vector3 p = dashOrigin + dashAway * (dashTravel * t) + Vector3.up * (Mathf.Sin(t * Mathf.PI) * arcHeight);
             SetPosition(p);
+        }
+
+        // Refractor Field: a short barrier on landing. Owner only (Barrier.Grant hands it to the server online).
+        void GrantRefractor()
+        {
+            if (IsReplica || !RangerUpgrade.Has(gameObject, RangerUpgrade.RefractorField)) return;
+            Barrier.Grant(gameObject, RangerUpgrade.RefractorBarrier, RangerUpgrade.RefractorSeconds, RangerUpgrade.RefractorBarrier, gameObject);
         }
 
         void SetPosition(Vector3 p)

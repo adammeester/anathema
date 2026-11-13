@@ -14,10 +14,10 @@ namespace Anathema.Abilities.Mandrake
     [DefaultExecutionOrder(50)] // after ProceduralWalk, which also writes the spine and arms every LateUpdate
     public class GlimmersteelBlade : Ability
     {
-        [SerializeField] float damage = 8f;
+        [SerializeField] float damage = 6f;
         [SerializeField] float range = 2.5f;
         [SerializeField] float arcDegrees = 90f;
-        [SerializeField] float finisherDamage = 16f;
+        [SerializeField] float finisherDamage = 12f;
         [SerializeField] float finisherRange = 3.2f;
         [SerializeField] float finisherArcDegrees = 200f;   // the cleave
         [SerializeField] float windupDuration = 0.12f;

@@ -136,7 +136,7 @@ namespace Anathema.Abilities.PlagueSurgeon
 
             // Bursting Pustules: a target already at maximum rot bursts it all, then the new glob starts it over.
             if (PlagueSurgeonUpgradeEffects.Has(gameObject, PlagueSurgeonUpgrade.BurstingPustules)
-                && target.TryGetComponent(out Festering rot)
+                && target.TryGetComponent(out Festering rot) && !rot.IsReplica
                 && rot.Stacks >= PlagueSurgeonUpgradeEffects.MaxFesteringStacks(gameObject))
             {
                 int popped = rot.Consume();

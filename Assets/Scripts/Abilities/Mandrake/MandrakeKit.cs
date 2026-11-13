@@ -14,7 +14,7 @@ namespace Anathema.Abilities.Mandrake
         public static readonly Color Shadow = new Color(0.08f, 0.2f, 0.12f, 0.9f);
 
         // Hunter's Venom (part of his blades, not his passive): every Mandrake attack hits poisoned enemies this much harder.
-        public const float VenomBonus = 0.15f;
+        public const float VenomBonus = 0.1f;
 
         // Any strike thrown out of Shadow Veil briefly stuns what it hits (Shadow Rend has its own, longer stun).
         public const float StealthStrikeStun = 0.5f;

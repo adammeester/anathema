@@ -4,12 +4,12 @@
   "maxEnergy": 100,
   "abilities": {
     "SanctifiedTether": {
-      "cooldown": 6,
+      "cooldown": 4,
       "duration": 4,
-      "range": 9,
-      "leashRange": 11,
+      "range": 10,
+      "leashRange": 12,
       "tickInterval": 0.25,
-      "tickDamage": 1.5,
+      "tickDamage": 2,
       "energyPerTick": 1,
       "shareFraction": 0.35,
       "exEnergyCost": 30,

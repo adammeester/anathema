@@ -12,7 +12,7 @@ namespace Anathema.Abilities.Mandrake
         [SerializeField] float windup = 0.2f;
         [SerializeField] float boltDamage = 6f;
         [SerializeField] float burnDamagePerSecond = 5f;
-        [SerializeField] float burnDuration = 6f;
+        [SerializeField] float burnDuration = 4f;
         [SerializeField] float boltRange = 13f;
         [SerializeField] float boltSpeed = 22f;
         [SerializeField] float boltRadius = 0.3f;

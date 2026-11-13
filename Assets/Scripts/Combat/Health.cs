@@ -288,6 +288,8 @@ namespace Anathema.Combat
             if (!aoe && DamageModifier != null) amount = DamageModifier(amount, source);
             if (amount <= 0f) return false;
 
+            amount *= Irradiated.DamageMultiplier(gameObject); // Rad-Saturation: more damage from every source
+
             pierce = Mathf.Clamp01(pierce);
             float armour = EffectiveArmor;
             if (armour > 0f) amount *= 1f - armour * (1f - pierce);

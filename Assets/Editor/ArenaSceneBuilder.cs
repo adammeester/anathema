@@ -93,6 +93,11 @@ namespace Anathema.EditorTools
 
         static void Build(Character character, int map, string scenePath)
         {
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("Stop play mode before rebuilding an arena.");
+                return;
+            }
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);

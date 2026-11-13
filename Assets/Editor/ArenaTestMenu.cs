@@ -32,6 +32,11 @@ namespace Anathema.EditorTools
 
         static void Open(string path)
         {
+            if (EditorApplication.isPlaying)
+            {
+                Debug.LogWarning("Stop play mode before opening another arena.");
+                return;
+            }
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
             if (!System.IO.File.Exists(path)) { Debug.LogWarning($"{path} not found - run Anathema > Arenas > Rebuild All Arenas."); return; }
             EditorSceneManager.OpenScene(path);

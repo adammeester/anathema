@@ -35,7 +35,15 @@ namespace Anathema.Abilities.SkitariiRanger
 
         public override string DisplayName => "Galvanic Shot";
         public override string KeyLabel => "LMB";
-        public override float ExCost => arcRoundEnabled ? exEnergyCost : 0f;
+        public override float ExCost => ArcOn ? exEnergyCost : 0f;
+
+        // The EX is on when ticked in the editor or unlocked by the Arc Round upgrade.
+        bool ArcOn => arcRoundEnabled || RangerUpgrade.Has(gameObject, RangerUpgrade.ArcRound);
+
+        // Galvanic Overload: how many rounds of one burst have struck. Each burst gets its own tally, since a burst's
+        // rounds can still be in flight when the next one starts.
+        sealed class BurstTally { public int Hits; }
+        BurstTally burstTally;
         public override string ExName => "Arc Round";
         public override string ExDescription => "Arc Round";
 
@@ -65,8 +73,9 @@ namespace Anathema.Abilities.SkitariiRanger
         protected override void Activate()
         {
             // The EX energy is spent here (owner only); replicas already have ExActivation from the owner's cue.
-            if (!IsReplica) ExActivation = arcRoundEnabled && TrySpendEx(energy, exEnergyCost);
-            bool arc = ExActivation && arcRoundEnabled;
+            if (!IsReplica) ExActivation = ArcOn && TrySpendEx(energy, exEnergyCost);
+            bool arc = ExActivation && ArcOn;
+            burstTally = new BurstTally();
 
             // Each round of the burst follows the cursor as it fires; the remaining rounds follow from Update().
             burstArc = arc;
@@ -134,20 +143,26 @@ namespace Anathema.Abilities.SkitariiRanger
 
             Sfx.Play(Sfx.Longrifle, 0.3f, 1.08f, 1.2f, 0.5f);
             if (arc) go.name = "Arc Round";
+            BurstTally tally = burstTally;
             go.AddComponent<Projectile>().Init(gameObject, Health.Team, damage, projectileSpeed, range, projectileRadius, dir,
-                arc ? (System.Action<Health>)OnArcHit : OnHit);
+                arc ? (System.Action<Health>)(target => OnArcHit(target, tally)) : target => OnHit(target, tally));
         }
 
-        void OnHit(Health target)
+        void OnHit(Health target, BurstTally tally)
         {
             HitMarkerSound.Play();
-            if (energy != null) energy.Gain(energyPerHit);
+            if (energy == null) return;
+            energy.Gain(energyPerHit);
+
+            // Galvanic Overload: the round that completes a perfect burst pays out the bonus.
+            if (tally == null || !RangerUpgrade.Has(gameObject, RangerUpgrade.GalvanicOverload)) return;
+            if (++tally.Hits == Mathf.Max(1, burstCount)) energy.Gain(RangerUpgrade.GalvanicOverloadEnergy);
         }
 
         // EX: the round hits as normal, then arcs to the nearest other enemy near the one it struck.
-        void OnArcHit(Health first)
+        void OnArcHit(Health first, BurstTally tally)
         {
-            OnHit(first);
+            OnHit(first, tally);
 
             Health best = null;
             float bestDistance = arcRange;

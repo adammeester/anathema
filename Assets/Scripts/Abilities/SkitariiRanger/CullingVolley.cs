@@ -10,8 +10,11 @@ namespace Anathema.Abilities.SkitariiRanger
     // range, pierces every enemy in its line, hits hard and slows what it hits slightly. A laser sight shows where the
     // next shot will go. Stuns, panic, silence and knockback interrupt it (and C or death); an interrupted volley keeps
     // its cooldown and the energy is gone. Only pressing C during the gather refunds it.
-    public class CullingVolley : Ability
+    public class CullingVolley : Ability, IKnockbackImmune
     {
+        // Augmetic Bracing: planted through the volley, so knockback can't shove her (or interrupt it).
+        public bool ImmuneToKnockback => phase != Phase.Idle && RangerUpgrade.Has(gameObject, RangerUpgrade.AugmeticBracing);
+
         [SerializeField] float energyCost = 100f;
         [SerializeField] float gatherDuration = 0.6f;
         [SerializeField] int shotCount = 4;
@@ -56,6 +59,7 @@ namespace Anathema.Abilities.SkitariiRanger
             base.Awake();
             energy = GetComponent<Energy>();
             Voice.AnnounceUltimateReady(energy, Health, Voice.SkitariiUltimateReady, () => energyCost);
+            Voice.Preload(Voice.SkitariiUltimate);
         }
 
         void OnDestroy()
@@ -105,9 +109,12 @@ namespace Anathema.Abilities.SkitariiRanger
             }
 
             Vector3 dir = FlatAim();
-            RangerPose.For(gameObject).Aim(0.15f, true);
+            RangerPose pose = RangerPose.For(gameObject);
+            pose.Aim(0.15f, true);
             Vector3 start = transform.position + Vector3.up * muzzleHeight + dir * muzzleForward;
             Vector3 end = RangerFx.Trace(transform, Health.Team, start, dir, range, 0.1f, null);
+            // Hits are traced from the fixed gameplay muzzle above; the visuals start at the barrel extension's tip.
+            if (pose.TryGetDeployedMuzzle(out Vector3 tip)) start = tip;
 
             if (phase == Phase.Gather)
             {
@@ -116,8 +123,11 @@ namespace Anathema.Abilities.SkitariiRanger
                 if (t >= 1f)
                 {
                     phase = Phase.Fire;
-                    Voice.Say(Voice.SkitariiUltimate); // spoken as the volley starts: the gather before it can still be cancelled
-                    nextShot = Time.time;
+                    Voice.Shout(Voice.SkitariiUltimate); // spoken as the volley starts: the gather before it can still be cancelled
+                    // The first shot goes out on this same frame, with the line, rather than the next.
+                    FireShot(dir, start);
+                    fired = 1;
+                    nextShot = Time.time + (fired >= shotCount ? recoverTime : shotInterval);
                 }
                 return;
             }
@@ -145,13 +155,15 @@ namespace Anathema.Abilities.SkitariiRanger
                    || GetComponent<Knockback>() != null;
         }
 
+        // `start` is where the shot is drawn from (the extension's tip); hits are traced from the fixed gameplay muzzle.
         void FireShot(Vector3 dir, Vector3 start)
         {
-            Vector3 end = RangerFx.Trace(transform, Health.Team, start, dir, range, shotRadius, hits);
+            Vector3 traceStart = transform.position + Vector3.up * muzzleHeight + dir * muzzleForward;
+            Vector3 end = RangerFx.Trace(transform, Health.Team, traceStart, dir, range, shotRadius, hits);
             RangerFx.Tracer(start, end, 0.8f, Color.white, 0.5f);
             Sfx.Play(Sfx.Longrifle, 0.65f, 0.6f, 0.68f);
             RangerFx.Tracer(start, end, 1.4f, RangerFx.Cyan, 0.35f);
-            PsykerFx.Ring(transform.position + dir * muzzleForward, 0.2f, 3f, 0.3f, RangerFx.Cyan, 0.3f);
+            PsykerFx.Ring(new Vector3(start.x, transform.position.y, start.z), 0.2f, 3f, 0.3f, RangerFx.Cyan, 0.3f);
             PsykerFx.Ring(end, 0.2f, 2f, 0.3f, RangerFx.Cyan, 0.2f);
 
             if (IsReplica) return;

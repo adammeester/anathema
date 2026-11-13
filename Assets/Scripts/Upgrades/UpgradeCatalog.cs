@@ -5,6 +5,7 @@ using Anathema.Abilities.KhorneBerserker;
 using Anathema.Abilities.Mandrake;
 using Anathema.Abilities.PlagueSurgeon;
 using Anathema.Abilities.Psyker;
+using Anathema.Abilities.SkitariiRanger;
 
 namespace Anathema.Upgrades
 {
@@ -22,6 +23,7 @@ namespace Anathema.Upgrades
             { "GreyKnight", GreyKnightUpgrade.All },
             { "PlagueSurgeon", PlagueSurgeonUpgrade.All },
             { "Mandrake", MandrakeUpgrade.All },
+            { "SkitariiRanger", RangerUpgrade.All },
         };
 
         // The pick on which a character may trade its weapon for another (weapon-group exclusivity is lifted for that pick).
@@ -38,6 +40,7 @@ namespace Anathema.Upgrades
             { "GreyKnight", GreyKnightUpgrade.Sets },
             { "PlagueSurgeon", PlagueSurgeonUpgrade.Sets },
             { "Mandrake", MandrakeUpgrade.Sets },
+            { "SkitariiRanger", RangerUpgrade.Sets },
         };
 
         // Characters whose set slots draw one of their alternatives at random (seeded) instead of taking the first one

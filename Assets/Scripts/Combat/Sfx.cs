@@ -125,15 +125,25 @@ namespace Anathema.Combat
 
         // A spoken line: played as recorded (no pitch change). Returns the source so it can be cut off with Stop, or null
         // when there is no such recording yet (lines are optional, so a missing one is silent rather than a warning).
-        public static AudioSource Say(string name, float volume = 0.7f)
+        // `skipLeadIn` starts at the first spoken sound, so a line timed to an action is heard on the frame it is called.
+        public static AudioSource Say(string name, float volume = 0.7f, bool skipLeadIn = false)
         {
             AudioClip clip = Clip(name, false);
             if (clip == null) return null;
 
             AudioSource source = NewSource(name, clip, volume, 1f, false);
+            float start = skipLeadIn ? LeadIn(clip, SpeechThreshold) : 0f;
+            source.time = start;
             source.gameObject.AddComponent<SfxVoice>();
-            Object.Destroy(source.gameObject, clip.length + 0.1f);
+            Object.Destroy(source.gameObject, clip.length - start + 0.1f);
             return source;
+        }
+
+        // Loads a recording (and works out its lead-in) ahead of time, so the first play doesn't stall on loading it.
+        public static void Preload(string name, bool speech = false)
+        {
+            AudioClip clip = Clip(name, false);
+            if (clip != null) LeadIn(clip, speech ? SpeechThreshold : EffectThreshold);
         }
 
         public static void Stop(AudioSource source, float fade = 0.25f)
@@ -156,13 +166,16 @@ namespace Anathema.Combat
             return source;
         }
 
-        // Seconds of quiet run-in at the head of a recording: up to the first point reaching 15% of its loudest, less a
-        // few hundredths so the attack itself isn't clipped. Worked out once per clip.
-        static readonly Dictionary<AudioClip, float> leadIns = new Dictionary<AudioClip, float>();
+        // Seconds of quiet run-in at the head of a recording: up to the first point reaching `threshold` of its loudest
+        // (15% for effects; speech opens on softer consonants, so 5%), less a few hundredths so the attack itself isn't
+        // clipped. Worked out once per clip and threshold.
+        const float EffectThreshold = 0.15f;
+        const float SpeechThreshold = 0.05f;
+        static readonly Dictionary<(AudioClip, float), float> leadIns = new Dictionary<(AudioClip, float), float>();
 
-        static float LeadIn(AudioClip clip)
+        static float LeadIn(AudioClip clip, float threshold = EffectThreshold)
         {
-            if (leadIns.TryGetValue(clip, out float seconds)) return seconds;
+            if (leadIns.TryGetValue((clip, threshold), out float seconds)) return seconds;
             seconds = 0f;
             if (clip.loadState == AudioDataLoadState.Loaded || clip.LoadAudioData())
             {
@@ -173,7 +186,7 @@ namespace Anathema.Combat
                     foreach (float s in data) peak = Mathf.Max(peak, Mathf.Abs(s));
                     for (int i = 0; i < data.Length; i++)
                     {
-                        if (Mathf.Abs(data[i]) < peak * 0.15f) continue;
+                        if (Mathf.Abs(data[i]) < peak * threshold) continue;
                         seconds = Mathf.Max(0f, (float)(i / clip.channels) / clip.frequency - 0.03f);
                         break;
                     }
@@ -181,7 +194,7 @@ namespace Anathema.Combat
             }
             // Never skip so far that the loop has almost nothing left.
             seconds = Mathf.Min(seconds, clip.length * 0.5f);
-            leadIns[clip] = seconds;
+            leadIns[(clip, threshold)] = seconds;
             return seconds;
         }
 
