@@ -336,6 +336,8 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                         if (landed && energy != null) energy.Gain(SlamEnergy);
                     });
                 }
+                // On the Crucible the hammer smashes the floor plates it lands on.
+                Anathema.Arena.DestructibleFloor.Slam(gameObject, centre, centre, SlamRadius);
             }
 
             BlastFx.Spawn(centre, SlamRadius, fire, true);

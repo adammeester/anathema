@@ -4,14 +4,12 @@ namespace Anathema.Combat
 {
     // Status effect: a stacking toxin. Each stack deals damage over time; re-applying adds stacks and refreshes the
     // duration. Reaching DetonateStacks (or an ability calling DetonateNow) makes it burst: everything the poison still had left to deal lands at once and the
-    // poison is spent. While poisoned, healing received (Health.Heal) is reduced. Green droplets bead and rise off the
-    // victim, one per stack.
+    // poison is spent. Green droplets bead and rise off the victim, one per stack.
     // Like Bleeding and Burning it lives on the server's copy of the victim (it deals the damage there); everyone else
     // draws a visual-only copy from the server's published state (NetPlayer.SyncServerFx).
     public class Poisoned : MonoBehaviour
     {
         public const int DetonateStacks = 6;     // at this many stacks the poison bursts
-        public const float HealingReduction = 0.3f; // healing received while poisoned is cut by this share
         const float TickInterval = 0.5f;
         const int Droplets = DetonateStacks;
 
@@ -33,6 +31,9 @@ namespace Anathema.Combat
 
         // Authority only: a poison tick (or the burst) just dealt damage to the victim. Receives (victim, source).
         public static event System.Action<Health, GameObject> Ticked;
+
+        // Authority only: poison was just laid on the victim (and didn't burst on the spot). Receives (victim, source).
+        public static event System.Action<Health, GameObject> Applied;
 
         // Adds `addStacks` stacks (capped) of `damagePerSecondPerStack` each and refreshes the duration.
         public static Poisoned Apply(GameObject target, GameObject damageSource, int addStacks, float damagePerSecondPerStack, float duration)
@@ -66,6 +67,7 @@ namespace Anathema.Combat
                 poisoned.Detonate();
                 return null;
             }
+            if (poisoned.health != null) Applied?.Invoke(poisoned.health, damageSource);
             return poisoned;
         }
 
@@ -286,8 +288,6 @@ namespace Anathema.Combat
         // A poison that is really doing damage here (not a drawn copy).
         public static bool IsPoisonedForReal(GameObject target) => target.TryGetComponent(out Poisoned p) && !p.visualOnly;
 
-        // Healing multiplier for Health.Heal (authority only: the real poison lives there).
-        public static float HealingMultiplier(GameObject target) => IsPoisonedForReal(target) ? 1f - HealingReduction : 1f;
 
         // Online: draws a poison the server reports; lasts until the server says it has stopped.
         public static void ShowReplica(GameObject target)

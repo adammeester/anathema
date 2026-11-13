@@ -4,10 +4,9 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Mandrake
 {
-    // RMB: Umbral Riposte, the Mandrake's counter (it has no Space counter: Space is Shadow Jump). Press to raise a brief
-    // guard. If an enemy hits the Mandrake during it, the hit is negated, the Mandrake vanishes into stealth and steps
+    // Space: Umbral Riposte, the Mandrake's counter. Press to raise a brief guard. If an enemy hits the Mandrake during it, the hit is negated, the Mandrake vanishes into stealth and steps
     // out of the attacker's shadow, right behind them (if they are close enough). The next strike within a couple of
-    // seconds counts as a strike from stealth even after the vanish ends: Ambush gets its bonus damage, stun and
+    // seconds counts as a strike from stealth even after the vanish ends: Shadow Rend gets its bonus damage and
     // poison, and the blade its stun.
     // A guard that catches nothing has a short cooldown; a successful riposte a long one.
     // The guard and negation run through Counter (the server decides online); the vanish, step and primed strike are
@@ -30,7 +29,6 @@ namespace Anathema.Abilities.Mandrake
         float shadowStrikeUntil = float.NegativeInfinity;
 
         public override string DisplayName => "Umbral Riposte";
-        public override string KeyLabel => "RMB";
         protected override float GuardDuration => guardDuration;
         protected override Color GuardColor => Guard;
         protected override Color GlowColor => Glow;
@@ -45,8 +43,6 @@ namespace Anathema.Abilities.Mandrake
             base.Awake();
             controller = GetComponent<CharacterController>();
         }
-
-        protected override bool IsTriggered() => Input.GetMouseButtonDown(1);
 
         // Owner, from MandrakeKit.BeginStrike: true (once) if this strike is the one primed by a riposte.
         public bool ConsumeShadowStrike()
@@ -75,6 +71,11 @@ namespace Anathema.Abilities.Mandrake
             // Vanish first so enemies never see where it steps to.
             Stealthed.Apply(gameObject, vanishDuration);
             shadowStrikeUntil = Time.time + shadowStrikeWindow;
+
+            // Shade's Embrace: the shadows close around him as a short barrier (sent to the server online).
+            if (!IsReplica && MandrakeUpgradeEffects.Has(gameObject, MandrakeUpgrade.ShadesEmbrace))
+                Barrier.Grant(gameObject, MandrakeUpgrade.ShadesEmbraceBarrier, MandrakeUpgrade.ShadesEmbraceSeconds,
+                    MandrakeUpgrade.ShadesEmbraceBarrier, gameObject);
 
             if (attacker == null) return;
             Health target = attacker.GetComponentInParent<Health>();

@@ -25,26 +25,37 @@ namespace Anathema.Abilities.SkitariiRanger
         [SerializeField] float blastSlowDuration = 2.5f;
         [SerializeField] float energyPerHit = 10f;
         [SerializeField] float muzzleHeight = 1.3f;
+        [Header("Scattershot wall slam: an enemy blasted into a wall is stunned")]
+        [SerializeField] float wallSlamStun = 1.5f;
+        [SerializeField] float wallSlamMinHeight = 0.6f; // scenery lower than this (kerbs, rubble) doesn't count as a wall
 
         Energy energy;
+        float spentEx; // what this cast's EX cost, to give back exactly that on a cancel
 
         protected override float WindupDuration => 0.25f;
         protected override Color WindupColor => RangerFx.Ember;
 
+        // Point-Blank Doctrine makes Scattershot cheaper and shove harder.
+        bool PointBlank => RangerUpgrade.Has(gameObject, RangerUpgrade.PointBlankDoctrine);
+        float ScatterCost => PointBlank ? Mathf.Min(exEnergyCost, RangerUpgrade.PointBlankExCost) : exEnergyCost;
+        float ScatterKnockback => blastKnockback * (PointBlank ? RangerUpgrade.PointBlankKnockbackScale : 1f);
+
         // The EX energy is spent when the wind-up starts and given back if it is cancelled.
         protected override void OnWindupStart()
         {
-            if (!IsReplica) ExActivation = TrySpendEx(energy, exEnergyCost);
+            if (IsReplica) return;
+            spentEx = ScatterCost;
+            ExActivation = TrySpendEx(energy, spentEx);
         }
 
         protected override void OnWindupCancel()
         {
-            if (ExActivation && !IsReplica && energy != null) energy.Gain(exEnergyCost);
+            if (ExActivation && !IsReplica && energy != null) energy.Gain(spentEx);
         }
 
         public override string DisplayName => "Shrapnel Field";
         public override string KeyLabel => "Q";
-        public override float ExCost => exEnergyCost;
+        public override float ExCost => ScatterCost;
         public override string ExName => "Scattershot";
         public override string ExDescription => "Scattershot";
 
@@ -79,13 +90,18 @@ namespace Anathema.Abilities.SkitariiRanger
             if (to.magnitude > fieldRange) to = to.normalized * fieldRange;
             Vector3 centre = new Vector3(here.x + to.x, here.y, here.z + to.z);
 
+            // Lingering Shrapnel: a longer-lasting, wider field (the mask is synced, so replicas draw the same field).
+            bool lingering = RangerUpgrade.Has(gameObject, RangerUpgrade.LingeringShrapnel);
+            float radius = fieldRadius * (lingering ? RangerUpgrade.LingeringRadiusScale : 1f);
+            float duration = fieldDuration * (lingering ? RangerUpgrade.LingeringDurationScale : 1f);
+
             // A short streak for the canister's flight, then the burst.
             Vector3 dir = to.sqrMagnitude < 0.0001f ? transform.forward : to.normalized;
             RangerFx.Tracer(here + Vector3.up * muzzleHeight + dir * 1.2f, centre + Vector3.up * 0.3f, 0.12f, RangerFx.Ember, 0.18f);
-            PsykerFx.Ring(centre, 0.3f, fieldRadius, 0.4f, RangerFx.Ember, 0.25f);
+            PsykerFx.Ring(centre, 0.3f, radius, 0.4f, RangerFx.Ember, 0.25f);
             Sfx.Play(Sfx.Longrifle, 0.4f, 0.85f, 0.92f, 0.6f);
             Sfx.Play(Sfx.Impact, 0.45f, 0.9f, 1.05f);
-            ShrapnelPool.Spawn(gameObject, Health.Team, centre, fieldRadius, fieldDuration, fieldDamagePerSecond, fieldSlow, !IsReplica);
+            ShrapnelPool.Spawn(gameObject, Health.Team, centre, radius, duration, fieldDamagePerSecond, fieldSlow, !IsReplica);
         }
 
         void Scattershot()
@@ -111,6 +127,8 @@ namespace Anathema.Abilities.SkitariiRanger
             if (IsReplica) return;
 
             bool marked = false;
+            float knockback = ScatterKnockback;
+            float firedAt = Time.time;
             Vector3 centre = transform.position;
             foreach (Collider col in Physics.OverlapSphere(centre + Vector3.up, blastRange + 1f, ~0, QueryTriggerInteraction.Ignore))
             {
@@ -122,18 +140,64 @@ namespace Anathema.Abilities.SkitariiRanger
                 if (to.magnitude > blastRange || to.sqrMagnitude < 0.0001f) continue;
                 if (Vector3.Angle(dir, to) > blastHalfAngle) continue;
 
+                Vector3 push = to.normalized;
+                // Wall slam: find now (before the shove starts) whether a wall lies inside the knockback's path.
+                bool slams = FindWall(target, push, knockback, out float wallDistance, out Vector3 impact);
+
                 Hit blast = Hit.Direct(blastDamage)
-                    .WithKnockback(to.normalized, blastKnockback, blastKnockbackTime)
+                    .WithKnockback(push, knockback, blastKnockbackTime)
                     .WithSlow(blastSlowDuration, blastSlow);
                 target.Strike(blast, gameObject, landed =>
                 {
                     if (!landed) return;
                     if (energy != null) energy.Gain(energyPerHit);
+                    if (slams)
+                    {
+                        // Stun on impact: when the shove (at constant speed) reaches the wall, less the time already gone.
+                        float reach = blastKnockbackTime * Mathf.Clamp01(wallDistance / knockback);
+                        StartCoroutine(WallSlam(target, Mathf.Max(0f, reach - (Time.time - firedAt)), impact));
+                    }
                     if (marked) return;
                     marked = true;
                     HitMarkerSound.Play();
                 });
             }
+        }
+
+        // True if solid scenery (not a character, and taller than a kerb) stands within `distance` of `target` along
+        // `push`. Targets that can't be shoved right now (Augmetic Bracing, Enraged) don't slam.
+        bool FindWall(Health target, Vector3 push, float distance, out float wallDistance, out Vector3 impact)
+        {
+            wallDistance = 0f;
+            impact = Vector3.zero;
+            if (wallSlamStun <= 0f || target.Structure || Knockback.IsImmune(target.gameObject) || Enraged.IsEnraged(target.gameObject))
+                return false;
+
+            Vector3 from = target.transform.position;
+            float best = float.PositiveInfinity;
+            foreach (RaycastHit hit in Physics.SphereCastAll(from + Vector3.up, 0.35f, push, distance + 0.2f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if (hit.distance <= 0f || hit.transform.IsChildOf(target.transform)) continue;
+                if (hit.collider.GetComponentInParent<Health>() != null) continue;
+                if (hit.collider.bounds.max.y - from.y < wallSlamMinHeight) continue;
+                if (hit.distance >= best) continue;
+                best = hit.distance;
+                impact = hit.point;
+            }
+            if (float.IsPositiveInfinity(best)) return false;
+            wallDistance = best;
+            return true;
+        }
+
+        System.Collections.IEnumerator WallSlam(Health target, float delay, Vector3 impact)
+        {
+            if (delay > 0f) yield return new WaitForSeconds(delay);
+            if (target == null || target.IsDead) yield break;
+
+            // Stunned.Apply hands the stun to the victim's machine online and shows the stars here too.
+            Stunned.Apply(target.gameObject, wallSlamStun);
+            PsykerFx.Ring(new Vector3(impact.x, target.transform.position.y, impact.z), 0.2f, 1.6f, 0.3f, RangerFx.Ember, 0.3f);
+            Sfx.Play(Sfx.Impact, 0.6f, 0.7f, 0.8f);
         }
 
         protected override void Cancel()

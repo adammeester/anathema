@@ -23,11 +23,19 @@ namespace Anathema.Abilities.PlagueSurgeon
         Material material;
         float stackDuration;     // of the latest stack laid, for Contagion's spread
         float nextSpread;        // Contagion: when a target held at maximum next passes a stack on
+        float nextLeechRefresh;  // Leech Draught: when the mark on the host is next topped up
+        bool visualOnly;         // drawn from another machine's published count: shows the rot, deals nothing
+        Anathema.Net.NetPlayer net;
+        int publishedStacks;     // the stack count last sent to the other machines
+        bool publishDirty;       // stacks were laid or refreshed since the last send
 
         // Without Virulence (see PlagueSurgeonUpgradeEffects.MaxFesteringStacks).
         public const int MaxStacks = 3;
 
         public int Stacks => expiries.Count;
+
+        // A copy drawn from another machine's rot (not this machine's to tick, spread or burst).
+        public bool IsReplica => visualOnly;
 
         int Cap => PlagueSurgeonUpgradeEffects.MaxFesteringStacks(source);
 
@@ -40,6 +48,14 @@ namespace Anathema.Abilities.PlagueSurgeon
                 festering = target.AddComponent<Festering>();
                 festering.nextTick = Time.time + TickInterval;
             }
+            else if (festering.visualOnly)
+            {
+                // This machine now lays its own rot: the drawn copy becomes the real thing, starting from scratch.
+                festering.visualOnly = false;
+                festering.expiries.Clear();
+                festering.nextTick = Time.time + TickInterval;
+            }
+            festering.publishDirty = true;
 
             festering.source = damageSource;
             festering.sourceEnergy = sourceEnergy;
@@ -63,15 +79,33 @@ namespace Anathema.Abilities.PlagueSurgeon
             return festering;
         }
 
+        // Bursting Pustules: strips every stack at once and says how many there were. The component goes with its next
+        // update unless a new stack is laid first.
+        public int Consume()
+        {
+            if (visualOnly) return 0;
+            int count = expiries.Count;
+            expiries.Clear();
+            return count;
+        }
+
         void Awake()
         {
             health = GetComponent<Health>();
+            net = GetComponent<Anathema.Net.NetPlayer>();
             material = VisualUtil.UnlitMaterial(new Color(0.45f, 0.7f, 0.1f, 0.9f));
         }
 
         void Update()
         {
             expiries.RemoveAll(t => Time.time >= t);
+            if (visualOnly)
+            {
+                if (health == null || health.IsDead || expiries.Count == 0) Destroy(this);
+                else SyncBlobs();
+                return;
+            }
+
             if (health != null && health.IsDead && expiries.Count > 0 && HasContagion)
             {
                 // Contagion: the corpse's rot finds new hosts.
@@ -80,13 +114,23 @@ namespace Anathema.Abilities.PlagueSurgeon
             }
             if (health == null || health.IsDead || expiries.Count == 0)
             {
+                // Rot that ran out lets the other machines know; on a death their copies clear themselves.
+                if (health != null && !health.IsDead) Publish();
                 Destroy(this);
                 return;
             }
 
             SyncBlobs();
+            Publish();
 
             if (Anathema.Net.NetGame.Frozen) return;
+
+            // Leech Draught: keep the mark up on the copy where damage is resolved while the rot lasts.
+            if (Time.time >= nextLeechRefresh && PlagueSurgeonUpgradeEffects.Has(source, PlagueSurgeonUpgrade.LeechDraught))
+            {
+                nextLeechRefresh = Time.time + LeechMark.RefreshInterval;
+                LeechMark.Refresh(gameObject, source, PlagueSurgeonUpgrade.LeechMarkSeconds);
+            }
 
             // Contagion: a target held at maximum passes a stack on every few seconds.
             if (!HasContagion || expiries.Count < Cap) nextSpread = Time.time + PlagueSurgeonUpgrade.ContagionInterval;
@@ -111,6 +155,43 @@ namespace Anathema.Abilities.PlagueSurgeon
                 }, trusted);
                 if (health.IsDead) return;
             }
+        }
+
+        // Online: tell every other machine how many stacks the victim carries, and for how long at most (so a copy whose
+        // last update never arrives still clears itself).
+        void Publish()
+        {
+            if (!publishDirty && expiries.Count == publishedStacks) return;
+            publishDirty = false;
+            publishedStacks = expiries.Count;
+            if (net == null || !net.IsSpawned) return;
+            float latest = 0f;
+            foreach (float t in expiries) latest = Mathf.Max(latest, t);
+            net.SendRotStacks(expiries.Count, Mathf.Max(0f, latest - Time.time));
+        }
+
+        // Online: draws (or updates, or with 0 stacks clears) the rot another machine reports on `target`. A target this
+        // machine holds real rot on keeps its own.
+        public static void ShowReplica(GameObject target, int stacks, float seconds)
+        {
+            if (target == null) return;
+            target.TryGetComponent(out Festering festering);
+            if (festering != null && !festering.visualOnly) return;
+            stacks = Mathf.Clamp(stacks, 0, 10);
+            seconds = Mathf.Clamp(seconds, 0f, 15f);
+            if (stacks == 0 || seconds <= 0f)
+            {
+                if (festering != null) Destroy(festering);
+                return;
+            }
+            if (target.TryGetComponent(out Health h) && h.IsDead) return;
+            if (festering == null)
+            {
+                festering = target.AddComponent<Festering>();
+                festering.visualOnly = true;
+            }
+            festering.expiries.Clear();
+            for (int i = 0; i < stacks; i++) festering.expiries.Add(Time.time + seconds);
         }
 
         bool HasContagion => PlagueSurgeonUpgradeEffects.Has(source, PlagueSurgeonUpgrade.Contagion);

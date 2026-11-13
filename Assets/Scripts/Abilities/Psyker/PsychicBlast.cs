@@ -4,19 +4,28 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Psyker
 {
-    // Ultimate (R): Psychic Blast. Costs a full energy bar. After a brief gather the Psyker unleashes a channelled beam
+    // Ultimate (R): Psychic Blast. Costs a full energy bar. After a gather the Psyker unleashes a channelled beam
     // of white lightning that pierces everything in its path until it hits a wall. She is planted while channelling, but
     // the beam follows the cursor (at a limited turn rate), so it can be swept across enemies. Every tick damages each
     // enemy in the beam.
+    // The gather is animated: she leans back, hauls the staff overhead and draws her free hand back while a ball of
+    // warp light swells in it and rings of power close in on her; on release she lunges forward with the hand thrust
+    // out along the beam.
     // The channel is interrupted by stuns, panic, silence and knockback (and by C or death). An interrupted blast keeps
     // its cooldown and the energy is gone; only pressing C during the gather refunds it.
+    [DefaultExecutionOrder(50)] // after ProceduralWalk, which also writes Spine and the arms every LateUpdate
     public class PsychicBlast : Ability
     {
         const int Arcs = 4;
         const int Segments = 20;
+        const float ReleaseBlend = 0.12f;
+        const float RecoverDuration = 0.3f;
+        const float RingInterval = 0.16f;
+
+        static readonly string[] BoneNames = { "Spine", "Head", "UpperArm_L", "UpperArm_R", "Hand_L" };
 
         [SerializeField] float energyCost = 100f;
-        [SerializeField] float gatherDuration = 0.4f;
+        [SerializeField] float gatherDuration = 0.65f;
         [SerializeField] float channelDuration = 3f;
         [SerializeField] float range = 15f;
         [SerializeField] float beamRadius = 0.45f;
@@ -24,6 +33,19 @@ namespace Anathema.Abilities.Psyker
         [SerializeField] float damagePerTick = 8f;
         [SerializeField] float turnRate = 110f; // degrees per second the beam can swing toward the cursor
         [SerializeField] float originHeight = 1.2f;
+
+        // Rotations in degrees about the character's right axis: negative pitches back / raises an arm forward-up.
+        [Header("Pose")]
+        [SerializeField] float gatherLean = -14f;        // leans back as the power builds
+        [SerializeField] float gatherHead = -10f;        // chin up
+        [SerializeField] float gatherStaffArm = -115f;   // staff hauled overhead
+        [SerializeField] float gatherReachArm = 35f;     // free hand drawn back, cupping the gathering orb
+        [SerializeField] float gatherTremble = 4f;       // the strain shakes her harder as the gather completes
+        [SerializeField] float channelLean = 12f;        // lunges into the beam
+        [SerializeField] float channelHead = 4f;
+        [SerializeField] float channelStaffArm = -45f;
+        [SerializeField] float channelReachArm = -85f;   // free hand thrust out along the beam
+        [SerializeField] float orbSize = 0.4f;
 
         enum Phase { Idle, Gather, Channel }
 
@@ -44,6 +66,18 @@ namespace Anathema.Abilities.Psyker
         readonly List<Layer> layers = new List<Layer>();
         readonly HashSet<Health> struck = new HashSet<Health>();
         GameObject beamRoot;
+        AudioSource voiceLine;
+
+        LimbPose pose;
+        bool posed;
+        float lastLean, lastHead, lastStaff, lastReach;
+        float fromLean, fromHead, fromStaff, fromReach;
+        float recoverEndTime;
+        float nextRing;
+        Transform orb;
+        Transform orbCore;
+        Material orbMaterial;
+        Material orbCoreMaterial;
 
         protected override bool CooldownStartsOnStrike => true;
 
@@ -63,11 +97,14 @@ namespace Anathema.Abilities.Psyker
             base.Awake();
             energy = GetComponent<Energy>();
             Voice.AnnounceUltimateReady(energy, Health, Voice.PsykerUltimateReady, () => energyCost);
+            Voice.Preload(Voice.PsykerUltimate);
+            pose = new LimbPose(transform.Find("Model"), BoneNames);
         }
 
         void OnDestroy()
         {
             DestroyBeam();
+            DestroyOrb();
         }
 
         protected override bool IsTriggered()
@@ -86,8 +123,12 @@ namespace Anathema.Abilities.Psyker
 
             phase = Phase.Gather;
             phaseStart = Time.time;
+            nextRing = Time.time;
             beamDir = FlatAim();
             BuildBeam();
+            BuildOrb();
+            // The line starts with the cast itself and plays over the wind-up; it is cut off if the gather is cancelled.
+            voiceLine = Voice.Shout(Voice.PsykerUltimate);
         }
 
         Vector3 FlatAim()
@@ -122,13 +163,25 @@ namespace Anathema.Abilities.Psyker
             {
                 float t = Mathf.Clamp01((Time.time - phaseStart) / gatherDuration);
                 DrawBeam(start, end, 0.1f + 0.25f * t, true);
+
+                // Rings of power closing in on her, tighter and brighter as the gather completes.
+                if (Time.time >= nextRing)
+                {
+                    nextRing = Time.time + RingInterval;
+                    Color c = Color.Lerp(PsykerFx.Cyan, Color.white, t);
+                    c.a = 0.35f + 0.5f * t;
+                    PsykerFx.Ring(transform.position, 2.6f - 0.8f * t, 0.35f, RingInterval * 2f, c, 0.08f + 0.1f * t);
+                }
+
                 if (t >= 1f)
                 {
                     phase = Phase.Channel;
-                    Voice.Say(Voice.PsykerUltimate); // spoken as the beam fires: the gather before it can still be cancelled
                     phaseStart = Time.time;
                     nextTick = Time.time;
                     struck.Clear();
+                    fromLean = lastLean; fromHead = lastHead; fromStaff = lastStaff; fromReach = lastReach;
+                    DestroyOrb();
+                    PsykerFx.Ring(transform.position, 0.4f, 3.2f, 0.35f, Color.white, 0.3f);
                 }
                 return;
             }
@@ -160,6 +213,7 @@ namespace Anathema.Abilities.Psyker
         {
             phase = Phase.Idle;
             DestroyBeam();
+            BeginRecover();
             if (!IsReplica) StartCooldown();
         }
 
@@ -170,6 +224,10 @@ namespace Anathema.Abilities.Psyker
             bool gathering = phase == Phase.Gather;
             phase = Phase.Idle;
             DestroyBeam();
+            DestroyOrb();
+            BeginRecover();
+            if (gathering) Sfx.Stop(voiceLine, 0.15f); // the blast never came: don't finish the war cry
+            voiceLine = null;
             if (IsReplica) return;
 
             // Cancelled before the beam started: refund. Once it has fired the energy stays spent.
@@ -217,6 +275,126 @@ namespace Anathema.Abilities.Psyker
                     HitMarkerSound.Play();
                 });
             }
+        }
+
+        // ---- pose: wind-up, release and recovery --------------------------------------------------------------------
+
+        void LateUpdate()
+        {
+            ApplyPose();
+            UpdateOrb();
+        }
+
+        void BeginRecover()
+        {
+            fromLean = lastLean; fromHead = lastHead; fromStaff = lastStaff; fromReach = lastReach;
+            recoverEndTime = Time.time + RecoverDuration;
+        }
+
+        // Gather: lean back, staff overhead, free hand drawn back, shaking with the strain. Channel: snap forward into
+        // the beam with the hand thrust out. Afterwards: ease back to rest.
+        void ApplyPose()
+        {
+            float lean, head, staff, reach, tremble = 0f;
+
+            if (phase == Phase.Gather)
+            {
+                float raw = Mathf.Clamp01((Time.time - phaseStart) / gatherDuration);
+                float t = Mathf.SmoothStep(0f, 1f, raw);
+                lean = gatherLean * t;
+                head = gatherHead * t;
+                staff = gatherStaffArm * t;
+                reach = gatherReachArm * t;
+                tremble = gatherTremble * raw * raw * (Mathf.PerlinNoise(Time.time * 18f, 0.37f) * 2f - 1f);
+            }
+            else if (phase == Phase.Channel)
+            {
+                float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((Time.time - phaseStart) / ReleaseBlend));
+                lean = Mathf.Lerp(fromLean, channelLean, t);
+                head = Mathf.Lerp(fromHead, channelHead, t);
+                staff = Mathf.Lerp(fromStaff, channelStaffArm, t);
+                reach = Mathf.Lerp(fromReach, channelReachArm, t);
+                // The beam's recoil keeps her shuddering slightly while it runs.
+                tremble = gatherTremble * 0.4f * (Mathf.PerlinNoise(Time.time * 22f, 0.71f) * 2f - 1f);
+            }
+            else if (Time.time < recoverEndTime)
+            {
+                float t = Mathf.SmoothStep(0f, 1f, 1f - (recoverEndTime - Time.time) / RecoverDuration);
+                lean = Mathf.Lerp(fromLean, 0f, t);
+                head = Mathf.Lerp(fromHead, 0f, t);
+                staff = Mathf.Lerp(fromStaff, 0f, t);
+                reach = Mathf.Lerp(fromReach, 0f, t);
+            }
+            else
+            {
+                if (posed)
+                {
+                    pose.Reset();
+                    posed = false;
+                }
+                lastLean = lastHead = lastStaff = lastReach = 0f;
+                return;
+            }
+
+            lastLean = lean; lastHead = head; lastStaff = staff; lastReach = reach;
+            posed = true;
+
+            Vector3 right = transform.right;
+            pose.Reset();
+            pose.Rotate("Spine", right, lean);
+            pose.Rotate("Spine", transform.forward, tremble);
+            pose.Rotate("Head", right, head);
+            pose.Rotate("UpperArm_R", right, staff);
+            pose.Rotate("UpperArm_L", right, reach);
+        }
+
+        // ---- the orb of warp light swelling in her free hand during the gather ---------------------------------------
+
+        void BuildOrb()
+        {
+            DestroyOrb();
+            orbMaterial = VisualUtil.UnlitMaterial(new Color(PsykerFx.Cyan.r, PsykerFx.Cyan.g, PsykerFx.Cyan.b, 0.35f), 3000);
+            orbCoreMaterial = VisualUtil.UnlitMaterial(Color.white, 3001);
+            orb = CreateSphere("Psychic Blast Orb", orbMaterial);
+            orbCore = CreateSphere("Core", orbCoreMaterial);
+            orbCore.SetParent(orb, false);
+            orbCore.localScale = Vector3.one * 0.45f;
+            orb.localScale = Vector3.zero;
+        }
+
+        static Transform CreateSphere(string name, Material material)
+        {
+            GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            sphere.name = name;
+            Destroy(sphere.GetComponent<Collider>());
+            var renderer = sphere.GetComponent<Renderer>();
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.sharedMaterial = material;
+            return sphere.transform;
+        }
+
+        void UpdateOrb()
+        {
+            if (orb == null || phase != Phase.Gather) return;
+
+            float t = Mathf.Clamp01((Time.time - phaseStart) / gatherDuration);
+            Transform hand = pose.Get("Hand_L") ?? pose.Get("UpperArm_L");
+            orb.position = hand != null ? hand.position : transform.position + Vector3.up * originHeight + transform.forward * 0.4f;
+            // Swells over the gather and pulses faster as it nears release.
+            float pulse = 1f + 0.15f * Mathf.Sin(Time.time * Mathf.Lerp(12f, 40f, t));
+            orb.localScale = Vector3.one * orbSize * Mathf.Lerp(0.15f, 1f, t) * pulse;
+            Color c = Color.Lerp(PsykerFx.Cyan, Color.white, t * t);
+            c.a = 0.25f + 0.35f * t;
+            orbMaterial.color = c;
+        }
+
+        void DestroyOrb()
+        {
+            if (orb != null) Destroy(orb.gameObject);
+            orb = orbCore = null;
+            if (orbMaterial != null) Destroy(orbMaterial);
+            if (orbCoreMaterial != null) Destroy(orbCoreMaterial);
+            orbMaterial = orbCoreMaterial = null;
         }
 
         // ---- visuals: layered, re-jittered line renderers, all white ----------------------------------------------------

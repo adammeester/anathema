@@ -23,6 +23,7 @@ namespace Anathema.Abilities.KhorneBerserker
         [SerializeField] float bleedDamagePerSecond = 3.5f; // same bleed as the axe toss
         [SerializeField] float bleedDuration = 5f;
         [SerializeField] float fissureWidth = 1.6f;
+        [SerializeField] float floorBreakRadius = 1.2f; // Crucible plates broken either side of the charge line
         [SerializeField] Color telegraphColor = new Color(1f, 0.1f, 0.05f, 0.15f);
         [SerializeField] Color fillColor = new Color(1f, 0.15f, 0.05f, 0.4f);
 
@@ -88,6 +89,7 @@ namespace Anathema.Abilities.KhorneBerserker
             controller = GetComponent<CharacterController>();
             energy = GetComponent<Energy>();
             Voice.AnnounceUltimateReady(energy, Health, Voice.BerserkerUltimateReady, () => Cost);
+            Voice.Preload(Voice.BerserkerUltimate);
             pose = new LimbPose(transform.Find("Model"), BoneNames);
 
             telegraph = CreateStrip("Blood God Telegraph", telegraphColor);
@@ -216,7 +218,7 @@ namespace Anathema.Abilities.KhorneBerserker
         {
             winding = false;
             // The war cry starts with the charge, the moment the cast can no longer be cancelled (the brace before it is silent).
-            Voice.Say(Voice.BerserkerUltimate);
+            Voice.Shout(Voice.BerserkerUltimate);
             HideTelegraph();
 
             charging = true;
@@ -235,6 +237,9 @@ namespace Anathema.Abilities.KhorneBerserker
         void EndCharge()
         {
             charging = false;
+            // On the Crucible the fissure tears up the floor plates along the whole charge.
+            if (!IsReplica)
+                Anathema.Arena.DestructibleFloor.Slam(gameObject, origin, transform.position, floorBreakRadius);
             recoverFromLean = lastLean;
             recoverFromArms = lastArms;
             recoverEndTime = Time.time + RecoverDuration;

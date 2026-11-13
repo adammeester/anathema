@@ -5,13 +5,15 @@ using UnityEngine;
 namespace Anathema.Arena
 {
     // The big orb in the centre of the arena. Anyone can attack it; the team that lands the destroying blow has every
-    // living member's energy (the ultimate's charge) topped up by a quarter of their bar. OrbSpawner decides when it
+    // living member's energy (the ultimate's charge) topped up by a quarter of their bar and is healed for as much as three
+    // health orbs (HealAmount). OrbSpawner decides when it
     // appears. It is a neutral Health (a "structure": no status effects, gas or damage over time), so every attack
     // that can hit a character can hit it. Online the server owns its health: a client's hits are passed on to the
     // server (see NetGame's chargeOrb messages), which tells everyone how much is left and who destroyed it.
     public class ChargeOrb : MonoBehaviour
     {
         public const float ChargeFraction = 0.25f; // of each team member's full energy bar
+        public const float HealAmount = 50f;
         public const float DefaultHealth = 100f;
         public const int NeutralTeam = -1;         // on nobody's side, so every team's attacks treat it as an enemy
 
@@ -187,7 +189,9 @@ namespace Anathema.Arena
 
         static void Grant(Health h)
         {
-            if (h.TryGetComponent(out Energy energy)) energy.Gain(energy.Max * ChargeFraction); // the dead get nothing
+            if (h.IsDead || h.Structure) return; // the dead get nothing
+            if (h.TryGetComponent(out Energy energy)) energy.Gain(energy.Max * ChargeFraction);
+            h.HealPermanent(HealAmount); // heals like health orbs: permanent loss first, then the healable part
         }
 
         void Update()

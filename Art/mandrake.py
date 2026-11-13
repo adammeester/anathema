@@ -30,10 +30,12 @@ c.configure(1.0)
 
 mat("skin", (0.05, 0.065, 0.09), rough=0.55)
 mat("skin_hi", (0.09, 0.11, 0.15), rough=0.5)
-mat("rune", (0.4, 1.0, 0.3), emit=(0.35, 1.0, 0.25), emit_strength=5.0)
-mat("bale", (0.55, 1.0, 0.35), emit=(0.45, 1.0, 0.3), emit_strength=8.0)
-mat("bale_teal", (0.25, 0.95, 0.75), emit=(0.2, 0.9, 0.7), emit_strength=6.0)
-mat("eye", (0.6, 1.0, 0.5), emit=(0.5, 1.0, 0.4), emit_strength=10.0)
+# Glow strengths stay near 1: Unity imports emission as colour x strength and, without HDR, clips every channel at 1,
+# so a strong green (e.g. 5 x (0.35, 1, 0.25)) turns white in game. Saturated colours at ~1x stay green.
+mat("rune", (0.25, 1.0, 0.2), emit=(0.2, 1.0, 0.15), emit_strength=1.0)
+mat("bale", (0.3, 1.0, 0.2), emit=(0.3, 1.0, 0.2), emit_strength=1.0)
+mat("bale_teal", (0.1, 0.75, 0.25), emit=(0.1, 0.75, 0.25), emit_strength=1.0)  # deeper green core of the hand fire
+mat("eye", (0.45, 1.0, 0.35), emit=(0.45, 1.0, 0.35), emit_strength=1.0)
 mat("hair", (0.88, 0.88, 0.86), rough=0.8)
 mat("hair_shade", (0.68, 0.68, 0.68), rough=0.85)
 mat("cloth", (0.55, 0.4, 0.28), rough=0.9)
@@ -137,7 +139,6 @@ def head():
         prim("sphere", (0.038 * sd, -0.13, 1.655), (0.045, 0.02, 0.02), "eye", "Head", verts=8)
         # Long pointed ears swept back through the hair.
         limb((0.07 * sd, -0.04, 1.66), (0.19 * sd, 0.05, 1.74), 0.032, 0.0, "skin", "Head", verts=8)
-    prim("cube", (0, -0.155, 1.56), (0.05, 0.01, 0.025), "bale", "Head")  # glowing maw
 
     # Hair: a cap over the skull, a heavy mane down the back and over the shoulders.
     prim("sphere", (0, -0.02, 1.7), (0.19, 0.21, 0.18), "hair", "Head", verts=16)
@@ -183,7 +184,10 @@ def arms():
                 pts.append(tuple(p))
             for q0, q1 in zip(pts, pts[1:]):
                 limb(q0, q1, 0.006, 0.005, "rune", bone, verts=6)
-        # Long clawed hand.
+        if side == "R":
+            gripping_hand()
+            continue
+        # Long clawed hand, open and reaching.
         d = (wr - el).normalized()
         palm = wr + d * 0.05
         prim("sphere", tuple(palm), (0.07, 0.06, 0.08), "skin", bone_h, verts=10)
@@ -191,6 +195,47 @@ def arms():
             base = palm + d * 0.03 + Vector((0.018 * k, -0.01 * k, 0))
             tip = base + d * 0.09 + Vector((0, -0.02, -0.02))
             limb(tuple(base), tuple(tip), 0.011, 0.0, "claw", bone_h, verts=6)
+
+
+def grip_frame():
+    """The glimmersteel grip in the right hand: its centre, its axis (pointing towards the blade) and two directions
+    across it: `out` (the back of the hand, to the Mandrake's right) and `down` (under the grip)."""
+    wr = Vector(ARMS["R"]["wr"])
+    centre = Vector((wr.x - 0.01, wr.y - 0.04, wr.z))
+    axis = Vector((0, -0.16, -0.04)).normalized()
+    out = Vector((-1, 0, 0))
+    down = axis.cross(out).normalized()
+    return centre, axis, out, down
+
+
+def gripping_hand():
+    """Right hand closed around the glimmersteel grip: the back of the hand on the outside, four long fingers curling
+    under the grip with their claws hooking round the far side, and the thumb clamped over the top."""
+    bone = "Hand_R"
+    centre, axis, out, down = grip_frame()
+    grip_r = 0.022
+
+    def around(s, angle, r):
+        a = math.radians(angle)
+        return centre + axis * s + (out * math.cos(a) + down * math.sin(a)) * r
+
+    # Back of the hand, on the outside of the grip, bridging to the wrist.
+    prim("sphere", tuple(centre + out * 0.035 + axis * -0.005), (0.04, 0.055, 0.05), "skin", bone, verts=10)
+    # Fingers, from the guard end back towards the pommel: a skin knuckle segment under the grip, then the black claw
+    # carrying on round the far side and tapering to a point that curls back in against the grip.
+    for k, s in enumerate((0.036, 0.012, -0.012, -0.034)):
+        r = grip_r + 0.013
+        reach = 230 - k * 8  # the little finger curls a little less far
+        knuckle, mid, curl = around(s, 10, r + 0.006), around(s, 100, r), around(s, 175, r)
+        tip = around(s, reach, grip_r + 0.004)
+        limb(tuple(knuckle), tuple(mid), 0.013, 0.012, "skin", bone, verts=8)
+        limb(tuple(mid), tuple(curl), 0.012, 0.009, "claw", bone, verts=6)
+        limb(tuple(curl), tuple(tip), 0.009, 0.0, "claw", bone, verts=6)
+    # Thumb over the top of the grip, its claw pressed down along the far side.
+    t0, t1 = around(0.03, -20, grip_r + 0.02), around(0.045, -95, grip_r + 0.012)
+    t2 = around(0.058, -150, grip_r + 0.006)
+    limb(tuple(t0), tuple(t1), 0.014, 0.011, "skin", bone, verts=8)
+    limb(tuple(t1), tuple(t2), 0.011, 0.0, "claw", bone, verts=6)
 
 
 def baleflame():
@@ -208,8 +253,7 @@ def baleflame():
 def glimmersteel():
     """Long curved blade in the right hand: grip with a bone guard, a sweeping single-edged blade with a hooked tip."""
     bone = "Hand_R"
-    wr = Vector(ARMS["R"]["wr"])
-    hx, hy, hz = wr.x - 0.01, wr.y - 0.04, wr.z
+    hx, hy, hz = grip_frame()[0]
     limb((hx, hy + 0.08, hz + 0.02), (hx, hy - 0.08, hz - 0.02), 0.022, 0.02, "grip", bone, verts=10)
     prim("sphere", (hx, hy + 0.1, hz + 0.025), (0.04, 0.04, 0.04), "bone", bone, verts=8)  # pommel
     prim("cube", (hx, hy - 0.09, hz - 0.02), (0.1, 0.03, 0.03), "bone", bone, bevel=0.008)  # guard

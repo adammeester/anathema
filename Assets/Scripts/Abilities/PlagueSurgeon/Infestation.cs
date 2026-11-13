@@ -23,8 +23,24 @@ namespace Anathema.Abilities.PlagueSurgeon
         float energyPerTick;
         Transform fly;
         bool jumped;   // Hungry Brood: a fly only ever jumps once
+        float nextCarrier; // Carrier Fly: when a feeding fly next lays a Festering stack
+
+        // Every fly currently attached, on this machine (the surgeon's).
+        static readonly System.Collections.Generic.List<Infestation> Active = new System.Collections.Generic.List<Infestation>();
 
         bool HostIsEnemy => host.Team != sourceTeam;
+
+        // Hive Shell: is one of this surgeon's flies tending a living ally right now?
+        public static bool IsTendingFor(GameObject surgeon)
+        {
+            foreach (Infestation inf in Active)
+                if (inf != null && inf.source == surgeon && inf.host != null && !inf.host.IsDead && !inf.HostIsEnemy) return true;
+            return false;
+        }
+
+        void OnEnable() => Active.Add(this);
+
+        void OnDisable() => Active.Remove(this);
 
         public static Infestation Apply(Health target, GameObject source, int sourceTeam, Energy sourceEnergy,
             float duration, float enemyDps, float allyHps, float energyGain)
@@ -40,6 +56,7 @@ namespace Anathema.Abilities.PlagueSurgeon
             inf.totalDuration = Mathf.Max(0.01f, duration);
             inf.endTime = Time.time + duration;
             inf.nextTick = Time.time + TickInterval;
+            inf.nextCarrier = Time.time + PlagueSurgeonUpgrade.CarrierInterval;
             inf.damagePerTick = enemyDps * TickInterval;
             inf.healPerTick = allyHps * TickInterval;
             inf.energyPerTick = energyGain;
@@ -188,6 +205,13 @@ namespace Anathema.Abilities.PlagueSurgeon
                     if (energy != null) energy.Gain(gain);
                     if (leech != null && !leech.IsDead) Healing.Apply(leech, amount, leech.gameObject);
                 });
+
+                // Carrier Fly: the feeding fly seeds the host with the surgeon's rot.
+                if (!host.IsDead && Time.time >= nextCarrier && PlagueSurgeonUpgradeEffects.Has(source, PlagueSurgeonUpgrade.CarrierFly))
+                {
+                    nextCarrier = Time.time + PlagueSurgeonUpgrade.CarrierInterval;
+                    PlagueSurgeonUpgradeEffects.ApplySpitRot(source, host, sourceEnergy);
+                }
             }
             else
             {

@@ -15,6 +15,9 @@ EditorBuildSettings:
     path: Assets/Scenes/Versus_Shrine.unity
     guid: 0609c15dde8bc3241a0a81ada10a27fa
   - enabled: 1
+    path: Assets/Scenes/Versus_Crucible.unity
+    guid: b7f569cbd4c3c904e8af9f2308998b52
+  - enabled: 1
     path: Assets/Scenes/Arena.unity
     guid: c8e56e24f1c6b0046a19fd4a94673696
   m_configObjects: {}

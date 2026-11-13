@@ -7,9 +7,11 @@ namespace Anathema.Abilities.SkitariiRanger
 {
     // RMB: hold to charge the arquebus, release to fire one huge piercing shot along the aim line. The longer it is
     // charged the harder it hits and the longer it stuns every enemy in the line (up to maxStun at full charge).
-    // The Ranger is planted while charging. Stuns, silence, panic and knockback (and C or death) break the charge with no shot.
+    // The Ranger is planted while charging; a cast bar over her head fills with the charge. Held at full charge for
+    // autoReleaseDelay seconds, the shot fires by itself (the bar flashes amber to red and a fuse strip drains first).
+    // Stuns, silence, panic and knockback (and C or death) break the charge with no shot.
     // Online, the owner's press cue starts the charge on other machines and a second cue (the EX flag) means "released".
-    public class TransuranicShot : Ability
+    public class TransuranicShot : Ability, IKnockbackImmune
     {
         [SerializeField] float chargeTime = 1.6f;
         [SerializeField] float minDamage = 18f;
@@ -22,6 +24,11 @@ namespace Anathema.Abilities.SkitariiRanger
         [SerializeField] float energyPerHit = 25f;
         [SerializeField] float muzzleHeight = 1.3f;
         [SerializeField] float muzzleForward = 1.6f;
+        [SerializeField] float autoReleaseDelay = 2f; // held at full charge this long, the shot goes off by itself
+        [Header("Cast bar")]
+        [SerializeField] float barHeight = 2.85f; // just above the health bar
+        [SerializeField] float barWidth = 1.6f;
+        [SerializeField] float barThickness = 0.12f;
         [Header("EX: Overcharge Round")]
         [SerializeField] float exEnergyCost = 40f;
         [SerializeField, Range(0f, 1f)] float overchargeCharge = 0.6f; // fraction of a full charge the instant shot carries
@@ -36,6 +43,9 @@ namespace Anathema.Abilities.SkitariiRanger
         LineRenderer sight;
         Material sightMaterial, orbMaterial;
         Transform orb;
+        Transform bar, barFill, barFuse;
+        Material barBorderMaterial, barBackMaterial, barFillMaterial, barFuseMaterial;
+        Camera cam;
 
         protected override bool CooldownStartsOnStrike => true;
 
@@ -69,7 +79,16 @@ namespace Anathema.Abilities.SkitariiRanger
             return Input.GetMouseButtonDown(1);
         }
 
-        float Charge01 => charging ? Mathf.Clamp01((Time.time - chargeStart) / chargeTime) : 0f;
+        // Quickened Capacitors shortens the charge (on every machine, so the replica's telegraph keeps pace).
+        float ChargeTime => chargeTime * (RangerUpgrade.Has(gameObject, RangerUpgrade.QuickenedCapacitors) ? RangerUpgrade.QuickenedChargeScale : 1f);
+
+        float Charge01 => charging ? Mathf.Clamp01((Time.time - chargeStart) / ChargeTime) : 0f;
+
+        // 0 until the charge is full, then rises to 1 over autoReleaseDelay (1 = the shot goes off on its own).
+        float Overheld01 => charging ? Mathf.Clamp01((Time.time - chargeStart - ChargeTime) / Mathf.Max(0.01f, autoReleaseDelay)) : 0f;
+
+        // Augmetic Bracing: planted while charging, so knockback can't shove her (or break the charge).
+        public bool ImmuneToKnockback => charging && RangerUpgrade.Has(gameObject, RangerUpgrade.AugmeticBracing);
 
         protected override void Activate()
         {
@@ -113,7 +132,7 @@ namespace Anathema.Abilities.SkitariiRanger
 
             if (IsReplica)
             {
-                if (Time.time - chargeStart > chargeTime + 5f) Cancel(); // lost the release cue
+                if (Time.time - chargeStart > ChargeTime + 5f) Cancel(); // lost the release cue
             }
             else
             {
@@ -126,7 +145,8 @@ namespace Anathema.Abilities.SkitariiRanger
                 }
 
 
-                if (!Input.GetMouseButton(1))
+                // Let go, or held at full charge too long: the shot goes off either way.
+                if (!Input.GetMouseButton(1) || Time.time - chargeStart >= ChargeTime + autoReleaseDelay)
                 {
                     if (Health.Net != null && Health.Net.IsSpawned)
                     {
@@ -179,12 +199,25 @@ namespace Anathema.Abilities.SkitariiRanger
 
             float damage = Mathf.Lerp(minDamage, maxDamage, t);
             float stun = Mathf.Lerp(minStun, maxStun, t);
+            bool full = t >= RangerUpgrade.FullCharge;
+            bool executioner = full && RangerUpgrade.Has(gameObject, RangerUpgrade.ExecutionersRound);
+            bool irradiate = full && RangerUpgrade.Has(gameObject, RangerUpgrade.RadSaturation);
+            bool overpenetrate = RangerUpgrade.Has(gameObject, RangerUpgrade.Overpenetration);
+            int pierced = 0; // enemies this bolt has already gone through
             var bolt = new GameObject("Transuranic Bolt").AddComponent<TransuranicBolt>();
             bolt.Init(real ? gameObject : null, Health.Team, start, end, boltSpeed, shotRadius, t,
                 real ? (System.Action<Health>)(target =>
                 {
+                    float scale = 1f;
+                    if (overpenetrate) scale += RangerUpgrade.OverpenetrationPerTarget * pierced;
+                    pierced++;
+                    if (executioner && target.Max > 0f && target.Current < target.Max * RangerUpgrade.ExecutionerThreshold)
+                        scale += RangerUpgrade.ExecutionerBonus;
+
                     // The stun rides on the hit: if a counter (or anything else) negates the shot, there is no stun.
-                    target.Strike(Hit.Direct(damage).WithStun(stun), gameObject, landed =>
+                    Hit hit = Hit.Direct(damage * scale).WithStun(stun);
+                    if (irradiate) hit = hit.WithIrradiate(RangerUpgrade.RadSaturationBonus, RangerUpgrade.RadSaturationSeconds);
+                    target.Strike(hit, gameObject, landed =>
                     {
                         if (!landed) return;
                         HitMarkerSound.Play();
@@ -302,7 +335,76 @@ namespace Anathema.Abilities.SkitariiRanger
             s.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             s.transform.SetParent(chargeFx.transform, false);
             orb = s.transform;
+            BuildBar();
             UpdateFx();
+        }
+
+        // Cast bar: a billboarded strip over her head (parented to her so it follows), with a thin fuse strip beneath
+        // it that only appears once the charge is full and drains toward the automatic release.
+        void BuildBar()
+        {
+            bar = new GameObject("Transuranic Cast Bar").transform;
+            bar.SetParent(transform, false);
+            bar.localPosition = new Vector3(0f, barHeight, 0f);
+
+            const float border = 0.03f;
+            barBorderMaterial = VisualUtil.UnlitMaterial(new Color(0.86f, 0.70f, 0.30f), 3000);
+            barBackMaterial = VisualUtil.UnlitMaterial(new Color(0.05f, 0.05f, 0.05f, 0.85f), 3001);
+            barFillMaterial = VisualUtil.UnlitMaterial(RangerFx.Cyan, 3002);
+            barFuseMaterial = VisualUtil.UnlitMaterial(new Color(1f, 0.55f, 0.1f), 3002);
+            BarQuad("Border", barBorderMaterial, 0f, 0f, barWidth + border * 2f, barThickness + border * 2f);
+            BarQuad("Back", barBackMaterial, 0f, -0.005f, barWidth, barThickness);
+            barFill = BarQuad("Fill", barFillMaterial, 0f, -0.01f, barWidth, barThickness);
+            barFuse = BarQuad("Fuse", barFuseMaterial, -(barThickness * 0.5f + border + 0.05f), -0.01f, barWidth, 0.05f);
+        }
+
+        Transform BarQuad(string quadName, Material m, float y, float z, float w, float h)
+        {
+            GameObject q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            q.name = quadName;
+            Destroy(q.GetComponent<Collider>());
+            q.transform.SetParent(bar, false);
+            q.transform.localPosition = new Vector3(0f, y, z);
+            q.transform.localScale = new Vector3(w, h, 1f);
+            Renderer r = q.GetComponent<Renderer>();
+            r.sharedMaterial = m;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            return q.transform;
+        }
+
+        // Left-anchored horizontal fill of `t` (0..1).
+        void SetBarFill(Transform q, float t)
+        {
+            q.localScale = new Vector3(barWidth * t, q.localScale.y, 1f);
+            Vector3 p = q.localPosition;
+            q.localPosition = new Vector3(-barWidth * 0.5f * (1f - t), p.y, p.z);
+        }
+
+        void UpdateBar(float t, float over)
+        {
+            if (bar == null) return;
+            if (cam == null) cam = Camera.main;
+            if (cam != null) bar.rotation = cam.transform.rotation;
+
+            SetBarFill(barFill, t);
+            barFuse.gameObject.SetActive(t >= 1f);
+
+            if (t < 1f)
+            {
+                barFillMaterial.color = RangerFx.Cyan;
+                bar.localScale = Vector3.one;
+                return;
+            }
+
+            // Full: the fuse drains, and the bar flashes ever faster from amber to red as the auto-release nears.
+            SetBarFill(barFuse, 1f - over);
+            float hz = Mathf.Lerp(3f, 14f, over);
+            float flash = 0.5f + 0.5f * Mathf.Sin(Time.time * hz * Mathf.PI * 2f);
+            Color warn = Color.Lerp(new Color(1f, 0.75f, 0.2f), new Color(1f, 0.15f, 0.1f), over);
+            barFillMaterial.color = Color.Lerp(Color.white, warn, Mathf.Lerp(0.35f, 1f, flash));
+            barFuseMaterial.color = warn;
+            bar.localScale = Vector3.one * (1f + 0.08f * over * flash);
         }
 
         void UpdateFx()
@@ -318,9 +420,14 @@ namespace Anathema.Abilities.SkitariiRanger
             sight.startWidth = sight.endWidth = Mathf.Lerp(0.03f, 0.2f, t);
             sightMaterial.color = new Color(RangerFx.Cyan.r, RangerFx.Cyan.g, RangerFx.Cyan.b, Mathf.Lerp(0.1f, 0.65f, t));
 
-            float pulse = t >= 1f ? 1f + 0.2f * Mathf.Sin(Time.time * 30f) : 1f;
+            float over = Overheld01;
+            float pulse = t >= 1f ? 1f + Mathf.Lerp(0.2f, 0.4f, over) * Mathf.Sin(Time.time * Mathf.Lerp(30f, 60f, over)) : 1f;
             orb.position = start;
             orb.localScale = Vector3.one * (Mathf.Lerp(0.08f, 0.5f, t) * pulse);
+            // The orb heats toward red as the auto-release nears.
+            orbMaterial.color = Color.Lerp(new Color(0.8f, 1f, 1f, 0.8f), new Color(1f, 0.35f, 0.2f, 0.9f), over);
+
+            UpdateBar(t, over);
         }
 
         void DestroyFx()
@@ -329,6 +436,12 @@ namespace Anathema.Abilities.SkitariiRanger
             chargeFx = null;
             if (sightMaterial != null) Destroy(sightMaterial);
             if (orbMaterial != null) Destroy(orbMaterial);
+            if (bar != null) Destroy(bar.gameObject);
+            bar = null;
+            if (barBorderMaterial != null) Destroy(barBorderMaterial);
+            if (barBackMaterial != null) Destroy(barBackMaterial);
+            if (barFillMaterial != null) Destroy(barFillMaterial);
+            if (barFuseMaterial != null) Destroy(barFuseMaterial);
         }
     }
 }

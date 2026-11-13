@@ -65,6 +65,19 @@ namespace Anathema.Combat
             tempArmorEnd = Mathf.Max(tempArmorEnd, Time.time + seconds);
         }
 
+        // A window in which healing received (Heal; orbs are unaffected) is cut by a share (Balefire's burst).
+        // Authority only; the stronger share and the later end win.
+        float healCut;
+        float healCutEnd = float.NegativeInfinity;
+
+        public void CutHealing(float share, float seconds)
+        {
+            healCut = Mathf.Clamp01(Mathf.Max(Time.time < healCutEnd ? healCut : 0f, share));
+            healCutEnd = Mathf.Max(healCutEnd, Time.time + seconds);
+        }
+
+        public float HealingMultiplier => Time.time < healCutEnd ? 1f - healCut : 1f;
+
         public float EffectiveArmor => Mathf.Min(MaxArmor, armor + (Time.time < tempArmorEnd ? tempArmor : 0f));
 
         // Extra resistance to area damage and damage over time only (Disgustingly Resilient), on top of armour.
@@ -95,6 +108,11 @@ namespace Anathema.Combat
         public bool LastStand { get; set; }
         bool lastStandUsed;
         float lastStandUntil = float.NegativeInfinity;
+
+        // Sloughing Flesh (Plague Surgeon): once per round a lethal hit is offered to this handler (given the hit's
+        // source); returning true leaves the character at 1 health, with no immunity. Authority only.
+        public Func<GameObject, bool> LethalSave;
+        bool lethalSaveUsed;
 
         // Extra maximum health from upgrades. Set absolutely (not added), so re-applying it is harmless.
         float bonusMaxHealth;
@@ -270,6 +288,8 @@ namespace Anathema.Combat
             if (!aoe && DamageModifier != null) amount = DamageModifier(amount, source);
             if (amount <= 0f) return false;
 
+            amount *= Irradiated.DamageMultiplier(gameObject); // Rad-Saturation: more damage from every source
+
             pierce = Mathf.Clamp01(pierce);
             float armour = EffectiveArmor;
             if (armour > 0f) amount *= 1f - armour * (1f - pierce);
@@ -295,7 +315,12 @@ namespace Anathema.Combat
             }
 
             float dealt = Mathf.Min(amount, Current);
-            if (LastStand && !lastStandUsed && amount >= Current)
+            if (amount >= Current && !lethalSaveUsed && LethalSave != null && LethalSave(source))
+            {
+                dealt = Mathf.Max(0f, Current - 1f);
+                lethalSaveUsed = true;
+            }
+            else if (LastStand && !lastStandUsed && amount >= Current)
             {
                 // Martyr's Resolve: the first lethal hit each round leaves one health and a moment of immunity.
                 dealt = Mathf.Max(0f, Current - 1f);
@@ -348,8 +373,8 @@ namespace Anathema.Combat
                 return 0f;
             }
 
-            // Poison sours healing (orbs, below, are unaffected).
-            amount *= Poisoned.HealingMultiplier(gameObject);
+            // A healing cut (Balefire's burst) sours healing (orbs, below, are unaffected).
+            amount *= HealingMultiplier;
             float healed = Mathf.Min(amount, Recoverable);
             Current += healed;
             Recoverable -= healed;
@@ -387,6 +412,8 @@ namespace Anathema.Combat
             Current = maxHealth;
             Recoverable = 0f;
             lastStandUsed = false;
+            lethalSaveUsed = false;
+            healCutEnd = float.NegativeInfinity;
             lastStandUntil = float.NegativeInfinity;
         }
     }

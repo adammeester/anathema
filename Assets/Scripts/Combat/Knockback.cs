@@ -4,8 +4,22 @@ namespace Anathema.Combat
 {
     // Status effect: shoves the owner along a flat direction over a short time. Uses the CharacterController when
     // there is one (so walls stop it); anything else (training dummies) is moved directly, stopping at solid scenery.
+    // Implemented by a component that can make its character immune to knockback for a while (e.g. the Ranger's
+    // Augmetic Bracing while she is planted). Checked wherever the knockback is applied (server and owner online).
+    public interface IKnockbackImmune
+    {
+        bool ImmuneToKnockback { get; }
+    }
+
     public class Knockback : MonoBehaviour
     {
+        public static bool IsImmune(GameObject target)
+        {
+            foreach (IKnockbackImmune i in target.GetComponents<IKnockbackImmune>())
+                if (i.ImmuneToKnockback) return true;
+            return false;
+        }
+
         Vector3 velocity;
         float endTime;
         CharacterController controller;
@@ -18,7 +32,7 @@ namespace Anathema.Combat
 
             if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Knockback, distance, duration, direction)) return;
 
-            if (Enraged.IsEnraged(target)) return;
+            if (Enraged.IsEnraged(target) || IsImmune(target)) return;
 
             var knockback = target.GetComponent<Knockback>();
             if (knockback == null) knockback = target.AddComponent<Knockback>();

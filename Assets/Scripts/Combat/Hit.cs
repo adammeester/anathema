@@ -38,6 +38,9 @@ namespace Anathema.Combat
         // Balefire damage is credited to the hit's source, and only that source's next hit makes it burst.
         public static HitRider Balefire(float damagePerSecond, float seconds) =>
             new HitRider { Kind = (int)NetPlayer.StatusKind.Balefire, A = damagePerSecond, B = seconds };
+        // Damage amplification, held where damage is resolved (the rider already runs there).
+        public static HitRider Irradiate(float extraFraction, float seconds) =>
+            new HitRider { Kind = (int)NetPlayer.StatusKind.Irradiated, A = extraFraction, B = seconds };
         public static HitRider Maim(float seconds, float slowFraction) =>
             new HitRider { Kind = (int)NetPlayer.StatusKind.Maim, A = seconds, B = slowFraction };
 
@@ -93,6 +96,7 @@ namespace Anathema.Combat
         public Hit WithBleed(float damagePerSecond, float seconds) => With(HitRider.Bleed(damagePerSecond, seconds));
         public Hit WithBalefire(float damagePerSecond, float seconds) => With(HitRider.Balefire(damagePerSecond, seconds));
         public Hit WithMaim(float seconds, float slowFraction) => With(HitRider.Maim(seconds, slowFraction));
+        public Hit WithIrradiate(float extraFraction, float seconds) => With(HitRider.Irradiate(extraFraction, seconds));
         public Hit WithPoison(int stacks, float damagePerSecondPerStack, float seconds) => With(HitRider.Poison(stacks, damagePerSecondPerStack, seconds));
 
         // Runs on the machine that owns `victim`, after the damage landed.
@@ -118,6 +122,7 @@ namespace Anathema.Combat
                 case NetPlayer.StatusKind.Bleed: Bleeding.Apply(victim, attacker, r.A, r.B); break;
                 case NetPlayer.StatusKind.Balefire: Balefire.Apply(victim, attacker, r.A, r.B); break;
                 case NetPlayer.StatusKind.Maim: Maimed.Apply(victim, r.A, r.B); break;
+                case NetPlayer.StatusKind.Irradiated: Irradiated.Apply(victim, r.A, r.B); break;
                 case NetPlayer.StatusKind.Poison: Poisoned.Apply(victim, attacker, Mathf.RoundToInt(r.Direction.x), r.A, r.B); break;
                 default: Debug.LogWarning("Unsupported hit rider " + (NetPlayer.StatusKind)r.Kind); break;
             }

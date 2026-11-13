@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Abilities.KhorneBerserker;
+using Anathema.Abilities.Mandrake;
 using Anathema.Abilities.PlagueSurgeon;
 using Anathema.Combat;
 using Anathema.Net;
@@ -66,6 +67,8 @@ namespace Anathema.Upgrades
                 gameObject.AddComponent<GreyKnightArmament>();
             if (character == "PlagueSurgeon" && GetComponent<PlagueSurgeonUpgradeEffects>() == null)
                 gameObject.AddComponent<PlagueSurgeonUpgradeEffects>();
+            if (character == "Mandrake" && GetComponent<MandrakeUpgradeEffects>() == null)
+                gameObject.AddComponent<MandrakeUpgradeEffects>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!NetGame.Online && GetComponent<UpgradeTestPanel>() == null) gameObject.AddComponent<UpgradeTestPanel>();
 #endif

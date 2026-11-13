@@ -48,7 +48,14 @@ namespace Anathema.Abilities.SkitariiRanger
             return pose;
         }
 
-        void Awake()
+        void Awake() => SetupRig(true);
+
+        // Finds the bones and builds the IK solvers. Also re-run after a script reload in play mode (measureRest false):
+        // the ArmIk solvers are plain C# objects Unity can't keep across the reload, while `valid`, the bone references
+        // and the rest measurements survive it. The rest measurements must not be retaken then, because the model is no
+        // longer at rest (the walk has posed the arms), which would knock the rifle axis and the barrel extension off.
+        // The solvers themselves only measure bone lengths and bone-local directions, which don't depend on the pose.
+        void SetupRig(bool measureRest)
         {
             Transform model = transform.Find("Model");
             if (model == null)
@@ -90,6 +97,15 @@ namespace Anathema.Abilities.SkitariiRanger
             ikL = new ArmIk(upperL, foreL, handL);
             ikR = new ArmIk(upperR, foreR, handR);
             shoulderR = upperR;
+            hasLegs = hips && thighL && shinL && footL && thighR && shinR && footR;
+            if (hasLegs)
+            {
+                legL = new ArmIk(thighL, shinL, footL);
+                legR = new ArmIk(thighR, shinR, footR);
+            }
+
+            if (!measureRest) return;
+
             outwardR = Mathf.Sign(Vector3.Dot(upperR.position - upperL.position, transform.right));
 
             // At rest the left hand sits on the barrel straight ahead of the right hand, so that line is the rifle's axis.
@@ -98,17 +114,14 @@ namespace Anathema.Abilities.SkitariiRanger
             restRotLocal = Quaternion.Inverse(transform.rotation) * rifle.rotation;
             boneDir = Quaternion.Inverse(rifle.rotation) * restDir;
 
-            hasLegs = hips && thighL && shinL && footL && thighR && shinR && footR;
             if (hasLegs)
             {
-                legL = new ArmIk(thighL, shinL, footL);
-                legR = new ArmIk(thighR, shinR, footR);
                 footRestLocalL = Quaternion.Inverse(transform.rotation) * footL.rotation;
                 footRestLocalR = Quaternion.Inverse(transform.rotation) * footR.rotation;
                 ankleHeight = footL.position.y - transform.position.y;
             }
 
-            BuildDeployables();
+            if (deployRoot == null) BuildDeployables();
         }
 
 
@@ -133,6 +146,11 @@ namespace Anathema.Abilities.SkitariiRanger
         void LateUpdate()
         {
             if (!valid) return;
+            if (ikR == null)
+            {
+                SetupRig(false); // scripts were reloaded during play mode: rebuild the solvers, keep the rest pose
+                if (!valid) return;
+            }
 
             // The attachments grow and shrink on their own schedule, so they retract after the pose ends.
             bool wantDeployed = deployed && Time.time < until;
@@ -226,6 +244,18 @@ namespace Anathema.Abilities.SkitariiRanger
             }
             extTip.SetPositionAndRotation(muzzle + barrel * l, along);
             extTip.localScale = new Vector3(0.11f, 0.05f, 0.11f);
+            deployedMuzzle = muzzle + barrel * (l + TipClearance);
+        }
+
+        const float TipClearance = 0.08f; // shots appear just past the extension's tip, not inside it
+        Vector3 deployedMuzzle;
+
+        // Where the deployed barrel extension ends (as posed last frame), so the ultimate's shots leave from its tip.
+        // False while the extension isn't out (or the model has no rig).
+        public bool TryGetDeployedMuzzle(out Vector3 point)
+        {
+            point = deployedMuzzle;
+            return valid && deployRoot != null && deployRoot.activeSelf;
         }
 
         // Sniper stance: hips dropped, left foot planted forward and right foot back, knees bent toward the target.

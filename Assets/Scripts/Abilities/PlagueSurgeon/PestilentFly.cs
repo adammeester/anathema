@@ -5,7 +5,7 @@ namespace Anathema.Abilities.PlagueSurgeon
 {
     // Press right mouse to loose a plague fly along the aim direction. It latches onto the first character it meets
     // (anyone but the surgeon; walls stop it):
-    //   enemy -> the fly feeds on them, damaging them every half second
+    //   enemy -> the fly feeds on them, damaging them every half second (and its bite leaves a stack of Festering)
     //   ally  -> the fly tends them, healing them every half second
     // EX (hold Shift, costs energy): the fly never attaches. It bursts the moment it touches anything (a character or a
     // wall) or reaches its maximum range, damaging and panicking every enemy around that spot and healing every ally.
@@ -142,6 +142,8 @@ namespace Anathema.Abilities.PlagueSurgeon
             Infestation.Apply(
                 target, gameObject, Health.Team, energy,
                 attachDuration, enemyDamagePerSecond, allyHealPerSecond, energyPerTick);
+            // A fly that bites an enemy leaves a stack of Festering, the same rot as one glob of Plague Spit.
+            if (target.Team != Health.Team) PlagueSurgeonUpgradeEffects.ApplySpitRot(gameObject, target, energy);
         }
 
         void OnDetonate(Vector3 position, bool visualOnly)

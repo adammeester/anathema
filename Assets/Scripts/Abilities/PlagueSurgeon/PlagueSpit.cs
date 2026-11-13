@@ -28,6 +28,9 @@ namespace Anathema.Abilities.PlagueSurgeon
         public float RotDuration => cooldown * StackIntervals + RotBonusSeconds
                                     + (PlagueSurgeonUpgradeEffects.Has(gameObject, PlagueSurgeonUpgrade.Virulence) ? PlagueSurgeonUpgrade.VirulenceExtraSeconds : 0f);
 
+        // One stack's rot damage per second (the fly lays the same rot: see PlagueSurgeonUpgradeEffects.ApplySpitRot).
+        public float RotDamagePerSecond => rotDamagePerSecond;
+
         Energy energy;
         Material globMaterial;
         Material haloMaterial;
@@ -129,8 +132,21 @@ namespace Anathema.Abilities.PlagueSurgeon
         {
             HitMarkerSound.Play();
             if (energy != null) energy.Gain(energyPerHit);
-            if (!target.IsDead)
-                Festering.Apply(target.gameObject, gameObject, energy, RotDuration, rotDamagePerSecond);
+            if (target.IsDead) return;
+
+            // Bursting Pustules: a target already at maximum rot bursts it all, then the new glob starts it over.
+            if (PlagueSurgeonUpgradeEffects.Has(gameObject, PlagueSurgeonUpgrade.BurstingPustules)
+                && target.TryGetComponent(out Festering rot) && !rot.IsReplica
+                && rot.Stacks >= PlagueSurgeonUpgradeEffects.MaxFesteringStacks(gameObject))
+            {
+                int popped = rot.Consume();
+                Infestation.BurstEffect.Spawn(target.transform.position, PlagueSurgeonUpgrade.PustuleFlashRadius);
+                Sfx.Play(Sfx.DiseaseBurst, 0.35f, 1.15f, 1.3f, 1.2f);
+                target.Strike(Hit.Direct(popped * PlagueSurgeonUpgrade.PustuleDamagePerStack), gameObject);
+                if (target.IsDead) return;
+            }
+
+            Festering.Apply(target.gameObject, gameObject, energy, RotDuration, rotDamagePerSecond);
         }
 
         // Once the glob leaves there is nothing to cancel (a wind-up in progress is cancelled by the base class).

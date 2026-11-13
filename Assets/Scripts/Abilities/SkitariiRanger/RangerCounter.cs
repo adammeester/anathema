@@ -14,7 +14,7 @@ namespace Anathema.Abilities.SkitariiRanger
         protected override void OnCounterSuccess(GameObject attacker)
         {
             var disengage = GetComponent<Disengage>();
-            if (disengage != null) disengage.ResetCooldown();
+            if (disengage != null) disengage.Refresh();
 
             if (attacker == null) return;
             var shot = GetComponent<TransuranicShot>();

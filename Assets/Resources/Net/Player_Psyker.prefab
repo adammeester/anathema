@@ -323,7 +323,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Psyker.PsychicBlast
   cooldown: 1
   energyCost: 100
-  gatherDuration: 0.4
+  gatherDuration: 0.65
   channelDuration: 3
   range: 15
   beamRadius: 0.45

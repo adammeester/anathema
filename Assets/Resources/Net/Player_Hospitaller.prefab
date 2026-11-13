@@ -192,8 +192,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Hospitaller.SanctifiedTether
   cooldown: 6
   duration: 4
-  range: 11
-  leashRange: 14
+  range: 9
+  leashRange: 11
   aimRadius: 0.6
   tickInterval: 0.25
   tickDamage: 1.5

@@ -21,6 +21,7 @@ namespace Anathema.EditorTools
         const string MenuPath = "Assets/Scenes/Menu.unity";
         const string VersusPath = "Assets/Scenes/Versus.unity";
         const string ShrinePath = "Assets/Scenes/Versus_Shrine.unity";
+        const string CruciblePath = "Assets/Scenes/Versus_Crucible.unity";
         const string TrainingPath = "Assets/Scenes/Arena.unity";
         const string PrefabDir = "Assets/Resources/Net";
         const string GreyKnightPrefab = PrefabDir + "/Player_GreyKnight.prefab";
@@ -36,7 +37,7 @@ namespace Anathema.EditorTools
             EditorApplication.delayCall += () =>
             {
                 if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
-                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(ShrinePath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab) || !File.Exists(HospitallerPrefab) || !File.Exists(MandrakePrefab);
+                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(ShrinePath) || !File.Exists(CruciblePath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab) || !File.Exists(HospitallerPrefab) || !File.Exists(MandrakePrefab);
                 if (missing && File.Exists("Assets/Models/GreyKnight.fbx")) BuildAll();
             };
         }
@@ -59,6 +60,7 @@ namespace Anathema.EditorTools
             BuildPlayerPrefab(ArenaSceneBuilder.Character.Mandrake, MandrakePrefab);
             BuildVersusScene(VersusPath, ArenaSceneBuilder.MapColosseum);
             BuildVersusScene(ShrinePath, ArenaSceneBuilder.MapShrine);
+            BuildVersusScene(CruciblePath, ArenaSceneBuilder.MapCrucible);
             BuildMenuScene();
 
             if (previous.IsValid()) SceneManager.SetActiveScene(previous);
@@ -68,6 +70,7 @@ namespace Anathema.EditorTools
                 new EditorBuildSettingsScene(MenuPath, true),
                 new EditorBuildSettingsScene(VersusPath, true),
                 new EditorBuildSettingsScene(ShrinePath, true),
+                new EditorBuildSettingsScene(CruciblePath, true),
                 new EditorBuildSettingsScene(TrainingPath, true)
             };
 

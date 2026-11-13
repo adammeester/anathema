@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace Anathema.Combat
 {
-    // Status effect: a short self-buff to movement speed (e.g. the Mandrake landing its Chain Hook). Re-applying refreshes
+    // Status effect: a short self-buff to movement speed (e.g. from an ability or upgrade). Re-applying refreshes
     // the duration and keeps the stronger bonus. It is a self-buff, so the owner holds it; online the owner publishes it
     // (NetPlayer's status mask) and every other machine draws a copy (ShowReplica). The server's copy uses it to move the
     // character at the same speed the owner predicts; a replica copy always uses DefaultBonus.

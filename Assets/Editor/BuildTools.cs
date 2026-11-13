@@ -8,16 +8,23 @@ using UnityEngine;
 namespace Anathema.EditorTools
 {
     // One-click Windows build: regenerates the online scenes/prefabs (so the latest scripts are baked in), then
-    // builds Builds/Anathema/Anathema.exe with the Menu, Versus and Arena scenes.
+    // builds Builds/Anathema/Anathema.exe with the Menu, every online arena and the Arena scene.
     public static class BuildTools
     {
         const string OutputExe = "Builds/Anathema/Anathema.exe";
         const string ServerExe = "Builds/AnathemaServer/AnathemaServer.exe";
 
-        static readonly string[] Scenes =
+        // Menu first (it is the entry scene), then every online arena NetGame can pick, then the offline training ground.
+        // Built from NetGame.ArenaScenes so a new arena can't be left out of the build again.
+        static readonly string[] Scenes = BuildSceneList();
+
+        static string[] BuildSceneList()
         {
-            "Assets/Scenes/Menu.unity", "Assets/Scenes/Versus.unity", "Assets/Scenes/Versus_Shrine.unity", "Assets/Scenes/Arena.unity"
-        };
+            var list = new System.Collections.Generic.List<string> { $"Assets/Scenes/{NetGame.MenuScene}.unity" };
+            foreach (string arena in NetGame.ArenaScenes) list.Add($"Assets/Scenes/{arena}.unity");
+            list.Add("Assets/Scenes/Arena.unity");
+            return list.ToArray();
+        }
 
         [MenuItem("Anathema/Build Windows Game")]
         public static void BuildWindows()
