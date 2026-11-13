@@ -21,7 +21,7 @@ namespace Anathema.Net
     {
         public const string MenuScene = "Menu";
         // The online arenas (the "Arena" scene is the offline training ground). The host picks one at random per match.
-        public static readonly string[] ArenaScenes = { "Versus", "Versus_Shrine" };
+        public static readonly string[] ArenaScenes = { "Versus", "Versus_Shrine", "Versus_Crucible" };
         static int lastArenaIndex = -1;
 
         public static bool IsArenaScene(string sceneName) => System.Array.IndexOf(ArenaScenes, sceneName) >= 0;

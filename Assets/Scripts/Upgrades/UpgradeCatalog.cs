@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Abilities.KhorneBerserker;
+using Anathema.Abilities.Mandrake;
 using Anathema.Abilities.PlagueSurgeon;
 using Anathema.Abilities.Psyker;
 
@@ -20,6 +21,7 @@ namespace Anathema.Upgrades
             { "Psyker", PsykerUpgrade.All },
             { "GreyKnight", GreyKnightUpgrade.All },
             { "PlagueSurgeon", PlagueSurgeonUpgrade.All },
+            { "Mandrake", MandrakeUpgrade.All },
         };
 
         // The pick on which a character may trade its weapon for another (weapon-group exclusivity is lifted for that pick).
@@ -35,7 +37,12 @@ namespace Anathema.Upgrades
             { "Psyker", PsykerUpgrade.Sets },
             { "GreyKnight", GreyKnightUpgrade.Sets },
             { "PlagueSurgeon", PlagueSurgeonUpgrade.Sets },
+            { "Mandrake", MandrakeUpgrade.Sets },
         };
+
+        // Characters whose set slots draw one of their alternatives at random (seeded) instead of taking the first one
+        // still available. Either way an owned or blocked alternative is skipped in favour of the next.
+        static readonly HashSet<string> ShuffledSlots = new HashSet<string> { "PlagueSurgeon" };
 
         // The offers for the pick after round `round` (1-based). Characters with fixed sets get exactly those (minus
         // anything already owned or blocked); past the last set, or for a character without sets, it falls back to a random draw.
@@ -46,11 +53,15 @@ namespace Anathema.Upgrades
             {
                 var offers = new List<UpgradeDef>();
                 bool swap = SwapRounds.TryGetValue(character, out int swapRound) && swapRound == round;
+                Random rng = ShuffledSlots.Contains(character) ? new Random(randomSeed) : null;
                 foreach (int[] slot in sets[round - 1])
                 {
-                    // The first alternative still available (a blocked weapon falls back to its backup card).
-                    foreach (int bit in slot)
+                    // The first alternative still available (a blocked weapon falls back to its backup card), starting
+                    // from a random one for shuffled characters.
+                    int start = rng != null && slot.Length > 0 ? rng.Next(slot.Length) : 0;
+                    for (int i = 0; i < slot.Length; i++)
                     {
+                        int bit = slot[(start + i) % slot.Length];
                         UpgradeDef def = Array.Find(all, d => d.Bit == bit);
                         if (def == null || !IsAvailable(def, all, ownedMask, swap) || offers.Contains(def)) continue;
                         offers.Add(def);

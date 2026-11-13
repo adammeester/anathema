@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Anathema.Combat;
+using Anathema.Upgrades;
 using UnityEngine;
 
 namespace Anathema.Abilities.Mandrake
@@ -19,6 +20,7 @@ namespace Anathema.Abilities.Mandrake
         readonly List<Health> expired = new List<Health>();
         Health health;
         ShadowVeil veil;
+        ShadowJump jump;
 
         public static bool IsLow(Health target) =>
             target != null && !target.IsDead && target.Max > 0f && target.Current < target.Max * HealthThreshold;
@@ -27,6 +29,7 @@ namespace Anathema.Abilities.Mandrake
         {
             health = GetComponent<Health>();
             veil = GetComponent<ShadowVeil>();
+            jump = GetComponent<ShadowJump>();
         }
 
         void OnEnable() => Poisoned.Ticked += OnPoisonTick;
@@ -50,13 +53,24 @@ namespace Anathema.Abilities.Mandrake
         }
 
         // Owner: takes up to 1s off Shadow Veil, within this target's allowance. Only cooldown actually removed counts.
+        // Reaping Shadows: Shadow Jump gets the same refund, from the same allowance (whichever cooldown took more
+        // counts against it).
         public void Harvest(Health target)
         {
             if (veil == null || target == null || health.IsReplica) return;
             refunded.TryGetValue(target, out float used);
-            float amount = Mathf.Min(RefundPerProc, RefundCapPerTarget - used, veil.CooldownRemaining);
+            float allowed = Mathf.Min(RefundPerProc, RefundCapPerTarget - used);
+            if (allowed <= 0f) return;
+
+            float veilAmount = Mathf.Min(allowed, veil.CooldownRemaining);
+            float jumpAmount = 0f;
+            if (jump != null && UpgradeState.Has(gameObject, MandrakeUpgrade.ReapingShadows))
+                jumpAmount = Mathf.Min(allowed, jump.CooldownRemaining);
+            float amount = Mathf.Max(veilAmount, jumpAmount);
             if (amount <= 0f) return;
-            veil.ReduceCooldown(amount);
+
+            if (veilAmount > 0f) veil.ReduceCooldown(veilAmount);
+            if (jumpAmount > 0f) jump.ReduceCooldown(jumpAmount);
             refunded[target] = used + amount;
         }
 

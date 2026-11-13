@@ -114,7 +114,7 @@ namespace Anathema.Abilities.Mandrake
             int hits = 0;
             foreach (Health target in MandrakeKit.EnemiesInCone(Health, transform.position, dir, slashRange, slashArcDegrees))
             {
-                float dealt = (slashDamage + (fromStealth ? slashStealthBonusDamage : 0f) + bonus) * MandrakeKit.VenomScale(target);
+                float dealt = (slashDamage + (fromStealth ? slashStealthBonusDamage : 0f) + bonus) * MandrakeKit.VenomScale(gameObject, target);
                 Hit hit = Hit.Direct(dealt).WithStun(slashStunDuration);
                 if (fromStealth && slashStealthPoisonStacks > 0)
                     hit = hit.WithPoison(slashStealthPoisonStacks, slashPoisonDamagePerSecond, slashPoisonDuration);

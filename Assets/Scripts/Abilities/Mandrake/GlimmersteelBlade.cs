@@ -142,9 +142,11 @@ namespace Anathema.Abilities.Mandrake
             {
                 foreach (Health target in MandrakeKit.EnemiesInCone(Health, transform.position, dir, reach, arc))
                 {
-                    float dealt = ((finisher ? finisherDamage : damage) + bonus) * MandrakeKit.VenomScale(target);
+                    float dealt = ((finisher ? finisherDamage : damage) + bonus) * MandrakeKit.VenomScale(gameObject, target);
                     Hit hit = Hit.Direct(dealt);
-                    if (finisher && finisherPoisonStacks > 0) hit = hit.WithPoison(finisherPoisonStacks, poisonDamagePerSecond, poisonDuration);
+                    int stacks = finisher ? finisherPoisonStacks : 0;
+                    if (stacks > 0 && MandrakeUpgradeEffects.Has(gameObject, MandrakeUpgrade.EnvenomedEdge)) stacks += MandrakeUpgrade.EnvenomedEdgeExtraStacks;
+                    if (stacks > 0) hit = hit.WithPoison(stacks, poisonDamagePerSecond, poisonDuration);
                     if (fromStealth) hit = hit.WithStun(MandrakeKit.StealthStrikeStun);
                     hits++;
                     float healthBefore = target.Current;

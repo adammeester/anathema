@@ -31,6 +31,10 @@ namespace Anathema.Arena
 
         public float CurrentRadius { get; private set; }
 
+        // Raised whenever the gas starts over (new round, rematch, offline T): other per-round arena state (the
+        // Crucible's breakable floor) resets with it.
+        public static event Action Restarted;
+
         int phaseIndex;
         float phaseTimer;
         float fromRadius;
@@ -59,6 +63,7 @@ namespace Anathema.Arena
             currentDps = 0f;
             tickTimer = 0f;
             ApplyVisuals();
+            Restarted?.Invoke();
         }
 
         void Update()

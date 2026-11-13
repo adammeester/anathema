@@ -72,6 +72,11 @@ namespace Anathema.Abilities.Mandrake
             Stealthed.Apply(gameObject, vanishDuration);
             shadowStrikeUntil = Time.time + shadowStrikeWindow;
 
+            // Shade's Embrace: the shadows close around him as a short barrier (sent to the server online).
+            if (!IsReplica && MandrakeUpgradeEffects.Has(gameObject, MandrakeUpgrade.ShadesEmbrace))
+                Barrier.Grant(gameObject, MandrakeUpgrade.ShadesEmbraceBarrier, MandrakeUpgrade.ShadesEmbraceSeconds,
+                    MandrakeUpgrade.ShadesEmbraceBarrier, gameObject);
+
             if (attacker == null) return;
             Health target = attacker.GetComponentInParent<Health>();
             if (target == null || target.IsDead || target.Team == Health.Team) return;

@@ -37,7 +37,9 @@ namespace Anathema.Net
             Barrier,    // a short damage-soaking barrier (a = amount, b = seconds, direction.x = cap), held by the server
             Cleanse,    // wash off bleeds and burns, dull other damage over time (a = reduction, b = seconds), on the server
             Poison,     // stacking toxin (a = damage per second per stack, b = seconds, direction.x = stacks), held by the server
-            Balefire    // the Mandrake's burst-on-hit burn (a = damage per second, b = seconds), held by the server
+            Balefire,   // the Mandrake's burst-on-hit burn (a = damage per second, b = seconds), held by the server
+            Armor,      // short extra armour (a = fraction, b = seconds), e.g. Hive Shell, held by the server
+            Leech       // Leech Draught's mark on a festering enemy (a = seconds), held by the server
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -533,6 +535,45 @@ namespace Anathema.Net
                 movement.GrantAbilityMove(ability.MovementRange, ability.MovementWindow);
         }
 
+        // --- Breakable floor (owner -> server -> everyone) ------------------------------------------------------------
+
+        const float MaxFloorBreakRadius = 4f;
+        const float MaxFloorBreakLength = 20f;
+        const float MaxFloorBreakReach = 22f; // how far from the caster a slam may start
+
+        // Owner: one of this character's ground slams hit the floor (Arena.DestructibleFloor.Slam).
+        public void SendFloorBreak(Vector3 from, Vector3 to, float radius)
+        {
+            if (IsSpawned && IsOwner) FloorBreakServerRpc(from, to, radius);
+        }
+
+        [ServerRpc]
+        void FloorBreakServerRpc(Vector3 from, Vector3 to, float radius)
+        {
+            Anathema.Arena.DestructibleFloor floor = Anathema.Arena.DestructibleFloor.Instance;
+            if (floor == null || health.IsDead || NetGame.Frozen || NetGame.InPrep) return;
+            if (radius <= 0f || radius > MaxFloorBreakRadius) return;
+            Vector3 span = to - from;
+            span.y = 0f;
+            if (span.magnitude > MaxFloorBreakLength) return;
+            Vector3 near = from - transform.position;
+            near.y = 0f;
+            if (near.magnitude > MaxFloorBreakReach) return;
+
+            // The server picks the plates from its own floor, so every machine breaks the same ones.
+            int[] plates = floor.TilesIn(from, to, radius);
+            if (plates.Length == 0) return;
+            if (!IsClient) floor.Break(plates); // a dedicated server runs no ClientRpcs but needs the holes for the fire damage
+            FloorBreakClientRpc(plates);
+        }
+
+        [ClientRpc]
+        void FloorBreakClientRpc(int[] plates)
+        {
+            Anathema.Arena.DestructibleFloor floor = Anathema.Arena.DestructibleFloor.Instance;
+            if (floor != null) floor.Break(plates);
+        }
+
         // --- Movement (owner -> server inputs; server -> owner authoritative state) ---------------------------------
 
         PlayerMovement movement;
@@ -798,7 +839,8 @@ namespace Anathema.Net
         }
 
         static bool IsSupportive(StatusKind kind) => kind == StatusKind.Ward || kind == StatusKind.Heal || kind == StatusKind.Enrage
-                                                     || kind == StatusKind.Barrier || kind == StatusKind.Cleanse;
+                                                     || kind == StatusKind.Barrier || kind == StatusKind.Cleanse
+                                                     || kind == StatusKind.Armor;
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         void StatusServerRpc(int kind, float a, float b, Vector3 direction, NetworkObjectReference source, bool hasSource, RpcParams rpcParams = default)
@@ -885,6 +927,8 @@ namespace Anathema.Net
                 case StatusKind.Cleanse: Cleanse.Apply(gameObject, a, b, attacker); break;
                 case StatusKind.Poison: Poisoned.Apply(gameObject, attacker, Mathf.RoundToInt(direction.x), a, b); break;
                 case StatusKind.Balefire: Balefire.Apply(gameObject, attacker, a, b); break;
+                case StatusKind.Armor: if (health.IsAuthority) health.GrantTemporaryArmor(a, b); break;
+                case StatusKind.Leech: LeechMark.Refresh(gameObject, attacker, a); break;
             }
         }
     }

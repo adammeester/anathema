@@ -34,6 +34,14 @@ namespace Anathema.Abilities.PlagueSurgeon
         // Endurance (appended later)
         public const int ParasiticBond = 14;
 
+        // Appended later (one more of each per category, then the capstones)
+        public const int HiveShell = 15;
+        public const int CarrierFly = 16;
+        public const int LeechDraught = 17;
+        public const int SloughingFlesh = 18;
+        public const int BurstingPustules = 19;
+        public const int GratefulPatients = 20;
+
         // Tunables shared with the code that applies them.
         public const float BloatedHealth = 50f;
         public const float ResilientFraction = 0.3f;          // of area and damage-over-time damage
@@ -59,20 +67,31 @@ namespace Anathema.Abilities.PlagueSurgeon
         public const float OverdoseSeconds = 3f;
         public const float TriageReduction = 0.5f;
         public const float TriageSeconds = 0.75f;             // refreshed by every cloud tick (twice a second)
+        public const float HiveShellReduction = 0.15f;        // while a fly is tending an ally
+        public const float HiveShellSeconds = 0.6f;           // refreshed four times a second while it holds
+        public const float CarrierInterval = 1f;              // a feeding fly lays a Festering stack this often
+        public const float LeechFraction = 0.15f;             // of an ally's damage to a Festering enemy, healed back
+        public const float LeechMarkSeconds = 0.6f;           // refreshed four times a second while the rot lasts
+        public const float SloughWardStrength = 30f;          // half a Ward of Plague
+        public const float SloughWardSeconds = 5f;
+        public const float PustuleDamagePerStack = 6f;
+        public const float PustuleFlashRadius = 1.4f;
+        public const float GratefulEnergyPerHeal = 0.25f;     // energy per point of healing that lands on an ally
 
-        // Endurance / Affliction / Remedy each round, with two Remedy or two Affliction cards in the last two sets so
-        // every upgrade is offered once. Past round 4 the leftovers come from the random draw.
+        // Three cards a round, one per category (Endurance / Affliction / Remedy). In rounds 1-3 each card is one of
+        // two upgrades, drawn at random (UpgradeCatalog.ShuffledSlots), so every match offers a different mix; round 4
+        // is the capstone round and always offers the same three.
         //
-        //   after round 1   Bloated Constitution    Virulence                          Tonic Spit
-        //   after round 2   Disgustingly Resilient, Parasitic Bond  Hungry Brood       Swarm
-        //   after round 3   Rotting Hide            Contagion                          Overdose, Field Triage
-        //   after round 4   Chitinous Wings         Lingering Miasma, Rot Harvest      Fecund Ward
+        //   after round 1   Bloated Constitution | Disgustingly Resilient   Virulence | Carrier Fly        Tonic Spit | Leech Draught
+        //   after round 2   Parasitic Bond | Hive Shell                     Hungry Brood | Rot Harvest     Swarm | Overdose
+        //   after round 3   Rotting Hide | Chitinous Wings                  Contagion | Lingering Miasma   Field Triage | Grateful Patients
+        //   after round 4   Sloughing Flesh                                 Bursting Pustules              Fecund Ward
         public static readonly int[][][] Sets =
         {
-            new[] { new[] { BloatedConstitution }, new[] { Virulence }, new[] { TonicSpit } },
-            new[] { new[] { DisgustinglyResilient }, new[] { ParasiticBond }, new[] { HungryBrood }, new[] { Swarm } },
-            new[] { new[] { RottingHide }, new[] { Contagion }, new[] { Overdose }, new[] { FieldTriage } },
-            new[] { new[] { ChitinousWings }, new[] { LingeringMiasma }, new[] { RotHarvest }, new[] { FecundWard } },
+            new[] { new[] { BloatedConstitution, DisgustinglyResilient }, new[] { Virulence, CarrierFly }, new[] { TonicSpit, LeechDraught } },
+            new[] { new[] { ParasiticBond, HiveShell }, new[] { HungryBrood, RotHarvest }, new[] { Swarm, Overdose } },
+            new[] { new[] { RottingHide, ChitinousWings }, new[] { Contagion, LingeringMiasma }, new[] { FieldTriage, GratefulPatients } },
+            new[] { new[] { SloughingFlesh }, new[] { BurstingPustules }, new[] { FecundWard } },
         };
 
         public static readonly UpgradeDef[] All =
@@ -87,6 +106,10 @@ namespace Anathema.Abilities.PlagueSurgeon
                 "Winged Escape recharges 25% faster, and you land with a barrier that soaks 20 damage for 3s."),
             new UpgradeDef(ParasiticBond, UpgradeCategory.Endurance, "Parasitic Bond",
                 "Damage your Pestilent Flies deal also heals you for the same amount."),
+            new UpgradeDef(HiveShell, UpgradeCategory.Endurance, "Hive Shell",
+                "While one of your flies is tending an ally, you take 15% less damage."),
+            new UpgradeDef(SloughingFlesh, UpgradeCategory.Endurance, "Sloughing Flesh",
+                "Once per round, a hit that would kill you leaves you at 1 health instead, wrapped in a half-strength Ward of Plague."),
 
             new UpgradeDef(Virulence, UpgradeCategory.Ferocity, "Virulence",
                 "Festering holds up to 5 stacks instead of 3, and each stack from Plague Spit lasts 1s longer."),
@@ -98,6 +121,10 @@ namespace Anathema.Abilities.PlagueSurgeon
                 "Plague Clouds last 50% longer and slowly spread, ending 30% wider."),
             new UpgradeDef(RotHarvest, UpgradeCategory.Ferocity, "Rot Harvest",
                 "Festering feeds you energy for every stack: about 5 energy a second from a target with 3 stacks, instead of 2."),
+            new UpgradeDef(CarrierFly, UpgradeCategory.Ferocity, "Carrier Fly",
+                "A fly feeding on an enemy adds a stack of Festering every second."),
+            new UpgradeDef(BurstingPustules, UpgradeCategory.Ferocity, "Bursting Pustules",
+                "Plague Spit hitting an enemy at maximum Festering bursts every stack for 6 damage each, then starts the rot again."),
 
             new UpgradeDef(TonicSpit, UpgradeCategory.Remedy, "Tonic Spit",
                 "Plague Spit no longer passes through allies: a glob that hits one heals them for 4."),
@@ -109,6 +136,10 @@ namespace Anathema.Abilities.PlagueSurgeon
                 "Healing you give beyond what someone can recover becomes a barrier on them (up to 15, for 3s)."),
             new UpgradeDef(FieldTriage, UpgradeCategory.Remedy, "Field Triage",
                 "Your healing cloud washes bleeding and burning off allies inside it, and they take 50% less damage over time while they stay in it."),
+            new UpgradeDef(LeechDraught, UpgradeCategory.Remedy, "Leech Draught",
+                "Allies who hit a Festering enemy heal for 15% of the damage they deal."),
+            new UpgradeDef(GratefulPatients, UpgradeCategory.Remedy, "Grateful Patients",
+                "Healing you give to allies builds energy: 1 for every 4 health restored."),
         };
     }
 }

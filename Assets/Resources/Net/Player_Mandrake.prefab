@@ -323,8 +323,8 @@ MonoBehaviour:
   poisonDamagePerSecond: 2
   poisonDuration: 4
   windup: 0.35
-  dashDuration: 0.2
-  blinkPause: 0.15
+  dashDuration: 0.4
+  blinkPause: 0.25
 --- !u!114 &5805089132585312830
 MonoBehaviour:
   m_ObjectHideFlags: 0

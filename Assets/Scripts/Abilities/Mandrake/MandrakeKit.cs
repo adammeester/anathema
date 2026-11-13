@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Anathema.Combat;
+using Anathema.Upgrades;
 using UnityEngine;
 
 namespace Anathema.Abilities.Mandrake
@@ -18,8 +19,14 @@ namespace Anathema.Abilities.Mandrake
         // Any strike thrown out of Shadow Veil briefly stuns what it hits (Shadow Rend has its own, longer stun).
         public const float StealthStrikeStun = 0.5f;
 
-        public static float VenomScale(Health target) =>
-            target != null && Poisoned.IsPoisoned(target.gameObject) ? 1f + VenomBonus : 1f;
+        // Hunter's Patience raises the bonus. (Judged on the owner's machine, which only knows whether a target is
+        // poisoned, not how many stacks it carries.)
+        public static float VenomScale(GameObject mandrake, Health target)
+        {
+            if (target == null || !Poisoned.IsPoisoned(target.gameObject)) return 1f;
+            bool patient = UpgradeState.Has(mandrake, MandrakeUpgrade.HuntersPatience);
+            return 1f + (patient ? MandrakeUpgrade.HuntersPatienceVenomBonus : VenomBonus);
+        }
 
         // Called by every attack when it strikes: reveals the Mandrake and spends a waiting Shadow Jump bonus.
         // Returns the flat bonus damage to add to this attack (0 if none) and whether it came out of stealth.

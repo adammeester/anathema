@@ -79,14 +79,26 @@ namespace Anathema.EditorTools
         [MenuItem("Anathema/Rebuild Arena Scene (Mandrake)")]
         static void BuildMandrake() => Build(Character.Mandrake);
 
-        static void Build(Character character)
+        // The training ground on the Crucible map (breakable floor), in its own scene so Arena.unity stays as it is.
+        // Slams that break the floor: the Berserker's R, and the Grey Knight's Q while the Daemonhammer is equipped (F1 panel).
+        internal const string CrucibleTrainingPath = "Assets/Scenes/Arena_Crucible.unity";
+
+        [MenuItem("Anathema/Arenas/Rebuild Crucible Training (Khorne Berserker)")]
+        static void BuildCrucibleBerserker() => Build(Character.KhorneBerserker, MapCrucible, CrucibleTrainingPath);
+
+        [MenuItem("Anathema/Arenas/Rebuild Crucible Training (Grey Knight)")]
+        static void BuildCrucibleGreyKnight() => Build(Character.GreyKnight, MapCrucible, CrucibleTrainingPath);
+
+        static void Build(Character character) => Build(character, MapColosseum, ScenePath);
+
+        static void Build(Character character, int map, string scenePath)
         {
             if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo()) return;
 
             var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-            CreateLight();
-            CreateArena(MapColosseum, readyRooms: true);
+            CreateLight(map);
+            CreateArena(map, readyRooms: true);
             new GameObject("Gas Zone").AddComponent<GasZone>();
             new GameObject("Orb Spawner").AddComponent<OrbSpawner>();
             GameObject player = CreatePlayer(character);
@@ -96,7 +108,7 @@ namespace Anathema.EditorTools
                 if (!room.IsLeft) continue;
                 player.transform.SetPositionAndRotation(room.SlotPosition(0, 1, out Quaternion facing), facing);
             }
-            CreateCamera(player.transform);
+            CreateCamera(player.transform, map);
             GameObject shooter = CreateDummy(new Vector3(10f, 1f, 8f));
             shooter.name = "Training Dummy (Shooter)";
             shooter.AddComponent<DummyShooter>();
@@ -110,18 +122,21 @@ namespace Anathema.EditorTools
             mover.name = "Training Dummy (Moving)";
             mover.AddComponent<DummyMover>().Configure(Vector3.right, 10f, 4f);
 
-            Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
-            EditorSceneManager.SaveScene(scene, ScenePath);
-            // Add the arena to the build list without dropping the Menu and Versus scenes the online game loads by name.
-            if (!EditorBuildSettings.scenes.Any(s => s.path == ScenePath))
+            Directory.CreateDirectory(Path.GetDirectoryName(scenePath));
+            EditorSceneManager.SaveScene(scene, scenePath);
+            // Add the training arena to the build list without dropping the Menu and Versus scenes the online game loads
+            // by name. (The Crucible training scene is for the editor only.)
+            if (scenePath == ScenePath && !EditorBuildSettings.scenes.Any(s => s.path == ScenePath))
                 EditorBuildSettings.scenes = EditorBuildSettings.scenes.Append(new EditorBuildSettingsScene(ScenePath, true)).ToArray();
             AssetDatabase.SaveAssets();
-            Debug.Log($"Built {ScenePath}. Press Play.");
+            Debug.Log($"Built {scenePath}. Press Play.");
         }
 
-        // Maps the online game cycles through. 0 = the gladiator colosseum, 1 = the ruined shrine.
+        // Maps the online game cycles through. 0 = the gladiator colosseum, 1 = the ruined shrine, 2 = the forge crucible
+        // (breakable floor over lava).
         internal const int MapColosseum = 0;
         internal const int MapShrine = 1;
+        internal const int MapCrucible = 2;
 
         internal static void CreateLight(int map = MapColosseum)
         {
@@ -138,6 +153,16 @@ namespace Anathema.EditorTools
                 light.color = new Color(0.62f, 0.8f, 0.78f);
                 go.transform.rotation = Quaternion.Euler(58f, 25f, 0f);
                 RenderSettings.ambientLight = new Color(0.13f, 0.17f, 0.16f);
+                return;
+            }
+
+            if (map == MapCrucible)
+            {
+                // Dim, smoky forge light from above; the lava does most of the lighting.
+                light.intensity = 0.7f;
+                light.color = new Color(1f, 0.66f, 0.45f);
+                go.transform.rotation = Quaternion.Euler(55f, 40f, 0f);
+                RenderSettings.ambientLight = new Color(0.26f, 0.13f, 0.09f);
                 return;
             }
 
@@ -160,6 +185,11 @@ namespace Anathema.EditorTools
             if (map == MapShrine)
             {
                 CreateShrineArena(readyRooms);
+                return;
+            }
+            if (map == MapCrucible)
+            {
+                CreateCrucibleArena(readyRooms);
                 return;
             }
 
@@ -557,6 +587,267 @@ namespace Anathema.EditorTools
             }
 
             if (readyRooms) CreateReadyRooms(ArenaRadius, flag, stone, stoneDark, 3.6f);
+        }
+
+        // The Crucible: a forge-temple floor of stone plates laid over a lava bed. Same 28m round footprint and ready-room
+        // doorways as the other maps, but a different cover layout (mirror symmetric across both axes, so both teams get
+        // the same ground):
+        //   - a solid iron dais in the centre ringed by four anvils (tight fighting around the charge orb),
+        //   - two split forge walls north and south of it, with a gap in the middle of each,
+        //   - a bulwark in front of each doorway, shielding the approach from long lanes,
+        //   - an L-shaped bunker in each corner, open towards the centre,
+        //   - a solid iron walkway ring at the spawn radius and solid approaches to the doorways.
+        // Every other plate can be smashed by ground slams (see DestructibleFloor), opening a fire pit for a while.
+        static void CreateCrucibleArena(bool readyRooms = false)
+        {
+            const float ArenaRadius = 28f;
+            const int WallSegments = 24;
+            const float Spacing = 2.4f;   // plate grid
+            const float Plate = 2.27f;    // plate size: the gap between plates shows the glowing bed beneath
+            const float PlateTop = 0.08f;
+            const float PlateThickness = 0.3f;
+            const float DaisRadius = 3.7f;
+            const float WalkwayInner = 20.4f, WalkwayOuter = 24.4f; // NetGame's free-for-all spawns are at 23m
+
+            Material pit = GetMaterial("CruciblePit", new Color(0.03f, 0.02f, 0.02f));
+            Material basaltA = GetMaterial("CrucibleBasaltA", new Color(0.16f, 0.12f, 0.11f));
+            Material basaltB = GetMaterial("CrucibleBasaltB", new Color(0.19f, 0.14f, 0.12f));
+            Material basaltC = GetMaterial("CrucibleBasaltC", new Color(0.13f, 0.1f, 0.1f));
+            Material iron = GetMaterial("CrucibleIron", new Color(0.23f, 0.22f, 0.24f));
+            // The unbreakable deck: lighter, cooler steel laid without seams, so it reads apart from the breakable stone.
+            Material deck = GetMaterial("CrucibleDeck", new Color(0.36f, 0.36f, 0.4f));
+            Material deckAlt = GetMaterial("CrucibleDeckAlt", new Color(0.32f, 0.32f, 0.36f));
+            Material ironDark = GetMaterial("CrucibleIronDark", new Color(0.09f, 0.09f, 0.1f));
+            Material brass = GetMaterial("CrucibleBrass", new Color(0.55f, 0.4f, 0.16f));
+            Material molten = GetUnlitMaterial("CrucibleMolten", new Color(1f, 0.45f, 0.08f));
+            Material ember = GetUnlitMaterial("CrucibleEmber", new Color(0.62f, 0.17f, 0.03f));
+            Material lavaLake = GetUnlitMaterial("CrucibleLavaLake", new Color(0.45f, 0.1f, 0.02f));
+
+            var rng = new System.Random(2026);
+
+            // Collider floor; outside the wall it sits under a lava lake, inside under the glowing bed and the plates.
+            Box("Ground Collider", new Vector3(0f, -0.5f, 0f), new Vector3(130f, 1f, 130f), pit);
+            Disc("Lava Lake", 200f, 0.005f, lavaLake);
+            Disc("Molten Bed", ArenaRadius * 2f + 2f, 0.03f, ember);
+
+            // ---- Cover (built first: the plates under it are made solid) --------------------------------------------
+            var footprints = new System.Collections.Generic.List<(Vector3 centre, Vector3 size, float yaw)>();
+
+            GameObject Cover(string name, Vector3 centre, Vector3 size, float yaw, Material body)
+            {
+                Quaternion rot = Quaternion.Euler(0f, yaw, 0f);
+                var block = Box(name, new Vector3(centre.x, size.y * 0.5f, centre.z), size, body);
+                block.transform.rotation = rot;
+                var cap = Box(name + " Cap", new Vector3(centre.x, size.y + 0.08f, centre.z), new Vector3(size.x + 0.25f, 0.16f, size.z + 0.25f), ironDark);
+                cap.transform.rotation = rot;
+                RemoveCollider(cap);
+                var glow = Box(name + " Glow", new Vector3(centre.x, 0.12f, centre.z), new Vector3(size.x + 0.18f, 0.06f, size.z + 0.18f), molten);
+                glow.transform.rotation = rot;
+                RemoveCollider(glow);
+                footprints.Add((centre, size, yaw));
+                return block;
+            }
+
+            // Four anvils around the dais, on the diagonals.
+            for (int i = 0; i < 4; i++)
+            {
+                float angle = 45f + i * 90f;
+                Vector3 c = RadialPos(5.4f, angle, 0f);
+                Cover($"Anvil {i}", c, new Vector3(1.5f, 1.3f, 1.5f), 45f - angle, ironDark);
+                var top = Box($"Anvil Face {i}", new Vector3(c.x, 1.42f, c.z), new Vector3(1.1f, 0.08f, 1.1f), brass);
+                top.transform.rotation = Quaternion.Euler(0f, 45f - angle, 0f);
+                RemoveCollider(top);
+            }
+
+            // Split forge walls north and south of the centre, each with a molten channel along the top.
+            for (int sz = -1; sz <= 1; sz += 2)
+            for (int sx = -1; sx <= 1; sx += 2)
+            {
+                Vector3 c = new Vector3(sx * 3.1f, 0f, sz * 9.6f);
+                Cover($"Forge Wall {(sz < 0 ? "S" : "N")}{(sx < 0 ? "W" : "E")}", c, new Vector3(4.2f, 1.8f, 1.1f), 0f, iron);
+                var channel = Box($"Forge Channel {sz}{sx}", new Vector3(c.x, 1.97f, c.z), new Vector3(3.8f, 0.04f, 0.4f), molten);
+                RemoveCollider(channel);
+            }
+
+            // A bulwark in front of each doorway.
+            for (int sx = -1; sx <= 1; sx += 2)
+            {
+                Vector3 c = new Vector3(sx * 12.6f, 0f, 0f);
+                Cover($"Bulwark {(sx < 0 ? "W" : "E")}", c, new Vector3(1.1f, 1.8f, 4.6f), 0f, iron);
+                for (int k = -1; k <= 1; k += 2)
+                {
+                    var rib = Box($"Bulwark Rib {sx}{k}", new Vector3(c.x, 0.9f, k * 1.6f), new Vector3(1.3f, 1.7f, 0.25f), brass);
+                    RemoveCollider(rib);
+                }
+            }
+
+            // An L-shaped bunker in each corner: two arms meeting at the outer corner, open towards the centre.
+            for (int sz = -1; sz <= 1; sz += 2)
+            for (int sx = -1; sx <= 1; sx += 2)
+            {
+                const float CornerX = 15f, CornerZ = 14f, Arm = 4.4f, Thick = 1.1f;
+                string q = (sz < 0 ? "S" : "N") + (sx < 0 ? "W" : "E");
+                Cover($"Bunker {q} A", new Vector3(sx * (CornerX - Arm * 0.5f + Thick * 0.5f), 0f, sz * CornerZ), new Vector3(Arm, 1.8f, Thick), 0f, iron);
+                // (B runs from A's inner face towards the centre, so the two meet without a gap.)
+                Cover($"Bunker {q} B", new Vector3(sx * CornerX, 0f, sz * (CornerZ - Arm * 0.5f)), new Vector3(Thick, 1.8f, Arm - Thick), 0f, iron);
+                AddBrazier($"Bunker Brazier {q}", new Vector3(sx * (CornerX - 1.5f), 0f, sz * (CornerZ - 1.5f)), ironDark, molten, false);
+            }
+
+            bool UnderCover(Vector2 c)
+            {
+                float half = Plate * 0.4f;
+                foreach (var f in footprints)
+                {
+                    Vector3 local = Quaternion.Euler(0f, -f.yaw, 0f) * (new Vector3(c.x, 0f, c.y) - new Vector3(f.centre.x, 0f, f.centre.z));
+                    if (Mathf.Abs(local.x) <= f.size.x * 0.5f + half && Mathf.Abs(local.z) <= f.size.z * 0.5f + half) return true;
+                }
+                return false;
+            }
+
+            // ---- Floor plates --------------------------------------------------------------------------------------
+            var floorRoot = new GameObject("Destructible Floor");
+            var deckRoot = new GameObject("Iron Deck");
+            var plates = new System.Collections.Generic.List<Transform>();
+            var cells = new System.Collections.Generic.List<Vector2Int>();
+            Material[] basalt = { basaltA, basaltB, basaltC };
+            int extent = Mathf.CeilToInt((ArenaRadius + 1f) / Spacing);
+            for (int gz = -extent; gz <= extent; gz++)
+            for (int gx = -extent; gx <= extent; gx++)
+            {
+                var c = new Vector2(gx * Spacing, gz * Spacing);
+                float r = c.magnitude;
+                if (r > ArenaRadius + 0.8f) continue; // the outermost plates tuck under the wall
+
+                bool solid = r < DaisRadius
+                             || (r >= WalkwayInner && r <= WalkwayOuter)
+                             || (Mathf.Abs(c.y) < 3.7f && Mathf.Abs(c.x) > WalkwayInner) // doorway approaches
+                             || UnderCover(c);
+
+                Material m = solid ? ((gx + gz) % 2 == 0 ? deck : deckAlt) : basalt[rng.Next(basalt.Length)];
+                float size = solid ? Spacing + 0.01f : Plate;
+                var plate = Box($"Plate {gx},{gz}", new Vector3(c.x, PlateTop - PlateThickness * 0.5f, c.y), new Vector3(size, PlateThickness, size), m);
+                RemoveCollider(plate); // everyone walks on the ground collider; the plates are only the look
+                plate.transform.SetParent(solid ? deckRoot.transform : floorRoot.transform, true);
+                if (solid) continue;
+                // A faint ember crack across some plates, so the breakable stone reads differently from the iron deck.
+                if (rng.NextDouble() < 0.35)
+                {
+                    var crack = Box("Crack", Vector3.zero, new Vector3(Plate * 0.7f, 0.01f, 0.07f), ember);
+                    RemoveCollider(crack);
+                    crack.transform.SetParent(plate.transform, false);
+                    crack.transform.localScale = new Vector3(0.7f, 0.04f, 0.03f);
+                    crack.transform.localPosition = new Vector3(0f, 0.5f, 0f);
+                    crack.transform.localRotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 180f, 0f);
+                }
+                plates.Add(plate.transform);
+                cells.Add(new Vector2Int(gx, gz));
+            }
+            floorRoot.AddComponent<DestructibleFloor>().Configure(Spacing, plates.ToArray(), cells.ToArray());
+
+            // The dais: a brass ring around the forge core, where the charge orb appears.
+            Disc("Dais Ring", DaisRadius * 2f, 0.1f, brass);
+            Disc("Dais Plate", DaisRadius * 2f - 0.5f, 0.11f, ironDark);
+            Disc("Forge Core Rim", 3.0f, 0.12f, brass);
+            Disc("Forge Core", 2.4f, 0.13f, molten);
+            var coreLight = new GameObject("Forge Core Light");
+            coreLight.transform.position = new Vector3(0f, 1.4f, 0f);
+            AddLight(coreLight, new Color(1f, 0.5f, 0.15f), 10f, 1.4f);
+
+            // ---- Perimeter: iron wall segments with a molten base trim and vents --------------------------------------
+            float chord = 2f * (ArenaRadius + 1f) * Mathf.Tan(Mathf.PI / WallSegments) + 0.25f;
+            for (int i = 0; i < WallSegments; i++)
+            {
+                if (readyRooms && IsDoorSegment(i)) continue;
+                float angle = i * 360f / WallSegments;
+                Quaternion rot = Quaternion.Euler(0f, 90f - angle, 0f);
+
+                var seg = Box($"Wall {i}", RadialPos(ArenaRadius + 1.1f, angle, 1.6f), new Vector3(chord, 3.2f, 1.6f), iron);
+                seg.transform.rotation = rot;
+                var trim = Box($"Wall Trim {i}", RadialPos(ArenaRadius + 0.28f, angle, 0.12f), new Vector3(chord, 0.16f, 0.32f), molten);
+                trim.transform.rotation = rot;
+                RemoveCollider(trim);
+                var cap = Box($"Wall Cap {i}", RadialPos(ArenaRadius + 1.1f, angle, 3.3f), new Vector3(chord, 0.25f, 1.9f), ironDark);
+                cap.transform.rotation = rot;
+                RemoveCollider(cap);
+
+                if (i % 2 == 1)
+                {
+                    // A glowing furnace vent in the wall face.
+                    var vent = Box($"Wall Vent {i}", RadialPos(ArenaRadius + 0.26f, angle, 1.5f), new Vector3(1.6f, 0.9f, 0.06f), ember);
+                    vent.transform.rotation = rot;
+                    RemoveCollider(vent);
+                    for (int b = -1; b <= 1; b++)
+                    {
+                        var bar = Box($"Wall Vent Bar {i}.{b}", RadialPos(ArenaRadius + 0.2f, angle, 1.5f) + rot * Vector3.right * (b * 0.45f), new Vector3(0.1f, 1.0f, 0.08f), ironDark);
+                        bar.transform.rotation = rot;
+                        RemoveCollider(bar);
+                    }
+                }
+                else
+                {
+                    // A chimney stack on the wall.
+                    var stack = Box($"Wall Stack {i}", RadialPos(ArenaRadius + 1.5f, angle, 4.6f), new Vector3(1f, 2.6f, 1f), ironDark);
+                    stack.transform.rotation = rot;
+                    RemoveCollider(stack);
+                    var mouth = Box($"Wall Stack Glow {i}", RadialPos(ArenaRadius + 1.5f, angle, 5.95f), new Vector3(0.7f, 0.08f, 0.7f), molten);
+                    mouth.transform.rotation = rot;
+                    RemoveCollider(mouth);
+                }
+            }
+
+            // Warm lights around the edge, between the doorways.
+            for (int i = 0; i < 8; i++)
+            {
+                var lightGo = new GameObject($"Forge Light {i}");
+                lightGo.transform.position = RadialPos(25.5f, 22.5f + i * 45f, 2.2f);
+                AddLight(lightGo, new Color(1f, 0.45f, 0.15f), 10f, 1.1f);
+            }
+
+            // ---- Outside: forge towers rising out of the lava lake, and two great crucibles at north and south ----------
+            for (int i = 0; i < 20; i++)
+            {
+                float angle = i * 18f + (float)rng.NextDouble() * 6f;
+                float radius = 36f + (float)rng.NextDouble() * 9f;
+                float h = 8f + (float)rng.NextDouble() * 12f;
+                Vector3 p = RadialPos(radius, angle, h * 0.5f);
+                if (readyRooms && InReadyRoomZone(p)) continue;
+                if (Mathf.Abs(p.x) < 7f) continue; // leave room for the crucibles
+                var tower = Box($"Forge Tower {i}", p, new Vector3(2.4f + (float)rng.NextDouble() * 2f, h, 2.4f + (float)rng.NextDouble() * 2f), ironDark);
+                tower.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 90f, 0f);
+                RemoveCollider(tower);
+                var window = Box($"Forge Tower Glow {i}", RadialPos(radius - 2.3f, angle, h * 0.75f), new Vector3(0.5f, h * 0.3f, 0.5f), ember);
+                RemoveCollider(window);
+            }
+            for (int sz = -1; sz <= 1; sz += 2)
+            {
+                Vector3 c = new Vector3(0f, 0f, sz * 38f);
+                var body = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                body.name = $"Great Crucible {(sz < 0 ? "S" : "N")}";
+                body.transform.position = c + Vector3.up * 5f;
+                body.transform.localScale = new Vector3(9f, 5f, 9f);
+                body.GetComponent<Renderer>().sharedMaterial = ironDark;
+                RemoveCollider(body);
+                var rim = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                rim.name = "Crucible Rim";
+                rim.transform.position = c + Vector3.up * 10.05f;
+                rim.transform.localScale = new Vector3(9.6f, 0.15f, 9.6f);
+                rim.GetComponent<Renderer>().sharedMaterial = brass;
+                RemoveCollider(rim);
+                var melt = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                melt.name = "Crucible Melt";
+                melt.transform.position = c + Vector3.up * 10.1f;
+                melt.transform.localScale = new Vector3(8f, 0.12f, 8f);
+                melt.GetComponent<Renderer>().sharedMaterial = molten;
+                RemoveCollider(melt);
+                // The pour: a stream of molten metal down into the lake on the arena side.
+                var pour = Box($"Crucible Pour {sz}", c + new Vector3(0f, 5f, -sz * 4.8f), new Vector3(0.7f, 10f, 0.7f), molten);
+                RemoveCollider(pour);
+                var lightGo = new GameObject("Crucible Light");
+                lightGo.transform.position = c + new Vector3(0f, 6f, -sz * 6f);
+                AddLight(lightGo, new Color(1f, 0.5f, 0.15f), 18f, 2f);
+            }
+
+            if (readyRooms) CreateReadyRooms(ArenaRadius, iron, iron, ironDark, 3.2f);
         }
 
         // Two ready rooms outside the perimeter wall, one through each doorway (-X "left" and +X "right"). Each is a walled
@@ -1159,7 +1450,9 @@ namespace Anathema.EditorTools
             var go = new GameObject("Main Camera") { tag = "MainCamera" };
             var camera = go.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = map == MapShrine ? new Color(0.02f, 0.04f, 0.04f) : new Color(0.08f, 0.03f, 0.03f);
+            camera.backgroundColor = map == MapShrine ? new Color(0.02f, 0.04f, 0.04f)
+                : map == MapCrucible ? new Color(0.1f, 0.03f, 0.01f)
+                : new Color(0.08f, 0.03f, 0.03f);
             camera.nearClipPlane = 0.3f;
             camera.farClipPlane = 200f;
             go.AddComponent<AudioListener>();

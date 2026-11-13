@@ -23,6 +23,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         Material material;
         float stackDuration;     // of the latest stack laid, for Contagion's spread
         float nextSpread;        // Contagion: when a target held at maximum next passes a stack on
+        float nextLeechRefresh;  // Leech Draught: when the mark on the host is next topped up
 
         // Without Virulence (see PlagueSurgeonUpgradeEffects.MaxFesteringStacks).
         public const int MaxStacks = 3;
@@ -63,6 +64,15 @@ namespace Anathema.Abilities.PlagueSurgeon
             return festering;
         }
 
+        // Bursting Pustules: strips every stack at once and says how many there were. The component goes with its next
+        // update unless a new stack is laid first.
+        public int Consume()
+        {
+            int count = expiries.Count;
+            expiries.Clear();
+            return count;
+        }
+
         void Awake()
         {
             health = GetComponent<Health>();
@@ -87,6 +97,13 @@ namespace Anathema.Abilities.PlagueSurgeon
             SyncBlobs();
 
             if (Anathema.Net.NetGame.Frozen) return;
+
+            // Leech Draught: keep the mark up on the copy where damage is resolved while the rot lasts.
+            if (Time.time >= nextLeechRefresh && PlagueSurgeonUpgradeEffects.Has(source, PlagueSurgeonUpgrade.LeechDraught))
+            {
+                nextLeechRefresh = Time.time + LeechMark.RefreshInterval;
+                LeechMark.Refresh(gameObject, source, PlagueSurgeonUpgrade.LeechMarkSeconds);
+            }
 
             // Contagion: a target held at maximum passes a stack on every few seconds.
             if (!HasContagion || expiries.Count < Cap) nextSpread = Time.time + PlagueSurgeonUpgrade.ContagionInterval;

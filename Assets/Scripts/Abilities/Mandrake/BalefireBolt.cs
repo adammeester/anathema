@@ -40,12 +40,69 @@ namespace Anathema.Abilities.Mandrake
 
         protected override bool IsTriggered() => Input.GetMouseButtonDown(1);
 
+        // ---- Twin Flames: two bolts in reserve, each recharging on its own -----------------------------------------
+        // A second bolt landing on a burning target bursts the first one's flames (any Mandrake hit does) and lights
+        // them again.
+
+        readonly float[] chargeReady = new float[2];
+
+        bool TwoCharges => MandrakeUpgradeEffects.Has(gameObject, MandrakeUpgrade.TwinFlames);
+        float ChargeCooldown => MandrakeUpgrade.TwinFlamesChargeCooldown * CooldownScale;
+
+        int ReadyCharges
+        {
+            get
+            {
+                int n = 0;
+                foreach (float t in chargeReady) if (Time.time >= t) n++;
+                return n;
+            }
+        }
+
+        public override int ChargeCapacity => TwoCharges ? 2 : 1;
+        public override int ChargesReady => TwoCharges ? ReadyCharges : 0;
+        protected override bool HasSpareCharge => TwoCharges && ReadyCharges > 0;
+
+        public override float CooldownRemaining =>
+            TwoCharges ? (ReadyCharges > 0 ? 0f : Mathf.Max(0f, Mathf.Min(chargeReady[0], chargeReady[1]) - Time.time)) : base.CooldownRemaining;
+
+        public override float CooldownNormalized
+        {
+            get
+            {
+                if (!TwoCharges) return base.CooldownNormalized;
+                float full = ChargeCooldown;
+                return full > 0f ? Mathf.Clamp01(CooldownRemaining / full) : 0f;
+            }
+        }
+
+        // One bolt is ready and the other is still recharging: report how far off it is.
+        public override float ChargeRechargeNormalized
+        {
+            get
+            {
+                if (!TwoCharges || ReadyCharges != 1) return 0f;
+                float full = ChargeCooldown;
+                if (full <= 0f) return 0f;
+                float pending = Time.time >= chargeReady[0] ? chargeReady[1] : chargeReady[0];
+                return Mathf.Clamp01((pending - Time.time) / full);
+            }
+        }
+
+        // Spends a ready charge (else the one closest to ready); only that one starts recharging.
+        void SpendCharge()
+        {
+            int used = Time.time >= chargeReady[0] ? 0 : Time.time >= chargeReady[1] ? 1 : (chargeReady[0] <= chargeReady[1] ? 0 : 1);
+            chargeReady[used] = Time.time + ChargeCooldown;
+        }
+
         // The bolt flies on every machine; only the owner's copy strikes (Health.Strike ignores a replica's).
         protected override void Activate()
         {
             Vector3 dir = MandrakeKit.FlatAim(Aim.AimDirection, transform);
             float bonus = 0f;
             if (!IsReplica) bonus = MandrakeKit.BeginStrike(gameObject, out _);
+            if (TwoCharges && !IsReplica) SpendCharge();
 
             Vector3 origin = transform.position + Vector3.up * muzzleHeight + dir * muzzleForward;
             if (boltMaterial == null) boltMaterial = VisualUtil.UnlitMaterial(Balefire.Tip, 3002);
@@ -81,7 +138,7 @@ namespace Anathema.Abilities.Mandrake
             Sfx.Play(Sfx.MagicAttack2, 0.3f, 0.85f, 0.95f);
 
             go.AddComponent<Projectile>()
-                .Init(gameObject, Health.Team, boltDamage + bonus, boltSpeed, boltRange, boltRadius, dir, OnBoltHit, MandrakeKit.VenomScale)
+                .Init(gameObject, Health.Team, boltDamage + bonus, boltSpeed, boltRange, boltRadius, dir, OnBoltHit, target => MandrakeKit.VenomScale(gameObject, target))
                 .WithRiders(Hit.Direct(0f).WithBalefire(burnDamagePerSecond, burnDuration));
         }
 

@@ -188,7 +188,7 @@ namespace Anathema.Abilities.Mandrake
             firstStrike = false;
             foreach (Health target in struck)
             {
-                float dealt = (damage + bonus) * MandrakeKit.VenomScale(target);
+                float dealt = (damage + bonus) * MandrakeKit.VenomScale(gameObject, target);
                 Hit hit = Hit.Direct(dealt).WithPoison(poisonStacks, poisonDamagePerSecond, poisonDuration);
                 target.Strike(hit, gameObject, landed =>
                 {
