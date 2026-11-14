@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Anathema.Abilities.GreyKnightInterceptor;
+using Anathema.Abilities.Hospitaller;
 using Anathema.Abilities.KhorneBerserker;
 using Anathema.Abilities.Mandrake;
 using Anathema.Abilities.PlagueSurgeon;
@@ -24,6 +25,7 @@ namespace Anathema.Upgrades
             { "PlagueSurgeon", PlagueSurgeonUpgrade.All },
             { "Mandrake", MandrakeUpgrade.All },
             { "SkitariiRanger", RangerUpgrade.All },
+            { "Hospitaller", HospitallerUpgrade.All },
         };
 
         // The pick on which a character may trade its weapon for another (weapon-group exclusivity is lifted for that pick).
@@ -41,11 +43,12 @@ namespace Anathema.Upgrades
             { "PlagueSurgeon", PlagueSurgeonUpgrade.Sets },
             { "Mandrake", MandrakeUpgrade.Sets },
             { "SkitariiRanger", RangerUpgrade.Sets },
+            { "Hospitaller", HospitallerUpgrade.Sets },
         };
 
         // Characters whose set slots draw one of their alternatives at random (seeded) instead of taking the first one
         // still available. Either way an owned or blocked alternative is skipped in favour of the next.
-        static readonly HashSet<string> ShuffledSlots = new HashSet<string> { "PlagueSurgeon" };
+        static readonly HashSet<string> ShuffledSlots = new HashSet<string> { "PlagueSurgeon", "Hospitaller" };
 
         // The offers for the pick after round `round` (1-based). Characters with fixed sets get exactly those (minus
         // anything already owned or blocked); past the last set, or for a character without sets, it falls back to a random draw.

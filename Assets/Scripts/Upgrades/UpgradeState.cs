@@ -69,6 +69,8 @@ namespace Anathema.Upgrades
                 gameObject.AddComponent<PlagueSurgeonUpgradeEffects>();
             if (character == "Mandrake" && GetComponent<MandrakeUpgradeEffects>() == null)
                 gameObject.AddComponent<MandrakeUpgradeEffects>();
+            if (character == "Hospitaller" && GetComponent<Anathema.Abilities.Hospitaller.HospitallerUpgradeEffects>() == null)
+                gameObject.AddComponent<Anathema.Abilities.Hospitaller.HospitallerUpgradeEffects>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!NetGame.Online && GetComponent<UpgradeTestPanel>() == null) gameObject.AddComponent<UpgradeTestPanel>();
 #endif

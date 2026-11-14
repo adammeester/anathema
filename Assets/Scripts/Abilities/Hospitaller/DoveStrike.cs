@@ -168,14 +168,20 @@ namespace Anathema.Abilities.Hospitaller
         {
             if (target == null || target.IsDead) return;
 
+            // Wrathful Doves: every stack of Faith sharpens the dive, and a dive on a Penance target hastens the tether.
+            bool wrathful = HospitallerUpgrade.Has(gameObject, HospitallerUpgrade.WrathfulDoves);
+            float bonus = wrathful ? HospitallerUpgrade.WrathfulDamagePerStack * Faith.For(gameObject).Stacks : 0f;
+            var tether = GetComponent<SanctifiedTether>();
+            bool hastens = wrathful && tether != null && tether.IsPenanced(target);
+
             Hit hit;
             if (golden)
             {
-                hit = Hit.Direct(BlessedSuffering.Scale(Health, exDamage)).WithPanic(exPanicSeconds);
+                hit = Hit.Direct(BlessedSuffering.Scale(Health, exDamage + bonus)).WithPanic(exPanicSeconds);
             }
             else
             {
-                hit = Hit.Direct(BlessedSuffering.Scale(Health, damage));
+                hit = Hit.Direct(BlessedSuffering.Scale(Health, damage + bonus));
                 bool roots = !rootableAt.TryGetValue(target, out float at) || Time.time >= at;
                 if (roots)
                 {
@@ -189,6 +195,7 @@ namespace Anathema.Abilities.Hospitaller
                 if (!landed) return;
                 HitMarkerSound.Play();
                 if (energy != null) energy.Gain(energyPerHit);
+                if (hastens) tether.ReduceRecharge(HospitallerUpgrade.WrathfulRechargeRefund);
             });
         }
 

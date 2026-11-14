@@ -18,6 +18,9 @@ namespace Anathema.Abilities.Hospitaller
         protected override void OnCounterSuccess(GameObject attacker)
         {
             HospitallerFx.Burst(transform.position, healRadius, new Color(1f, 0.9f, 0.5f, 0.8f), 0.5f, 0.5f);
+            // Sanctuary: a blow turned aside is faith rewarded. (This payoff runs on her own machine, where Faith lives.)
+            if (HospitallerUpgrade.Has(gameObject, HospitallerUpgrade.Sanctuary))
+                Faith.For(gameObject).AddStacks(HospitallerUpgrade.SanctuaryFaith);
             foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead || h.Structure || h.Team != Health.Team) continue;

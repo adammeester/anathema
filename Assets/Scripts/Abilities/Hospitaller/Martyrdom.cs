@@ -250,7 +250,12 @@ namespace Anathema.Abilities.Hospitaller
         void Burst()
         {
             active = false;
-            foreach (Link link in links) Unbind(link);
+            var bound = new List<Health>();
+            foreach (Link link in links)
+            {
+                if (link.Ally != null && !link.Ally.IsDead) bound.Add(link.Ally);
+                Unbind(link);
+            }
             links.Clear();
             StopFire();
 
@@ -259,8 +264,14 @@ namespace Anathema.Abilities.Hospitaller
             Sfx.Play(Sfx.SlamExplosion, 0.5f, 0.9f, 1f, 1.5f);
             if (IsReplica) return;
 
-            float damage = Mathf.Min(burstMaxDamage, burstBaseDamage + absorbed * burstPerAbsorbed);
+            Blessings(bound);
+
+            bool pyre = HospitallerUpgrade.Has(gameObject, HospitallerUpgrade.HolyPyre);
+            float cap = pyre ? HospitallerUpgrade.HolyPyreMaxDamage : burstMaxDamage;
+            float damage = Mathf.Min(cap, burstBaseDamage + absorbed * burstPerAbsorbed);
             damage = BlessedSuffering.Scale(Health, damage);
+            Hit hit = Hit.Direct(damage).AsAoe();
+            if (pyre) hit = hit.With(HitRider.HealCut(HospitallerUpgrade.HolyPyreHealCut, HospitallerUpgrade.HolyPyreHealCutSeconds));
             foreach (Health h in FindObjectsByType<Health>())
             {
                 if (h.IsDead || h.Team == Health.Team) continue;
@@ -268,10 +279,31 @@ namespace Anathema.Abilities.Hospitaller
                 to.y = 0f;
                 if (to.magnitude > burstRadius) continue;
                 Vector3 push = to.sqrMagnitude > 0.01f ? to.normalized : transform.forward;
-                h.Strike(Hit.Direct(damage).AsAoe().WithKnockback(push, burstKnockback, 0.3f), gameObject, landed =>
+                h.Strike(hit.WithKnockback(push, burstKnockback, 0.3f), gameObject, landed =>
                 {
                     if (landed) HitMarkerSound.Play();
                 });
+            }
+        }
+
+        // Her machine, as Martyrdom ends (even with her death, like the burst): the capstones that mend the allies it
+        // bound (only those still alive).
+        void Blessings(List<Health> bound)
+        {
+            // Saint's Aegis: a share of everything she bore comes back to them as healing.
+            if (HospitallerUpgrade.Has(gameObject, HospitallerUpgrade.SaintsAegis) && absorbed > 0f)
+                foreach (Health ally in bound)
+                    Healing.Apply(ally, absorbed * HospitallerUpgrade.SaintsAegisFraction, gameObject);
+
+            // Rapture: her blessings return to her at once, and each bound ally is healed.
+            if (HospitallerUpgrade.Has(gameObject, HospitallerUpgrade.Rapture))
+            {
+                if (TryGetComponent(out SanctusPulse sanctus)) sanctus.RestoreCharges();
+                foreach (Health ally in bound)
+                {
+                    Healing.Apply(ally, HospitallerUpgrade.RaptureHeal, gameObject);
+                    HospitallerFx.Burst(ally.transform.position, 1.4f, new Color(1f, 0.92f, 0.6f, 0.8f), 0.45f, 1f);
+                }
             }
         }
 

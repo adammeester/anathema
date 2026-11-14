@@ -41,7 +41,8 @@ namespace Anathema.Net
             Armor,      // short extra armour (a = fraction, b = seconds), e.g. Hive Shell, held by the server
             Leech,      // Leech Draught's mark on a festering enemy (a = seconds), held by the server
             Irradiated, // Rad-Saturation's mark: takes more damage (a = extra fraction, b = seconds); a hit rider, held where damage resolves
-            FaithArmor  // the Hospitaller's Faith reduction on herself (a = fraction, b = seconds), replaced on every refresh, held by the server
+            FaithArmor, // the Hospitaller's Faith reduction on herself (a = fraction, b = seconds), replaced on every refresh, held by the server
+            HealCut     // less healing received (a = share cut, b = seconds), e.g. Holy Pyre; a hit rider, held where damage resolves
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -942,7 +943,7 @@ namespace Anathema.Net
                 case StatusKind.Armor: if (health.IsAuthority) health.GrantTemporaryArmor(a, b); break;
                 case StatusKind.FaithArmor:
                     if (health.IsAuthority && GetComponent<Anathema.Abilities.Hospitaller.SanctifiedTether>() != null)
-                        health.HoldArmor(Mathf.Min(a, Anathema.Abilities.Hospitaller.Faith.MaxReduction), Mathf.Min(b, 1f));
+                        health.HoldArmor(Mathf.Min(a, Anathema.Abilities.Hospitaller.Faith.ReductionCeiling), Mathf.Min(b, 1f));
                     break;
                 case StatusKind.Leech: LeechMark.Refresh(gameObject, attacker, a); break;
             }

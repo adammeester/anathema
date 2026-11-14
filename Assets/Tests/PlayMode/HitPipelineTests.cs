@@ -336,6 +336,15 @@ namespace Anathema.Tests
         }
 
         [Test]
+        public void RaisedRecoverableCap_HoldsMoreHealableHealth()
+        {
+            victim.RaiseRecoverableCap(10f, 1f);
+            Strike(Hit.Direct(50f));
+
+            Assert.AreEqual(victim.Max * 0.2f + 10f, victim.Recoverable, 0.001f);
+        }
+
+        [Test]
         public void HeldArmor_CutsDamage_AndCanBeLowered()
         {
             victim.HoldArmor(0.25f, 1f);

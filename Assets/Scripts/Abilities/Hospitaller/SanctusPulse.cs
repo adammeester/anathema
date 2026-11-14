@@ -28,7 +28,21 @@ namespace Anathema.Abilities.Hospitaller
         public override int ChargesReady => ReadyCharges;
         public override string KeyLabel => "RMB";
 
-        float Recharge => rechargeTime * CooldownScale;
+        float Recharge => rechargeTime * CooldownScale
+                          * (HospitallerUpgrade.Has(gameObject, HospitallerUpgrade.SwiftPrayers) ? HospitallerUpgrade.SwiftPrayersScale : 1f);
+
+        // Rapture: every spent charge is back at once. Her machine.
+        public void RestoreCharges()
+        {
+            for (int i = 0; i < MaxCharges; i++) chargeReady[i] = 0f;
+        }
+
+        // Last Rites: a free blessing at `position`, placed by the copy that saved her life (the server online), which
+        // also resolves its healing there. No charge is spent and it builds no energy.
+        public void FreePulse(Vector3 position)
+        {
+            Pulse.Spawn(this, position, false, true);
+        }
 
         int ReadyCharges
         {
@@ -106,8 +120,10 @@ namespace Anathema.Abilities.Hospitaller
             Pulse.Spawn(this, spot, IsReplica);
         }
 
-        // On the owner's machine (or offline) when the pulse goes off: split the heal between the allies inside.
-        void Resolve(Vector3 centre)
+        // On the owner's machine (or offline) when the pulse goes off: split the heal between the allies inside
+        // (Communion: each gets a fixed share instead, or their split if that is more). `scale` is for the echo of
+        // Lingering Blessing; `free` pulses (Last Rites) build no energy.
+        void Resolve(Vector3 centre, float scale = 1f, bool free = false)
         {
             var inside = new List<Health>();
             foreach (Health h in FindObjectsByType<Health>())
@@ -120,8 +136,24 @@ namespace Anathema.Abilities.Hospitaller
 
             if (inside.Count == 0) return;
             float each = totalHeal / inside.Count;
+            if (HospitallerUpgrade.Has(gameObject, HospitallerUpgrade.Communion))
+                each = Mathf.Max(each, totalHeal * HospitallerUpgrade.CommunionShare);
+            each *= scale;
             foreach (Health h in inside) Healing.Apply(h, each, gameObject);
-            if (energy != null) energy.Gain(energyPerHeal);
+            if (energy != null && !free && !IsReplica) energy.Gain(energyPerHeal * scale);
+        }
+
+        // Hallowed Ground: allies standing on the blessing can hold more healable health for a moment. Applied where each
+        // ally's health is resolved, so every machine's copy of the blessing checks its own authoritative allies.
+        void Hallow(Vector3 centre, float seconds)
+        {
+            foreach (Health h in FindObjectsByType<Health>())
+            {
+                if (!h.IsAuthority || h.IsDead || h.Structure || h.Team != Health.Team) continue;
+                Vector3 d = h.transform.position - centre;
+                d.y = 0f;
+                if (d.magnitude <= radius) h.RaiseRecoverableCap(HospitallerUpgrade.HallowedBonus, seconds);
+            }
         }
 
         protected override void Cancel()
@@ -135,22 +167,34 @@ namespace Anathema.Abilities.Hospitaller
             const int RingPoints = 40;
             const float FlashTime = 0.45f;
 
+            const float HallowRefresh = 0.25f;
+
             SanctusPulse owner;
             bool visualOnly;
+            bool free;
+            bool lingering;  // Lingering Blessing: pulses again after a moment
+            bool hallowed;   // Hallowed Ground: the blessing stays on the ground
             float start;
             bool fired;
+            bool echoed;
+            float lastFlash;
+            float nextHallow;
             LineRenderer ring;
             Transform disc;
             Transform flash;
             Material ringMaterial, discMaterial, flashMaterial;
 
-            public static void Spawn(SanctusPulse owner, Vector3 position, bool visualOnly)
+            public static void Spawn(SanctusPulse owner, Vector3 position, bool visualOnly, bool free = false)
             {
                 var go = new GameObject("Sanctus Pulse");
                 go.transform.position = position + Vector3.up * 0.06f;
                 var p = go.AddComponent<Pulse>();
                 p.owner = owner;
                 p.visualOnly = visualOnly;
+                p.free = free;
+                // The upgrade mask is synced, so every machine's copy of the blessing behaves alike.
+                p.lingering = HospitallerUpgrade.Has(owner.gameObject, HospitallerUpgrade.LingeringBlessing);
+                p.hallowed = HospitallerUpgrade.Has(owner.gameObject, HospitallerUpgrade.HallowedGround);
                 p.start = Time.time;
                 p.Build();
             }
@@ -204,22 +248,59 @@ namespace Anathema.Abilities.Hospitaller
                     if (t < delay) return;
 
                     fired = true;
-                    disc.gameObject.SetActive(false);
+                    lastFlash = Time.time;
+                    // Hallowed ground keeps a faint disc for as long as it lasts.
+                    disc.gameObject.SetActive(hallowed);
+                    if (hallowed)
+                    {
+                        disc.localScale = new Vector3(r * 2f, 0.01f, r * 2f);
+                        discMaterial.color = new Color(1f, 0.9f, 0.55f, 0.15f);
+                    }
                     flash.gameObject.SetActive(true);
                     Sfx.Play(Sfx.MagicImpact, 0.4f, 1.2f, 1.35f, 0.8f);
-                    if (!visualOnly && owner != null) owner.Resolve(transform.position);
+                    if (!visualOnly && owner != null) owner.Resolve(transform.position, 1f, free);
                 }
 
-                float f = (t - delay) / FlashTime;
-                if (f >= 1f)
+                float since = t - delay;
+
+                // Lingering Blessing: a second, softer pulse.
+                if (lingering && !echoed && since >= HospitallerUpgrade.LingeringDelay)
+                {
+                    echoed = true;
+                    lastFlash = Time.time;
+                    flash.gameObject.SetActive(true);
+                    Sfx.Play(Sfx.MagicImpact, 0.3f, 1.3f, 1.45f, 0.6f);
+                    if (!visualOnly && owner != null) owner.Resolve(transform.position, HospitallerUpgrade.LingeringScale, free);
+                }
+
+                if (hallowed && owner != null && since < HospitallerUpgrade.HallowedSeconds && Time.time >= nextHallow)
+                {
+                    nextHallow = Time.time + HallowRefresh;
+                    owner.Hallow(transform.position, HallowRefresh + 0.15f);
+                }
+
+                float lifetime = FlashTime;
+                if (lingering) lifetime = Mathf.Max(lifetime, HospitallerUpgrade.LingeringDelay + FlashTime);
+                if (hallowed) lifetime = Mathf.Max(lifetime, HospitallerUpgrade.HallowedSeconds);
+                if (since >= lifetime)
                 {
                     Destroy(gameObject);
                     return;
                 }
-                float eased = 1f - (1f - f) * (1f - f);
-                flash.localScale = new Vector3(r * 2f, r * 1.2f * eased, r * 2f);
-                flashMaterial.color = new Color(1f, 0.95f, 0.65f, 0.4f * (1f - f));
-                ringMaterial.color = new Color(1f, 0.85f, 0.4f, 0.9f * (1f - f));
+
+                float f = (Time.time - lastFlash) / FlashTime;
+                if (f < 1f)
+                {
+                    float strength = echoed && lastFlash > start + delay ? 0.6f : 1f;
+                    float eased = 1f - (1f - f) * (1f - f);
+                    flash.localScale = new Vector3(r * 2f, r * 1.2f * eased, r * 2f);
+                    flashMaterial.color = new Color(1f, 0.95f, 0.65f, 0.4f * strength * (1f - f));
+                }
+                else if (flash.gameObject.activeSelf) flash.gameObject.SetActive(false);
+
+                // The ring holds while the blessing still has work to do, then fades over its last moment.
+                float fade = Mathf.Clamp01((lifetime - since) / FlashTime);
+                ringMaterial.color = new Color(1f, 0.85f, 0.4f, 0.9f * fade);
             }
 
             void OnDestroy()

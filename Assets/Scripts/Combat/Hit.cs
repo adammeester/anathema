@@ -41,6 +41,9 @@ namespace Anathema.Combat
         // Damage amplification, held where damage is resolved (the rider already runs there).
         public static HitRider Irradiate(float extraFraction, float seconds) =>
             new HitRider { Kind = (int)NetPlayer.StatusKind.Irradiated, A = extraFraction, B = seconds };
+        // Less healing received, held where damage is resolved (the rider already runs there).
+        public static HitRider HealCut(float share, float seconds) =>
+            new HitRider { Kind = (int)NetPlayer.StatusKind.HealCut, A = share, B = seconds };
         public static HitRider Maim(float seconds, float slowFraction) =>
             new HitRider { Kind = (int)NetPlayer.StatusKind.Maim, A = seconds, B = slowFraction };
 
@@ -123,6 +126,9 @@ namespace Anathema.Combat
                 case NetPlayer.StatusKind.Balefire: Balefire.Apply(victim, attacker, r.A, r.B); break;
                 case NetPlayer.StatusKind.Maim: Maimed.Apply(victim, r.A, r.B); break;
                 case NetPlayer.StatusKind.Irradiated: Irradiated.Apply(victim, r.A, r.B); break;
+                case NetPlayer.StatusKind.HealCut:
+                    if (victim.TryGetComponent(out Health cut) && cut.IsAuthority) cut.CutHealing(r.A, r.B);
+                    break;
                 case NetPlayer.StatusKind.Poison: Poisoned.Apply(victim, attacker, Mathf.RoundToInt(r.Direction.x), r.A, r.B); break;
                 default: Debug.LogWarning("Unsupported hit rider " + (NetPlayer.StatusKind)r.Kind); break;
             }

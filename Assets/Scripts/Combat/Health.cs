@@ -21,7 +21,22 @@ namespace Anathema.Combat
         // Share of max health (bonus max health included) that can be healable at once, so tanky characters get a
         // proportionally larger pool: 145 hp -> 29, 215 hp -> 43.
         [SerializeField] float maxRecoverableFraction = 0.2f;
-        public float MaxRecoverable => maxHealth * maxRecoverableFraction;
+        public float MaxRecoverable => maxHealth * maxRecoverableFraction + (Time.time < recoverableBonusEnd ? recoverableBonus : 0f);
+
+        // Healable health on this character fades this many times later and slower (Bearer of Burdens). Set from the
+        // upgrade mask on every copy; only the authority's decay matters.
+        public float RecoverableLinger { get; set; } = 1f;
+
+        // A short window in which this character can hold more healable health (Hallowed Ground). Authority only; the
+        // larger bonus and the later end win.
+        float recoverableBonus;
+        float recoverableBonusEnd = float.NegativeInfinity;
+
+        public void RaiseRecoverableCap(float bonus, float seconds)
+        {
+            recoverableBonus = Mathf.Max(Time.time < recoverableBonusEnd ? recoverableBonus : 0f, Mathf.Max(0f, bonus));
+            recoverableBonusEnd = Mathf.Max(recoverableBonusEnd, Time.time + seconds);
+        }
 
         NetPlayer net;
         float lastDamageTime = float.NegativeInfinity;
@@ -223,8 +238,11 @@ namespace Anathema.Combat
         {
             // Authority only; everyone else copies the server's numbers.
             if (!IsAuthority || Recoverable <= 0f || IsDead) return;
-            if (Time.time - lastDamageTime < recoverableDecayDelay) return;
-            Recoverable = Mathf.Max(0f, Recoverable - recoverableDecayRate * Time.deltaTime);
+            float linger = Mathf.Max(0.01f, RecoverableLinger);
+            if (Time.time - lastDamageTime < recoverableDecayDelay * linger) return;
+            Recoverable = Mathf.Max(0f, Recoverable - recoverableDecayRate / linger * Time.deltaTime);
+            // When a raised cap runs out, anything above the normal cap is lost for good.
+            Recoverable = Mathf.Min(Recoverable, MaxRecoverable);
         }
 
         public void SetBonusMaxHealth(float bonus)

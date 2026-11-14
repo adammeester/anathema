@@ -56,6 +56,8 @@ namespace Anathema.Abilities.Hospitaller
             public bool Ally;
             public bool Penance;
             public float Until;
+            public float Carried;      // her machine: damage carried on this ally link so far (Absolution)
+            public float TakenAtStart; // the enemy's RoundDamageTaken when Penance latched (Damnation)
             public float NextTick;
             public float DamageSeen; // the ally's RoundDamageTaken when last checked (Blessed Suffering)
             public LineRenderer Beam;
@@ -97,6 +99,27 @@ namespace Anathema.Abilities.Hospitaller
                 return enemyTargets;
             }
         }
+
+        // Does the tether hold `target` under Penance? (Wrathful Doves)
+        public bool IsPenanced(Health target)
+        {
+            foreach (Link l in links) if (l.Penance && l.Target == target) return true;
+            return false;
+        }
+
+        // Takes `seconds` off the spent charge that is closest to coming back (Wrathful Doves). Her machine only.
+        public void ReduceRecharge(float seconds)
+        {
+            int best = -1;
+            for (int i = 0; i < MaxCharges; i++)
+                if (chargeReady[i] > Time.time && (best < 0 || chargeReady[i] < chargeReady[best])) best = i;
+            if (best >= 0) chargeReady[best] -= seconds;
+        }
+
+        bool Has(int bit) => HospitallerUpgrade.Has(gameObject, bit);
+
+        // Shared Burden raises it. Read on the server (Share) and on her machine (Tick), both of which see the mask.
+        float ShareFraction => Has(HospitallerUpgrade.SharedBurden) ? HospitallerUpgrade.SharedBurdenFraction : shareFraction;
 
         // ---- Charges ------------------------------------------------------------------------------------------------
 
@@ -298,7 +321,8 @@ namespace Anathema.Abilities.Hospitaller
                 Target = target,
                 Ally = ally,
                 Penance = penance,
-                Until = Time.time + duration,
+                Until = Time.time + (penance && Has(HospitallerUpgrade.Judgement) ? HospitallerUpgrade.JudgementDuration : duration),
+                TakenAtStart = target.RoundDamageTaken,
                 NextTick = Time.time + tickInterval,
                 DamageSeen = target.RoundDamageTaken,
                 BeamMaterial = VisualUtil.UnlitMaterial(ally ? AllyColor : penance ? PenanceColor : EnemyColor, 3002),
@@ -330,8 +354,32 @@ namespace Anathema.Abilities.Hospitaller
 
         void DetachAll()
         {
-            foreach (Link l in links) Detach(l);
+            foreach (Link l in links) End(l);
             links.Clear();
+        }
+
+        // A link is over, however it ended. Her machine pays out the upgrades that trigger on that, then it is removed.
+        void End(Link l)
+        {
+            if (!IsReplica && !Health.IsDead && !Anathema.Net.NetGame.Frozen && l.Target != null && !l.Target.IsDead)
+            {
+                // Absolution: the ally is mended for a share of the pain she carried for them.
+                if (l.Ally && l.Carried > 0f && Has(HospitallerUpgrade.Absolution))
+                    Healing.Apply(l.Target, l.Carried * HospitallerUpgrade.AbsolutionFraction, gameObject);
+
+                // Damnation: Penance burns its target for a share of everything they took while it held.
+                if (l.Penance && Has(HospitallerUpgrade.Damnation))
+                {
+                    float taken = l.Target.RoundDamageTaken - l.TakenAtStart;
+                    float burn = Mathf.Min(HospitallerUpgrade.DamnationMax, taken * HospitallerUpgrade.DamnationFraction);
+                    if (burn >= 1f)
+                    {
+                        HospitallerFx.Burst(l.Target.transform.position, 1.4f, PenanceColor, 0.4f, 1f);
+                        l.Target.Strike(Hit.Direct(burn), gameObject, landed => { if (landed) HitMarkerSound.Play(); });
+                    }
+                }
+            }
+            Detach(l);
         }
 
         // Runs where an ally's damage is resolved (the server online). Her part goes straight to her own health.
@@ -339,7 +387,7 @@ namespace Anathema.Abilities.Hospitaller
         float Share(float amount, GameObject source)
         {
             if (Health.IsDead || links.Count == 0) return amount;
-            float carried = amount * shareFraction;
+            float carried = amount * ShareFraction;
             Health.TakeDamage(carried, source);
             return amount - carried;
         }
@@ -362,7 +410,7 @@ namespace Anathema.Abilities.Hospitaller
                         if (l.Target == null || l.Target.IsDead || Time.time >= l.Until
                             || FlatDistance(l.Target.transform.position) > leashRange)
                         {
-                            Detach(l);
+                            End(l);
                             links.RemoveAt(i);
                             continue;
                         }
@@ -370,7 +418,9 @@ namespace Anathema.Abilities.Hospitaller
                         if (l.Penance && l.Target.IsAuthority)
                         {
                             l.Target.CutHealing(penanceHealCut, PenanceRefresh);
-                            l.Target.Expose(penanceExposed, PenanceRefresh);
+                            l.Target.Expose(Has(HospitallerUpgrade.Judgement) ? HospitallerUpgrade.JudgementExposed : penanceExposed,
+                                PenanceRefresh);
+                            if (Has(HospitallerUpgrade.MartyrsDue)) MartyrsDueMark.Refresh(l.Target, Health, PenanceRefresh);
                         }
                         if (!IsReplica) Tick(l);
                     }
@@ -390,18 +440,33 @@ namespace Anathema.Abilities.Hospitaller
                 float taken = l.Target.RoundDamageTaken;
                 float delta = taken - l.DamageSeen;
                 l.DamageSeen = taken;
-                if (delta > 0f && shareFraction < 1f)
-                    BlessedSuffering.OnShared(gameObject, energy, delta * shareFraction / (1f - shareFraction));
+                float f = ShareFraction;
+                if (delta > 0f && f < 1f)
+                {
+                    float carried = delta * f / (1f - f);
+                    l.Carried += carried;
+                    BlessedSuffering.OnShared(gameObject, energy, carried);
+                }
                 return;
             }
 
             if (Time.time < l.NextTick) return;
             l.NextTick += tickInterval;
-            l.Target.Strike(Hit.Direct(BlessedSuffering.Scale(Health, tickDamage)), gameObject, landed =>
+
+            float damage = tickDamage;
+            Faith faith = Faith.For(gameObject);
+            // Searing Light: the burn flares while her Faith runs high.
+            if (Has(HospitallerUpgrade.SearingLight) && faith.Stacks >= HospitallerUpgrade.SearingLightMinStacks)
+                damage *= HospitallerUpgrade.SearingLightScale;
+            damage = BlessedSuffering.Scale(Health, damage);
+
+            l.Target.Strike(Hit.Direct(damage), gameObject, landed =>
             {
                 if (!landed) return;
                 HitMarkerSound.Play();
                 if (energy != null) energy.Gain(energyPerTick);
+                // Zealous Fervour: burning the wicked builds Faith as well.
+                if (Has(HospitallerUpgrade.ZealousFervour)) faith.AddZeal(damage);
             });
         }
 
@@ -485,7 +550,9 @@ namespace Anathema.Abilities.Hospitaller
 
         void OnDestroy()
         {
-            DetachAll();
+            // Torn down with the scene: just clean up, no payoffs.
+            foreach (Link l in links) Detach(l);
+            links.Clear();
             if (fizzleMaterial != null) Destroy(fizzleMaterial);
         }
     }
