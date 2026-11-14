@@ -331,6 +331,16 @@ MonoBehaviour:
   damagePerTick: 8
   turnRate: 110
   originHeight: 1.2
+  gatherLean: -14
+  gatherHead: -10
+  gatherStaffArm: -115
+  gatherReachArm: 35
+  gatherTremble: 4
+  channelLean: 12
+  channelHead: 4
+  channelStaffArm: -45
+  channelReachArm: -85
+  orbSize: 0.4
 --- !u!114 &4687864249785004690
 MonoBehaviour:
   m_ObjectHideFlags: 0

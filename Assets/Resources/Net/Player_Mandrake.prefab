@@ -190,10 +190,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.GlimmersteelBlade
   cooldown: 0.5
-  damage: 8
+  damage: 6
   range: 2.5
   arcDegrees: 90
-  finisherDamage: 16
+  finisherDamage: 12
   finisherRange: 3.2
   finisherArcDegrees: 200
   windupDuration: 0.12
@@ -225,7 +225,7 @@ MonoBehaviour:
   windup: 0.2
   boltDamage: 6
   burnDamagePerSecond: 5
-  burnDuration: 6
+  burnDuration: 4
   boltRange: 13
   boltSpeed: 22
   boltRadius: 0.3
