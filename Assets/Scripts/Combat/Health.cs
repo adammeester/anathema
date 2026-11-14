@@ -11,14 +11,17 @@ namespace Anathema.Combat
 
         // Battlerite-style health: damage first becomes "recoverable" (shown as black in the bar). Healing abilities
         // (Heal) can restore it. If it isn't healed for a while it decays into permanent loss (an empty, see-through
-        // part of the bar), which only healing orbs (HealPermanent) can restore. Damage beyond maxRecoverableFraction
-        // of a few chunks (maxRecoverableChunks) is permanent immediately.
+        // part of the bar), which only healing orbs (HealPermanent) can restore. At most maxRecoverableFraction of max
+        // health can be recoverable at once; damage beyond that is permanent immediately.
         [SerializeField] float recoverableDecayDelay = 4f;   // seconds after the last hit before white starts decaying
         [SerializeField] float recoverableDecayRate = 6f;    // white health lost to permanent loss per second
 
-        // Health bars are split into chunks; only this many chunks of damage can be healable (black), the rest is unrecoverable.
+        // Health bars are split into chunks of this much health (display only).
         public const float ChunkSize = 10f;
-        [SerializeField] int maxRecoverableChunks = 3;
+        // Share of max health (bonus max health included) that can be healable at once, so tanky characters get a
+        // proportionally larger pool: 145 hp -> 29, 215 hp -> 43.
+        [SerializeField] float maxRecoverableFraction = 0.2f;
+        public float MaxRecoverable => maxHealth * maxRecoverableFraction;
 
         NetPlayer net;
         float lastDamageTime = float.NegativeInfinity;
@@ -78,7 +81,32 @@ namespace Anathema.Combat
 
         public float HealingMultiplier => Time.time < healCutEnd ? 1f - healCut : 1f;
 
-        public float EffectiveArmor => Mathf.Min(MaxArmor, armor + (Time.time < tempArmorEnd ? tempArmor : 0f));
+        // A window in which this character takes extra damage from every source (Penance). Authority only; the
+        // stronger share and the later end win.
+        float exposed;
+        float exposedEnd = float.NegativeInfinity;
+
+        public void Expose(float extraFraction, float seconds)
+        {
+            exposed = Mathf.Max(Time.time < exposedEnd ? exposed : 0f, Mathf.Max(0f, extraFraction));
+            exposedEnd = Mathf.Max(exposedEnd, Time.time + seconds);
+        }
+
+        public float ExposedMultiplier => Time.time < exposedEnd ? 1f + exposed : 1f;
+
+        // Armour held by a passive that keeps refreshing it (the Hospitaller's Faith). Unlike GrantTemporaryArmor each
+        // refresh replaces the value, so it can fall as well as rise; it lapses if the refreshes stop. Authority only.
+        float heldArmor;
+        float heldArmorEnd = float.NegativeInfinity;
+
+        public void HoldArmor(float fraction, float seconds)
+        {
+            heldArmor = Mathf.Clamp(fraction, 0f, MaxArmor);
+            heldArmorEnd = Time.time + seconds;
+        }
+
+        public float EffectiveArmor => Mathf.Min(MaxArmor, armor + (Time.time < tempArmorEnd ? tempArmor : 0f)
+                                                           + (Time.time < heldArmorEnd ? heldArmor : 0f));
 
         // Extra resistance to area damage and damage over time only (Disgustingly Resilient), on top of armour.
         float areaResistance;
@@ -289,6 +317,7 @@ namespace Anathema.Combat
             if (amount <= 0f) return false;
 
             amount *= Irradiated.DamageMultiplier(gameObject); // Rad-Saturation: more damage from every source
+            amount *= ExposedMultiplier;                       // Penance: likewise
 
             pierce = Mathf.Clamp01(pierce);
             float armour = EffectiveArmor;
@@ -331,7 +360,7 @@ namespace Anathema.Combat
             RoundDamageTaken += dealt;
             DamageTaken?.Invoke(dealt, source);
             // Only so much damage can ever be healed back; anything beyond that is lost for good (orbs only).
-            Recoverable = Structure ? 0f : Mathf.Min(Recoverable + dealt, maxHealth - Current, maxRecoverableChunks * ChunkSize);
+            Recoverable = Structure ? 0f : Mathf.Min(Recoverable + dealt, maxHealth - Current, MaxRecoverable);
             lastDamageTime = Time.time;
             if (Current <= 0f) Recoverable = 0f;
             if (!dot && dealt >= maxHealth * PanicBreakFraction) Panicked.Cancel(gameObject);

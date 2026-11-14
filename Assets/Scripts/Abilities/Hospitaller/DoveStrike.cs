@@ -14,7 +14,7 @@ namespace Anathema.Abilities.Hospitaller
     // dives still do their damage), so three in a row is not a 2-second lockdown.
     //
     // EX (Shift, costs energy): Golden Dove. The doves turn gold, hit a little harder and panic their targets instead
-    // of rooting them; tethered to two enemies (Forked Tether), both are sent running.
+    // of rooting them; tethered to two enemies, both are sent running.
     public class DoveStrike : Ability
     {
         const int MaxCharges = HospitallerDoves.Count;

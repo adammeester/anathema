@@ -40,7 +40,8 @@ namespace Anathema.Net
             Balefire,   // the Mandrake's burst-on-hit burn (a = damage per second, b = seconds), held by the server
             Armor,      // short extra armour (a = fraction, b = seconds), e.g. Hive Shell, held by the server
             Leech,      // Leech Draught's mark on a festering enemy (a = seconds), held by the server
-            Irradiated  // Rad-Saturation's mark: takes more damage (a = extra fraction, b = seconds); a hit rider, held where damage resolves
+            Irradiated, // Rad-Saturation's mark: takes more damage (a = extra fraction, b = seconds); a hit rider, held where damage resolves
+            FaithArmor  // the Hospitaller's Faith reduction on herself (a = fraction, b = seconds), replaced on every refresh, held by the server
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -851,7 +852,7 @@ namespace Anathema.Net
 
         static bool IsSupportive(StatusKind kind) => kind == StatusKind.Ward || kind == StatusKind.Heal || kind == StatusKind.Enrage
                                                      || kind == StatusKind.Barrier || kind == StatusKind.Cleanse
-                                                     || kind == StatusKind.Armor;
+                                                     || kind == StatusKind.Armor || kind == StatusKind.FaithArmor;
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         void StatusServerRpc(int kind, float a, float b, Vector3 direction, NetworkObjectReference source, bool hasSource, RpcParams rpcParams = default)
@@ -939,6 +940,10 @@ namespace Anathema.Net
                 case StatusKind.Poison: Poisoned.Apply(gameObject, attacker, Mathf.RoundToInt(direction.x), a, b); break;
                 case StatusKind.Balefire: Balefire.Apply(gameObject, attacker, a, b); break;
                 case StatusKind.Armor: if (health.IsAuthority) health.GrantTemporaryArmor(a, b); break;
+                case StatusKind.FaithArmor:
+                    if (health.IsAuthority && GetComponent<Anathema.Abilities.Hospitaller.SanctifiedTether>() != null)
+                        health.HoldArmor(Mathf.Min(a, Anathema.Abilities.Hospitaller.Faith.MaxReduction), Mathf.Min(b, 1f));
+                    break;
                 case StatusKind.Leech: LeechMark.Refresh(gameObject, attacker, a); break;
             }
         }

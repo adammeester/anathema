@@ -164,12 +164,12 @@ namespace Anathema.Net
                 role = Role.Support, accent = new Color(1f, 0.85f, 0.45f),
                 blurb = "Battle-sister healer. Tethers foes to burn them or allies to share their pain, and blesses the ground to mend.",
                 footnote = "Hold Shift in game to use EX abilities",
-                passive = P("Blessed Suffering", "Damage you take for an ally (through your tether or Martyrdom) gives you energy and builds Faith. Every stack of Faith makes all your damage stronger. Go a few seconds without sharing any damage and the stacks fade one by one. Your Faith shows above your action bar.",
-                    "1 energy per 2 damage shared  |  1 Faith per 15 damage shared, max 5  |  +6% damage per stack  |  Fades after 4s"),
+                passive = P("Blessed Suffering", "Damage you take for an ally (through your tether or Martyrdom) gives you energy and builds Faith. Every stack of Faith makes all your damage stronger and makes you take less damage, including the damage you carry for allies. Go a few seconds without sharing any damage and the stacks fade one by one. Your Faith shows above your action bar.",
+                    "1 energy per 2 damage shared  |  1 Faith per 15 damage shared, max 5  |  +6% damage and -5% damage taken per stack  |  Fades after 4s"),
                 abilities = new[]
                 {
-                    A("LMB", "Sanctified Tether", "Click to cast a beam of light that latches onto the first character along your aim and stays on by itself while you move and cast. An enemy is burned every quarter second. An ally has part of every hit they take dealt to you instead. Ends when its time runs out, if the target gets out of range, or if you press C. A click that hits nothing costs no cooldown.",
-                        "Lasts 4s  |  Cooldown 6s  |  Enemy 1.5 per 0.25s  |  Ally: you take 35% of their damage  |  Range 11  |  Leash 14"),
+                    A("LMB", "Sanctified Tether", "Click to cast a beam of light that latches onto the first character along your aim and stays on by itself while you move and cast. An enemy is burned every quarter second. An ally has part of every hit they take dealt to you instead. Two charges, so you can hold two characters at once, such as shielding an ally while burning an enemy; each beam has its own timer. Ends when its time runs out, if the target gets out of range, or if you press C (releases both). A click that hits nothing costs no charge.",
+                        "Lasts 4s  |  2 charges, 4s recharge each  |  Enemy 2 per 0.25s  |  Ally: you take 35% of their damage  |  Range 10  |  Leash 12"),
                     A("RMB", "Sanctus Pulse", "Bless the ground at the cursor. After a short delay it pulses once, and its healing is split evenly between every ally inside, you included. One ally alone receives it all. Holds three charges that recharge separately, so you can place them back to back.",
                         "Heal 26 shared  |  Delay 0.5s  |  Radius 2.2  |  Range 10  |  3 charges, 6s recharge each"),
                     A("Q", "Blinding Radiance", "Thrust the icon forward: it flares, burning every enemy in a short frontal cone and hurling them back. C during the wind-up cancels it.",
@@ -180,8 +180,8 @@ namespace Anathema.Net
                         "Heal 15  |  Radius 6  |  Damage 6  |  Silence 1.2s  |  Cooldown 4s  |  Guard 1.2s"),
                     A("R", "Martyrdom", "Costs a full energy bar. Holy fire gathers around you (rooted), then for 5s every ally near you is bound to you by a burning thread: half of every hit they take is dealt to you instead, and you take 40% less damage. Shared damage can't kill you. When it ends, the pain you bore bursts out as a ring of holy fire that burns and pushes back nearby enemies; the more you absorbed, the harder it hits. Stuns, silence, panic and knockback during the gathering interrupt it; C cancels.",
                         "Lasts 5s  |  Bind radius 10  |  Share 50%  |  -40% damage taken  |  Burst 10 + 80% of absorbed (max 80), radius 6  |  Costs 100 energy", true),
-                    EX("Shift+LMB", "Forked Tether", "A second beam from you, so you hold two characters at once, enemy or ally, each burning a little less. Already holding one? It latches onto the next character along your aim and ends with the first. Holding none? One cast grabs the character along your aim and the one nearest your cursor beside them. Has its own cooldown, shown while you hold Shift. Dove Strike then sends a dove to each tethered enemy.",
-                        "2 targets max  |  70% burn per target  |  Own cooldown 8s  |  Costs 30 energy"),
+                    EX("Shift+LMB", "Penance", "Tether an enemy with a darker beam of judgement. While it holds, they receive less healing and take more damage from everyone, so your team knows who to kill. Uses a tether charge. Shift+click on an ally is an ordinary tether and costs nothing.",
+                        "-40% healing received  |  +10% damage taken  |  Lasts as long as the beam (4s)  |  Costs 30 energy"),
                     EX("Shift+E", "Golden Dove", "Your doves turn gold: they hit a little harder and panic their targets instead of rooting them. With two enemies tethered, both are sent running.",
                         "Damage 10  |  Panic 1.25s  |  Uses a dove charge per dove  |  Costs 35 energy")
                 }

@@ -4,7 +4,8 @@
   "maxEnergy": 100,
   "abilities": {
     "SanctifiedTether": {
-      "cooldown": 4,
+      "cooldown": 0.3,
+      "rechargeTime": 4,
       "duration": 4,
       "range": 10,
       "leashRange": 12,
@@ -13,10 +14,8 @@
       "energyPerTick": 1,
       "shareFraction": 0.35,
       "exEnergyCost": 30,
-      "exCooldown": 8,
-      "exForks": 1,
-      "forkRange": 5,
-      "exDamageScale": 0.7
+      "penanceHealCut": 0.4,
+      "penanceExposed": 0.1
     },
     "SanctusPulse": {
       "cooldown": 0.3,

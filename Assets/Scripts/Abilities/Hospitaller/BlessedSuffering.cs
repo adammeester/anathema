@@ -5,13 +5,14 @@ namespace Anathema.Abilities.Hospitaller
 {
     // The Hospitaller's passive, Blessed Suffering. Pain borne for others becomes faith:
     //   - damage she takes for an ally (Sanctified Tether, Martyrdom) gives her energy;
-    //   - it also builds Faith stacks (see Faith), each making everything she does to enemies hit harder.
+    //   - it also builds Faith stacks (see Faith), each making everything she does to enemies hit harder and cutting
+    //     the damage she takes (the shared pain included).
     public static class BlessedSuffering
     {
         // Energy per point of damage she takes for an ally.
         public const float EnergyPerSharedDamage = 0.5f;
 
-        // Multiplier for the damage of her abilities: +6% per Faith stack.
+        // Multiplier for the damage of her abilities: +6% per Faith stack (the reduction is in Faith itself).
         public static float DamageScale(Health hospitaller)
         {
             if (hospitaller == null || hospitaller.IsDead) return 1f;

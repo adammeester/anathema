@@ -327,6 +327,38 @@ namespace Anathema.Tests
         }
 
         [Test]
+        public void Recoverable_IsCappedAtAShareOfMaxHealth()
+        {
+            Strike(Hit.Direct(50f));
+
+            Assert.AreEqual(victim.Max * 0.2f, victim.Recoverable, 0.001f);
+            Assert.AreEqual(victim.Max - 50f - victim.Recoverable, victim.PermanentLoss, 0.001f);
+        }
+
+        [Test]
+        public void HeldArmor_CutsDamage_AndCanBeLowered()
+        {
+            victim.HoldArmor(0.25f, 1f);
+            Strike(Hit.Direct(20f));
+            Assert.AreEqual(85f, victim.Current, 0.001f);
+
+            victim.HoldArmor(0.1f, 1f); // a refresh replaces the value, it doesn't keep the stronger one
+            Strike(Hit.Direct(20f));
+            Assert.AreEqual(67f, victim.Current, 0.001f);
+        }
+
+        [Test]
+        public void Exposed_TakesExtraDamage_AndHealingCanBeCut()
+        {
+            victim.Expose(0.1f, 1f);
+            Strike(Hit.Direct(20f));
+            Assert.AreEqual(78f, victim.Current, 0.001f);
+
+            victim.CutHealing(0.4f, 1f);
+            Assert.AreEqual(12f, victim.Heal(20f), 0.001f);
+        }
+
+        [Test]
         public void Bleed_DealsDamageHere_WhenThisMachineIsTheAuthority()
         {
             Strike(Hit.Direct(1f).WithBleed(10f, 3f));

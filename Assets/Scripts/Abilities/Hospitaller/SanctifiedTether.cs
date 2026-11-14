@@ -9,24 +9,26 @@ namespace Anathema.Abilities.Hospitaller
     //   enemy -> the light burns them, a damage tick every quarter second (each landed tick builds energy);
     //   ally  -> she shares their pain: a part of every hit they take (after armour, before shields) is dealt to her
     //            instead, and that pain becomes energy (Blessed Suffering).
+    // Two charges, each recharging on its own (`rechargeTime`, from the click), so she can hold two characters at once,
+    // typically shielding an ally while burning an enemy. Each link keeps its own timer. A click skips characters she
+    // already holds; with both links up a click does nothing. `cooldown` is only the short gap between two casts.
     // She is free to walk and use her other abilities meanwhile; stuns and her counter do not break it. A link ends when
-    // the time runs out, its character dies or gets too far from her, she dies, or she presses C (all of them).
-    // The cooldown starts on the click; a click that latches onto nothing is refunded.
+    // its time runs out, its character dies or gets too far from her, she dies, or she presses C (all of them).
+    // A click that latches onto nothing gives its charge back. Dove Strike sends a dove to every enemy the tether holds.
     //
-    // EX (Shift+click, costs energy, its own cooldown): Forked Tether. A second beam from her, so she holds two
-    // characters at once (never more), enemy or ally, each burning at a reduced rate:
-    //   - already holding one: the new beam latches onto the first other character along the aim, and ends with the
-    //     first link;
-    //   - holding none: one cast throws both beams, at the character along the aim and at the character nearest the
-    //     cursor within a few metres of them.
-    // The EX cooldown is separate from the normal one (the HUD shows it while Shift is held), and neither touches the
-    // other. Dove Strike sends a dove to every enemy the tether holds.
+    // EX (Shift+click, costs energy, uses a charge like any cast): Penance. A darker beam that only takes on an enemy:
+    // for as long as it holds, they receive `penanceHealCut` less healing and take `penanceExposed` more damage from
+    // every source, so her team can call the kill on them. Shift+click on an ally is an ordinary tether and costs no
+    // energy. Both effects are refreshed on the copy that resolves the enemy's health (the server online) and lapse a
+    // moment after the beam ends.
     //
-    // Online: her machine picks the targets and sends them (SendTargets) just before the cue, so every machine links the
-    // same characters; pressing C sends an empty target list, meaning "release". The server's copy holds the links, so
-    // the damage share happens where damage is resolved.
+    // Online: her machine sends the full list of characters she now holds (SendTargets) just before the cue, so every
+    // machine keeps the links in that list and adds the new one; pressing C sends an empty list, meaning "release".
+    // The server's copy holds the links, so the damage share happens where damage is resolved.
     public class SanctifiedTether : Ability
     {
+        const int MaxCharges = 2;
+
         [SerializeField] float duration = 4f;
         [SerializeField] float range = 9f;
         [SerializeField] float leashRange = 11f;
@@ -36,20 +38,24 @@ namespace Anathema.Abilities.Hospitaller
         [SerializeField] float energyPerTick = 2f;
         [SerializeField] float shareFraction = 0.35f;
         [SerializeField] float muzzleHeight = 1.4f;
+        [SerializeField] float rechargeTime = 4f;
         [SerializeField] float exEnergyCost = 30f;
-        [SerializeField] float exCooldown = 8f;
-        [SerializeField] int exForks = 1;
-        [SerializeField] float forkRange = 5f;
-        [SerializeField] float exDamageScale = 0.7f;
+        [SerializeField] float penanceHealCut = 0.4f;
+        [SerializeField] float penanceExposed = 0.1f;
+
+        const float PenanceRefresh = 0.3f; // how long each refresh of Penance's effects lasts on the enemy
 
         static readonly RaycastHit[] Hits = new RaycastHit[16];
         static readonly Color EnemyColor = new Color(1f, 0.45f, 0.15f, 0.9f);
         static readonly Color AllyColor = new Color(1f, 0.9f, 0.5f, 0.9f);
+        static readonly Color PenanceColor = new Color(0.75f, 0.08f, 0.1f, 0.95f);
 
         class Link
         {
             public Health Target;
             public bool Ally;
+            public bool Penance;
+            public float Until;
             public float NextTick;
             public float DamageSeen; // the ally's RoundDamageTaken when last checked (Blessed Suffering)
             public LineRenderer Beam;
@@ -62,8 +68,7 @@ namespace Anathema.Abilities.Hospitaller
         readonly List<Link> links = new List<Link>();
         readonly List<Health> enemyTargets = new List<Health>();
         List<Health> pendingTargets; // a replica: the targets her machine sent for the next cue
-        float until;
-        float damageScale = 1f;
+        readonly float[] chargeReady = new float[MaxCharges];
 
         LineRenderer fizzle;
         Material fizzleMaterial;
@@ -72,9 +77,11 @@ namespace Anathema.Abilities.Hospitaller
 
         public override string DisplayName => "Sanctified Tether";
         public override string KeyLabel => "LMB";
+        public override int ChargeCapacity => MaxCharges;
+        public override int ChargesReady => ReadyCharges;
         public override float ExCost => exEnergyCost;
-        public override string ExName => "Forked Tether";
-        public override string ExDescription => "Forks to a second target";
+        public override string ExName => "Penance";
+        public override string ExDescription => "Enemy heals less, takes more damage";
 
         // The first character the tether holds (null if none).
         public Health Target => links.Count > 0 ? links[0].Target : null;
@@ -91,9 +98,54 @@ namespace Anathema.Abilities.Hospitaller
             }
         }
 
+        // ---- Charges ------------------------------------------------------------------------------------------------
+
+        float Recharge => rechargeTime * CooldownScale;
+
+        int ReadyCharges
+        {
+            get
+            {
+                int n = 0;
+                foreach (float t in chargeReady) if (Time.time >= t) n++;
+                return n;
+            }
+        }
+
+        // Earliest time a spent charge comes back (only meaningful when at least one is spent).
+        float NextCharge
+        {
+            get
+            {
+                float next = float.PositiveInfinity;
+                foreach (float t in chargeReady) if (t > Time.time && t < next) next = t;
+                return next;
+            }
+        }
+
+        // With a charge in hand only the short gap between casts counts; with none, the wait for the next charge.
+        public override float CooldownRemaining =>
+            ReadyCharges > 0 ? base.CooldownRemaining : Mathf.Max(0f, NextCharge - Time.time);
+
+        public override float CooldownNormalized =>
+            ReadyCharges > 0 ? base.CooldownNormalized : (Recharge > 0f ? Mathf.Clamp01(CooldownRemaining / Recharge) : 0f);
+
+        public override float ChargeRechargeNormalized
+        {
+            get
+            {
+                int ready = ReadyCharges;
+                if (ready == 0 || ready == MaxCharges || Recharge <= 0f) return 0f;
+                return Mathf.Clamp01((NextCharge - Time.time) / Recharge);
+            }
+        }
+
+        // Both beams already out: nothing more to cast until one ends.
+        public override bool Available => links.Count < MaxCharges;
+
         void Reset()
         {
-            cooldown = 6f;
+            cooldown = 0.3f;
         }
 
         protected override void Awake()
@@ -121,40 +173,11 @@ namespace Anathema.Abilities.Hospitaller
             return beam;
         }
 
-        // ---- EX: its own cooldown, shown on the HUD while Shift is held ---------------------------------------------
-
-        float exReadyAt;
-        bool exRequested;
-        float normalCooldownBefore;
-
-        bool ExHeld => !IsReplica && Input.GetKey(KeyCode.LeftShift);
-        float ExRemaining => Mathf.Max(0f, exReadyAt - Time.time);
-        bool ExReady => ExRemaining <= 0f && links.Count < 2;
-
-        // The EX goes off whatever the normal cooldown says.
-        protected override bool HasSpareCharge => ExHeld && ExReady;
-
-        public override float CooldownRemaining => ExHeld ? ExRemaining : base.CooldownRemaining;
-
-        public override float CooldownNormalized =>
-            ExHeld ? (exCooldown > 0f ? Mathf.Clamp01(ExRemaining / (exCooldown * CooldownScale)) : 0f) : base.CooldownNormalized;
-
-        // With Shift held and two characters already held there is nothing to add: the EX slot greys out.
-        public override bool Available => !ExHeld || links.Count < 2;
-
         protected override bool IsTriggered()
         {
-            if (PrimaryFireBlocked) return false;
-
-            if (ExHeld)
-            {
-                if (!ExReady || !Input.GetMouseButtonDown(0)) return false;
-                exRequested = true;
-                normalCooldownBefore = base.CooldownRemaining; // put back afterwards: the EX does not use it
-                return true;
-            }
-
-            return links.Count == 0 && Input.GetMouseButton(0);
+            if (PrimaryFireBlocked || ReadyCharges == 0 || links.Count >= MaxCharges) return false;
+            // Holding the button keeps a first beam going; the second beam needs its own click.
+            return links.Count == 0 ? Input.GetMouseButton(0) : Input.GetMouseButtonDown(0);
         }
 
         protected override void Activate()
@@ -165,17 +188,8 @@ namespace Anathema.Abilities.Hospitaller
                 return;
             }
 
-            if (exRequested)
-            {
-                exRequested = false;
-                SetCooldownRemaining(normalCooldownBefore);
-                CastEx();
-                return;
-            }
-
-            DetachAll();
-            Health first = Acquire(null, out Vector3 end);
-            if (first == null)
+            Health target = Acquire(out Vector3 end);
+            if (target == null)
             {
                 // Nothing to hold: a brief flicker of light down the aim line, and the click costs nothing.
                 Fizzle(end);
@@ -183,81 +197,55 @@ namespace Anathema.Abilities.Hospitaller
                 return;
             }
 
-            var targets = new List<Health> { first };
-            SendTargets(targets);
-            Begin(targets, false);
-        }
-
-        // Her machine: the EX. A miss costs nothing (no energy, no EX cooldown).
-        void CastEx()
-        {
-            ExActivation = false;
-
-            if (links.Count == 1)
+            // Penance only takes on an enemy; Shift+click on an ally is an ordinary tether and costs no energy.
+            bool penance = false;
+            if (Input.GetKey(KeyCode.LeftShift) && target.Team != Health.Team)
             {
-                // A second beam alongside the one she holds; it ends with the first.
-                Health held = links[0].Target;
-                Health second = Acquire(held, out Vector3 end);
-                if (second == null)
+                if (!TrySpendEx(energy, exEnergyCost))
                 {
-                    Fizzle(end);
+                    RefundCooldown();
                     return;
                 }
-                if (!TrySpendEx(energy, exEnergyCost)) return;
-
+                penance = true;
                 ExActivation = true;
-                exReadyAt = Time.time + exCooldown * CooldownScale;
-                SendTargets(new List<Health> { held, second });
-                damageScale = exDamageScale;
-                Attach(second);
-                Sfx.Play(Sfx.MagicAttack1, 0.35f, 1.2f, 1.35f, 0.6f);
-                return;
             }
 
-            DetachAll();
-            Health first = Acquire(null, out Vector3 miss);
-            if (first == null)
-            {
-                Fizzle(miss);
-                return;
-            }
-            if (!TrySpendEx(energy, exEnergyCost)) return;
+            // Spend the charge that has been ready longest; only that one starts recharging.
+            int used = 0;
+            for (int i = 1; i < MaxCharges; i++)
+                if (chargeReady[i] < chargeReady[used]) used = i;
+            chargeReady[used] = Time.time + Recharge;
 
-            ExActivation = true;
-            exReadyAt = Time.time + exCooldown * CooldownScale;
-            var targets = new List<Health> { first };
-            AddFork(targets);
-            SendTargets(targets);
-            Begin(targets, true);
+            var held = new List<Health>();
+            foreach (Link l in links) held.Add(l.Target);
+            held.Add(target);
+            SendTargets(held);
+            Attach(target, penance);
+            Sfx.Play(Sfx.MagicAttack1, 0.35f, penance ? 0.8f : 1.1f, penance ? 0.9f : 1.25f, 0.6f);
         }
 
-        void Begin(List<Health> targets, bool ex)
-        {
-            damageScale = ex ? exDamageScale : 1f;
-            until = Time.time + duration;
-            foreach (Health h in targets)
-                if (h != null && !h.IsDead && h != Health) Attach(h);
-            if (links.Count > 0) Sfx.Play(Sfx.MagicAttack1, 0.35f, 1.1f, 1.25f, 0.6f);
-        }
-
-        // A replica follows the targets her machine sent just before this cue. No targets means her click linked
-        // nothing (a miss, or a fork with no one to fork to), so there is nothing to change.
+        // A replica follows the list her machine sent just before this cue: links not in it have ended there, and any
+        // character in it not held here yet is the new link. No targets means her click linked nothing.
         void ReplayFromTargets()
         {
             List<Health> targets = pendingTargets;
             pendingTargets = null;
             if (targets == null || targets.Count == 0) return;
 
-            // A fork of the tether already held: keep the first link (and its timer), add the new one.
-            if (links.Count == 1 && targets.Count == 2 && targets[0] == links[0].Target)
+            for (int i = links.Count - 1; i >= 0; i--)
             {
-                damageScale = exDamageScale;
-                if (targets[1] != null && !targets[1].IsDead) Attach(targets[1]);
-                return;
+                if (targets.Contains(links[i].Target)) continue;
+                Detach(links[i]);
+                links.RemoveAt(i);
             }
 
-            DetachAll();
-            Begin(targets, ExActivation);
+            // Only the last one is new. An earlier one this machine has already let go of (its timer ran out a frame
+            // sooner here) stays gone rather than coming back with a fresh timer.
+            Health added = targets[targets.Count - 1];
+            if (added == null || added.IsDead || added == Health || Holds(added) || links.Count >= MaxCharges) return;
+            bool penance = ExActivation && added.Team != Health.Team; // the cue says whether this was the EX
+            Attach(added, penance);
+            Sfx.Play(Sfx.MagicAttack1, 0.35f, penance ? 0.8f : 1.1f, penance ? 0.9f : 1.25f, 0.6f);
         }
 
         public override void ReceiveTargets(List<Health> targets)
@@ -266,9 +254,15 @@ namespace Anathema.Abilities.Hospitaller
             else pendingTargets = targets;
         }
 
-        // The first living character along the aim (never herself, and `skip` is passed through), or null if a wall or
+        bool Holds(Health h)
+        {
+            foreach (Link l in links) if (l.Target == h) return true;
+            return false;
+        }
+
+        // The first living character along the aim that she doesn't already hold (never herself), or null if a wall or
         // nothing comes first.
-        Health Acquire(Health skip, out Vector3 end)
+        Health Acquire(out Vector3 end)
         {
             Vector3 dir = Aim.AimPoint - transform.position;
             dir.y = 0f;
@@ -284,7 +278,7 @@ namespace Anathema.Abilities.Hospitaller
             {
                 RaycastHit h = Hits[i];
                 Health health = h.collider.GetComponentInParent<Health>();
-                if (health != null && (health == Health || health == skip || health.IsDead)) continue;
+                if (health != null && (health == Health || health.IsDead || Holds(health))) continue;
                 if (health != null && health.Structure && health.Team == Health.Team) continue;
                 if (h.distance >= best) continue;
                 best = h.distance;
@@ -295,43 +289,21 @@ namespace Anathema.Abilities.Hospitaller
             return bestHealth;
         }
 
-        // EX: the other characters (either side) within reach of the first one, nearest the cursor first.
-        void AddFork(List<Health> targets)
-        {
-            Health first = targets[0];
-            Vector3 cursor = Aim.AimPoint;
-            var candidates = new List<Health>();
-            foreach (Health h in FindObjectsByType<Health>())
-            {
-                if (h == Health || h == first || h.IsDead || Stealthed.HiddenFrom(h.gameObject, Health.Team)) continue;
-                if (h.Structure && h.Team == Health.Team) continue;
-                Vector3 d = h.transform.position - first.transform.position;
-                d.y = 0f;
-                if (d.magnitude <= forkRange) candidates.Add(h);
-            }
-
-            candidates.Sort((a, b) =>
-                FlatSqr(a.transform.position - cursor).CompareTo(FlatSqr(b.transform.position - cursor)));
-            for (int i = 0; i < candidates.Count && i < exForks; i++) targets.Add(candidates[i]);
-        }
-
-        static float FlatSqr(Vector3 v)
-        {
-            v.y = 0f;
-            return v.sqrMagnitude;
-        }
-
-        void Attach(Health target)
+        void Attach(Health target, bool penance = false)
         {
             bool ally = target.Team == Health.Team;
+            penance &= !ally;
             var link = new Link
             {
                 Target = target,
                 Ally = ally,
+                Penance = penance,
+                Until = Time.time + duration,
                 NextTick = Time.time + tickInterval,
                 DamageSeen = target.RoundDamageTaken,
-                BeamMaterial = VisualUtil.UnlitMaterial(ally ? AllyColor : EnemyColor, 3002),
-                GlowMaterial = VisualUtil.UnlitMaterial(ally ? new Color(1f, 0.92f, 0.55f, 0.35f) : new Color(1f, 0.5f, 0.2f, 0.35f), 3001)
+                BeamMaterial = VisualUtil.UnlitMaterial(ally ? AllyColor : penance ? PenanceColor : EnemyColor, 3002),
+                GlowMaterial = VisualUtil.UnlitMaterial(ally ? new Color(1f, 0.92f, 0.55f, 0.35f)
+                    : penance ? new Color(0.8f, 0.1f, 0.12f, 0.45f) : new Color(1f, 0.5f, 0.2f, 0.35f), 3001)
             };
             link.Beam = NewBeam("Tether Beam", link.BeamMaterial);
             link.Beam.enabled = true;
@@ -363,6 +335,7 @@ namespace Anathema.Abilities.Hospitaller
         }
 
         // Runs where an ally's damage is resolved (the server online). Her part goes straight to her own health.
+        // Registered once per ally link, and an ally is never held twice, so each ally shares exactly once.
         float Share(float amount, GameObject source)
         {
             if (Health.IsDead || links.Count == 0) return amount;
@@ -377,7 +350,7 @@ namespace Anathema.Abilities.Hospitaller
 
             if (links.Count > 0)
             {
-                if (Health.IsDead || Time.time >= until || (!IsReplica && Anathema.Net.NetGame.Frozen))
+                if (Health.IsDead || (!IsReplica && Anathema.Net.NetGame.Frozen))
                 {
                     DetachAll();
                 }
@@ -386,11 +359,18 @@ namespace Anathema.Abilities.Hospitaller
                     for (int i = links.Count - 1; i >= 0; i--)
                     {
                         Link l = links[i];
-                        if (l.Target == null || l.Target.IsDead || FlatDistance(l.Target.transform.position) > leashRange)
+                        if (l.Target == null || l.Target.IsDead || Time.time >= l.Until
+                            || FlatDistance(l.Target.transform.position) > leashRange)
                         {
                             Detach(l);
                             links.RemoveAt(i);
                             continue;
+                        }
+                        // Penance lives where the enemy's health is resolved, which may be a replica of her.
+                        if (l.Penance && l.Target.IsAuthority)
+                        {
+                            l.Target.CutHealing(penanceHealCut, PenanceRefresh);
+                            l.Target.Expose(penanceExposed, PenanceRefresh);
                         }
                         if (!IsReplica) Tick(l);
                     }
@@ -417,12 +397,11 @@ namespace Anathema.Abilities.Hospitaller
 
             if (Time.time < l.NextTick) return;
             l.NextTick += tickInterval;
-            float scale = damageScale;
-            l.Target.Strike(Hit.Direct(BlessedSuffering.Scale(Health, tickDamage * scale)), gameObject, landed =>
+            l.Target.Strike(Hit.Direct(BlessedSuffering.Scale(Health, tickDamage)), gameObject, landed =>
             {
                 if (!landed) return;
                 HitMarkerSound.Play();
-                if (energy != null) energy.Gain(energyPerTick * scale);
+                if (energy != null) energy.Gain(energyPerTick);
             });
         }
 
