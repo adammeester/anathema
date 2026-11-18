@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Psyker
 {
-    // E: Kine Shield. Wraps the Psyker in a telekinetic shield that soaks up to `strength` damage (AoE and damage over time included)
+    // E: Psychic Barrier. Wraps the Psyker in a telekinetic shield that soaks up to `strength` damage (AoE and damage over time included)
     // and fades after `duration` seconds if it isn't used up. It is purely defensive: nothing comes out of it.
     // Damage is resolved on the owner's machine, so only the owner's copy absorbs; replicas show the shell for the same
     // duration. Recasting replaces the old shield. C (or dying) drops it.
@@ -28,7 +28,7 @@ namespace Anathema.Abilities.Psyker
         Transform shell;
         Material shellMaterial;
 
-        // The Kine Shield is instant; only the EX Psychic Scream winds up. This is read once, as the key is pressed,
+        // The barrier is instant; only the EX Psychic Scream winds up. This is read once, as the key is pressed,
         // before the EX energy is spent: the owner goes by Shift and spare energy, a replica by the owner's cue.
         protected override float WindupDuration
         {
@@ -53,7 +53,7 @@ namespace Anathema.Abilities.Psyker
             if (ExActivation && !IsReplica && energy != null) energy.Gain(exEnergyCost);
         }
 
-        public override string DisplayName => "Kine Shield";
+        public override string DisplayName => "Psychic Barrier";
         public override string KeyLabel => "E";
         // The Force Stave trades the scream away for Mind Leech (on RMB): no EX version of this key while it is held.
         bool HoldsStave => PsykerUpgrade.HoldsStave(gameObject);
@@ -100,7 +100,7 @@ namespace Anathema.Abilities.Psyker
 
             if (shellMaterial == null) shellMaterial = VisualUtil.UnlitMaterial(shellColor, 3000);
             GameObject s = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            s.name = "Kine Shield";
+            s.name = "Psychic Barrier";
             Destroy(s.GetComponent<Collider>());
             s.GetComponent<Renderer>().sharedMaterial = shellMaterial;
             s.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;

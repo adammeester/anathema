@@ -71,6 +71,8 @@ namespace Anathema.Upgrades
                 gameObject.AddComponent<MandrakeUpgradeEffects>();
             if (character == "Hospitaller" && GetComponent<Anathema.Abilities.Hospitaller.HospitallerUpgradeEffects>() == null)
                 gameObject.AddComponent<Anathema.Abilities.Hospitaller.HospitallerUpgradeEffects>();
+            if (character == "Bullgryn" && GetComponent<Anathema.Abilities.Bullgryn.BullgrynWeaponVisual>() == null)
+                gameObject.AddComponent<Anathema.Abilities.Bullgryn.BullgrynWeaponVisual>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!NetGame.Online && GetComponent<UpgradeTestPanel>() == null) gameObject.AddComponent<UpgradeTestPanel>();
 #endif

@@ -1,0 +1,85 @@
+{
+  "health": 240,
+  "moveSpeed": 4.8,
+  "maxEnergy": 100,
+  "abilities": {
+    "SlabMaul": {
+      "cooldown": 1.0,
+      "damage": 13,
+      "range": 2.6,
+      "arcDegrees": 110,
+      "windupDuration": 0.3,
+      "shoveDistance": 1.5,
+      "slamDamageScale": 1.6,
+      "slamStun": 0.75,
+      "energyPerHit": 8,
+      "gauntletCooldown": 1.1,
+      "minRange": 4,
+      "maxRange": 11,
+      "flightTime": 0.6,
+      "blastRadius": 2.2,
+      "grenadeDamage": 11,
+      "krakRadius": 3.2,
+      "krakSlow": 0.4,
+      "krakSlowDuration": 1.5,
+      "grenadeEnergyPerHit": 8
+    },
+    "ShieldBash": {
+      "cooldown": 7,
+      "damage": 8,
+      "range": 3,
+      "arcDegrees": 90,
+      "knockbackDistance": 2,
+      "slow": 0.3,
+      "slowDuration": 2,
+      "energyPerHit": 8
+    },
+    "BullCharge": {
+      "cooldown": 9,
+      "windup": 0.25,
+      "distance": 7,
+      "duration": 0.35,
+      "damage": 12,
+      "wallStun": 1.25,
+      "dropStun": 0.4,
+      "energyPerHit": 10
+    },
+    "ChainHaul": {
+      "cooldown": 12,
+      "windup": 0.3,
+      "range": 9,
+      "damage": 6,
+      "stopDistance": 1.5,
+      "energyPerHit": 10
+    },
+    "Brace": {
+      "cooldown": 0.2,
+      "arcDegrees": 140,
+      "arcForward": 0.5,
+      "moveSpeedScale": 0.45,
+      "turnRate": 240,
+      "maxStamina": 100,
+      "holdDrainPerSecond": 0,
+      "regenPerSecond": 20,
+      "guardBreakStagger": 0,
+      "guardBreakLockout": 3,
+      "exEnergyCost": 50,
+      "eatDuration": 0.5,
+      "healFraction": 0.2,
+      "rationCooldown": 15,
+      "rationCharges": 2
+    },
+    "LivingWall": {
+      "cooldown": 0.5,
+      "energyCost": 100,
+      "windup": 0.4,
+      "width": 4,
+      "lifetime": 6,
+      "shoveWarning": 0.25,
+      "shoveDistance": 3,
+      "shoveDuration": 0.5,
+      "shoveDamage": 10,
+      "pinStun": 1.5
+    }
+  }
+}

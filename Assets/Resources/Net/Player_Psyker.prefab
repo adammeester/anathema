@@ -92,7 +92,7 @@ MonoBehaviour:
   team: 1
   recoverableDecayDelay: 4
   recoverableDecayRate: 6
-  maxRecoverableChunks: 3
+  maxRecoverableFraction: 0.2
 --- !u!114 &3538650159009085752
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -23,7 +23,7 @@ namespace Anathema.Combat
         {
             if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Panic, duration, 0f, Vector3.zero, source)) return null;
 
-            if (Enraged.IsEnraged(target)) return null;
+            if (Enraged.IsEnraged(target) || Unstoppable.Is(target)) return null;
             duration *= Health.CrowdControlScaleOf(target);
 
             var panicked = target.GetComponent<Panicked>();

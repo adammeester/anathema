@@ -27,7 +27,36 @@ namespace Anathema.Abilities.Psyker
         float[] size;
         Light glow;
 
+        // The pool's colours. The Psyker's is orange warp-fire; the Sorcerer's Fires of Tzeentch are blue and pink.
+        public struct Palette
+        {
+            public Color Base, Core, Flame, Tip, Glow;
+        }
+
+        public static readonly Palette Orange = new Palette
+        {
+            Base = new Color(0.9f, 0.25f, 0.05f, 0.45f),
+            Core = new Color(1f, 0.6f, 0.1f, 0.5f),
+            Flame = new Color(1f, 0.45f, 0.08f, 0.8f),
+            Tip = new Color(1f, 0.9f, 0.4f, 0.9f),
+            Glow = new Color(1f, 0.5f, 0.15f)
+        };
+
+        public static readonly Palette Tzeentch = new Palette
+        {
+            Base = new Color(0.2f, 0.35f, 1f, 0.45f),
+            Core = new Color(0.9f, 0.35f, 0.95f, 0.5f),
+            Flame = new Color(0.3f, 0.6f, 1f, 0.85f),
+            Tip = new Color(1f, 0.45f, 0.85f, 0.9f),
+            Glow = new Color(0.6f, 0.45f, 1f)
+        };
+
+        Palette palette = Orange;
+
         public static FirePool Spawn(GameObject owner, int team, Vector3 center, float radius, float duration, float damagePerSecond, bool dealsDamage)
+            => Spawn(owner, team, center, radius, duration, damagePerSecond, dealsDamage, Orange);
+
+        public static FirePool Spawn(GameObject owner, int team, Vector3 center, float radius, float duration, float damagePerSecond, bool dealsDamage, Palette colours)
         {
             var go = new GameObject("Fire Pool");
             go.transform.position = center + Vector3.up * 0.05f;
@@ -40,6 +69,7 @@ namespace Anathema.Abilities.Psyker
             pool.damagePerTick = damagePerSecond * TickInterval;
             pool.dealsDamage = dealsDamage;
             pool.nextTick = Time.time + TickInterval;
+            pool.palette = colours;
             pool.Build();
             // A quiet crackle for as long as it burns. Several pools often burn at once, so each starts at a different
             // point in the recording (identical copies in step would just sound like one louder fire).
@@ -50,10 +80,10 @@ namespace Anathema.Abilities.Psyker
 
         void Build()
         {
-            baseMaterial = VisualUtil.UnlitMaterial(new Color(0.9f, 0.25f, 0.05f, 0.45f), 3000);
-            coreMaterial = VisualUtil.UnlitMaterial(new Color(1f, 0.6f, 0.1f, 0.5f), 3001);
-            flameMaterial = VisualUtil.UnlitMaterial(new Color(1f, 0.45f, 0.08f, 0.8f), 3002);
-            tipMaterial = VisualUtil.UnlitMaterial(new Color(1f, 0.9f, 0.4f, 0.9f), 3003);
+            baseMaterial = VisualUtil.UnlitMaterial(palette.Base, 3000);
+            coreMaterial = VisualUtil.UnlitMaterial(palette.Core, 3001);
+            flameMaterial = VisualUtil.UnlitMaterial(palette.Flame, 3002);
+            tipMaterial = VisualUtil.UnlitMaterial(palette.Tip, 3003);
 
             Disc("Scorch", radius * 2f, baseMaterial);
             Disc("Embers", radius * 1.3f, coreMaterial, 0.01f);
@@ -82,7 +112,7 @@ namespace Anathema.Abilities.Psyker
             lightObject.transform.localPosition = Vector3.up * 0.8f;
             glow = lightObject.AddComponent<Light>();
             glow.type = LightType.Point;
-            glow.color = new Color(1f, 0.5f, 0.15f);
+            glow.color = palette.Glow;
             glow.range = radius * 3f;
             glow.intensity = 1.6f;
             glow.shadows = LightShadows.None;

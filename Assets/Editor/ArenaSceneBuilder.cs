@@ -1,5 +1,6 @@
 using System.Linq;
 using System.IO;
+using Anathema.Abilities.Bullgryn;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Abilities.Hospitaller;
 using Anathema.Abilities.KhorneBerserker;
@@ -7,6 +8,7 @@ using Anathema.Abilities.Mandrake;
 using Anathema.Abilities.PlagueSurgeon;
 using Anathema.Abilities.Psyker;
 using Anathema.Abilities.SkitariiRanger;
+using Anathema.Abilities.Sorcerer;
 using Anathema.Arena;
 using Anathema.CameraRig;
 using Anathema.Combat;
@@ -32,6 +34,9 @@ namespace Anathema.EditorTools
         const string SkitariiRangerModelPath = "Assets/Models/SkitariiRanger.fbx";
         const string HospitallerModelPath = "Assets/Models/Hospitaller.fbx";
         const string MandrakeModelPath = "Assets/Models/Mandrake.fbx";
+        const string BullgrynModelPath = "Assets/Models/Bullgryn.fbx";
+        const string SorcererModelPath = "Assets/Models/Sorcerer.fbx";
+        const string BullgrynShieldModelPath = "Assets/Models/BullgrynShield.fbx"; // planted by Living Wall
         // First model that exists is used for the player.
         static readonly string[] PlayerModelPaths =
         {
@@ -55,7 +60,9 @@ namespace Anathema.EditorTools
             Psyker,
             SkitariiRanger,
             Hospitaller,
-            Mandrake
+            Mandrake,
+            Bullgryn,
+            Sorcerer
         }
 
         [MenuItem("Anathema/Rebuild Arena Scene")]
@@ -78,6 +85,12 @@ namespace Anathema.EditorTools
 
         [MenuItem("Anathema/Rebuild Arena Scene (Mandrake)")]
         static void BuildMandrake() => Build(Character.Mandrake);
+
+        [MenuItem("Anathema/Rebuild Arena Scene (Bullgryn)")]
+        static void BuildBullgryn() => Build(Character.Bullgryn);
+
+        [MenuItem("Anathema/Rebuild Arena Scene (Thousand Sons Sorcerer)")]
+        static void BuildSorcerer() => Build(Character.Sorcerer);
 
         // The training ground on the Crucible map (breakable floor), in its own scene so Arena.unity stays as it is.
         // Slams that break the floor: the Berserker's R, and the Grey Knight's Q while the Daemonhammer is equipped (F1 panel).
@@ -1310,15 +1323,19 @@ namespace Anathema.EditorTools
             bool psyker = character == Character.Psyker;
             bool hospitaller = character == Character.Hospitaller;
             bool mandrake = character == Character.Mandrake;
+            bool bullgryn = character == Character.Bullgryn;
+            // The Sorcerer is a Space Marine in power armour under a tall crested helm: a marine-sized body.
+            bool sorcerer = character == Character.Sorcerer;
             bool small = psyker || ranger || hospitaller || mandrake;
-            controller.height = ranger ? 1.9f : psyker ? 1.8f : hospitaller ? 1.85f : mandrake ? 1.9f : 2f;
-            controller.radius = small ? 0.4f : 0.5f;
+            controller.height = ranger ? 1.9f : psyker ? 1.8f : hospitaller ? 1.85f : mandrake ? 1.9f : bullgryn ? 2.6f : 2f;
+            // The Bullgryn is the biggest body on the roster (~2.9m model), so he is also the widest target.
+            controller.radius = small ? 0.4f : bullgryn ? 0.6f : 0.5f;
             controller.center = new Vector3(0f, controller.height * 0.5f, 0f);
 
-            root.AddComponent<Health>().Configure(character == Character.KhorneBerserker ? 215f : ranger ? 150f : psyker ? 145f : hospitaller ? 160f : mandrake ? 155f : 175f, 1);
-            root.AddComponent<HealthBar>().Configure(ranger ? 2.5f : psyker ? 2.3f : hospitaller ? 2.4f : mandrake ? 2.45f : 2.7f);
+            root.AddComponent<Health>().Configure(character == Character.KhorneBerserker ? 215f : ranger ? 150f : psyker ? 145f : hospitaller ? 160f : mandrake ? 155f : bullgryn ? 240f : sorcerer ? 165f : 175f, 1);
+            root.AddComponent<HealthBar>().Configure(ranger ? 2.5f : psyker ? 2.3f : hospitaller ? 2.4f : mandrake ? 2.45f : bullgryn ? 3.2f : sorcerer ? 3.0f : 2.7f);
             root.AddComponent<Energy>();
-            root.AddComponent<EnergyBar>().Configure(ranger ? 2.3f : psyker ? 2.1f : hospitaller ? 2.2f : mandrake ? 2.25f : 2.5f);
+            root.AddComponent<EnergyBar>().Configure(ranger ? 2.3f : psyker ? 2.1f : hospitaller ? 2.2f : mandrake ? 2.25f : bullgryn ? 3.0f : sorcerer ? 2.8f : 2.5f);
             root.AddComponent<Respawner>().Configure(3f);
             root.AddComponent<MouseAim>();
             root.AddComponent<PlayerMovement>();
@@ -1377,6 +1394,35 @@ namespace Anathema.EditorTools
                 root.AddComponent<ShadowCross>();
                 root.AddComponent<SoulHarvest>();
             }
+            else if (bullgryn)
+            {
+                // Tank: a slab maul (or, after the round-1 Armament pick, a grenade launcher), a shield bash that
+                // interrupts and slows, a carrying charge, a hooked chain, a held shield block on Space (EX: eat a ration)
+                // and the Living Wall ultimate. Grit (the passive) builds from blocked damage. No counter.
+                root.AddComponent<SlabMaul>();
+                root.AddComponent<ShieldBash>();
+                root.AddComponent<BullCharge>();
+                root.AddComponent<ChainHaul>();
+                root.AddComponent<Brace>();
+                var wall = new SerializedObject(root.AddComponent<LivingWall>());
+                wall.FindProperty("shieldModel").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(BullgrynShieldModelPath);
+                wall.ApplyModifiedPropertiesWithoutUndo();
+                root.AddComponent<Grit>();
+            }
+            else if (sorcerer)
+            {
+                // Time-and-sand support (no counter): bolts that lay the Curse of the Rubricae, a charged delayed heal, a
+                // sand-form dash, a frontal Kine Shield that catches a bolt to throw back (EX: a reflecting Warp Rift), a
+                // lobbed snaring hourglass, a petrifying touch and the Weaver of Fates ultimate.
+                root.AddComponent<SandsOfProspero>();
+                root.AddComponent<MendingSands>();
+                root.AddComponent<KineShield>();
+                root.AddComponent<SinkingSands>();
+                root.AddComponent<DustForm>();
+                root.AddComponent<DustglassTouch>();
+                root.AddComponent<WeaverOfFates>();
+                root.AddComponent<EchoesOfProspero>();
+            }
             else if (psyker)
             {
                 // Glass-cannon caster: ranged bolts, chain lightning, a stunning shot, a damage-absorbing barrier, a blink and a channelled beam ultimate.
@@ -1409,6 +1455,8 @@ namespace Anathema.EditorTools
                 : ranger ? new[] { SkitariiRangerModelPath }.Concat(PlayerModelPaths).ToArray()
                 : hospitaller ? new[] { HospitallerModelPath }.Concat(PlayerModelPaths).ToArray()
                 : mandrake ? new[] { MandrakeModelPath, PsykerModelPath }.Concat(PlayerModelPaths).ToArray()
+                : bullgryn ? new[] { BullgrynModelPath }.Concat(PlayerModelPaths).ToArray()
+                : sorcerer ? new[] { SorcererModelPath }.Concat(PlayerModelPaths).ToArray()
                 : PlayerModelPaths;
             foreach (string path in modelPaths)
             {

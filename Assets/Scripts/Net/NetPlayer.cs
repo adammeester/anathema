@@ -42,7 +42,15 @@ namespace Anathema.Net
             Leech,      // Leech Draught's mark on a festering enemy (a = seconds), held by the server
             Irradiated, // Rad-Saturation's mark: takes more damage (a = extra fraction, b = seconds); a hit rider, held where damage resolves
             FaithArmor, // the Hospitaller's Faith reduction on herself (a = fraction, b = seconds), replaced on every refresh, held by the server
-            HealCut     // less healing received (a = share cut, b = seconds), e.g. Holy Pyre; a hit rider, held where damage resolves
+            HealCut,    // less healing received (a = share cut, b = seconds), e.g. Holy Pyre; a hit rider, held where damage resolves
+            AllyHaul,   // a teammate dragged by the Bullgryn's Chain Haul: a knockback (a = distance, b = seconds) allowed on allies
+            RubricMark,      // the Sorcerer's time bomb (a = damage, b = seconds), held by the server
+            RubricBurst, // sets off a Curse of the Rubricae now, held by the server
+            Mending,        // the Sorcerer's delayed heal on a teammate (a = amount, b = seconds), held by the server
+            MendingBloom,   // a Mending heals now, held by the server
+            Petrify,        // encased in dust-glass (a = seconds, b = shield, direction.x = delay): a control effect like a stun
+            PetrifyBreak,   // server -> owner: the dust-glass shell broke
+            Timeslip        // a teammate pulled out of time by Weaver of Fates (a = seconds, b = range, direction = Timeslipped.Arrival)
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -84,13 +92,15 @@ namespace Anathema.Net
 
         // Control effects (root, panic, stun...) are enforced on the machine that moves the character, so the owner
         // publishes which ones are up and replicas draw visual-only copies (see SyncStatusFx).
-        const int FxRoot = 2, FxPanic = 4, FxCharged = 8, FxEnraged = 16, FxStun = 32, FxEmpowered = 64, FxStealth = 128, FxFaded = 256, FxHasted = 512;
+        const int FxRoot = 2, FxPanic = 4, FxCharged = 8, FxEnraged = 16, FxStun = 32, FxEmpowered = 64, FxStealth = 128, FxFaded = 256, FxHasted = 512,
+                  FxPetrify = 1024, FxTimeslip = 2048;
         readonly NetworkVariable<int> netStatusFx = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         int appliedStatusFx;
 
         // Effects that do their work on the server's copy (the ward's absorbing, bleed and burn damage) are published
         // by the server; every other machine, the owner included, draws visual-only copies (see SyncServerFx).
-        const int ServerFxWard = 1, ServerFxBleed = 2, ServerFxBurn = 4, ServerFxBarrier = 8, ServerFxPoison = 16, ServerFxBalefire = 32;
+        const int ServerFxWard = 1, ServerFxBleed = 2, ServerFxBurn = 4, ServerFxBarrier = 8, ServerFxPoison = 16, ServerFxBalefire = 32,
+                  ServerFxRubric = 64, ServerFxMending = 128;
         readonly NetworkVariable<int> netServerFx = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         int appliedServerFx;
 
@@ -104,6 +114,8 @@ namespace Anathema.Net
             if (Barrier.IsForReal(gameObject)) m |= ServerFxBarrier;
             if (Poisoned.IsPoisonedForReal(gameObject)) m |= ServerFxPoison;
             if (Balefire.IsBurningForReal(gameObject)) m |= ServerFxBalefire;
+            if (RubricMark.IsMarkedForReal(gameObject)) m |= ServerFxRubric;
+            if (Mending.IsMendingForReal(gameObject)) m |= ServerFxMending;
             return m;
         }
 
@@ -120,6 +132,8 @@ namespace Anathema.Net
             ToggleFx<Barrier>(changed, mask, ServerFxBarrier, Barrier.ShowReplica);
             ToggleFx<Poisoned>(changed, mask, ServerFxPoison, Poisoned.ShowReplica);
             ToggleFx<Balefire>(changed, mask, ServerFxBalefire, Balefire.ShowReplica);
+            ToggleFx<RubricMark>(changed, mask, ServerFxRubric, RubricMark.ShowReplica);
+            ToggleFx<Mending>(changed, mask, ServerFxMending, Mending.ShowReplica);
         }
 
         int ReadStatusFx()
@@ -129,7 +143,9 @@ namespace Anathema.Net
             if (Panicked.IsPanicked(gameObject)) m |= FxPanic;
             if (Charged.IsCharged(gameObject)) m |= FxCharged;
             if (Enraged.IsEnraged(gameObject)) m |= FxEnraged;
-            if (Stunned.IsStunned(gameObject)) m |= FxStun;
+            if (Stunned.HasStun(gameObject)) m |= FxStun;
+            if (Petrified.IsActive(gameObject)) m |= FxPetrify;
+            if (Timeslipped.IsActive(gameObject)) m |= FxTimeslip;
             if (Stealthed.IsStealthed(gameObject)) m |= FxStealth;
             if (Faded.IsFaded(gameObject)) m |= FxFaded;
             if (Hasted.IsHasted(gameObject)) m |= FxHasted;
@@ -149,7 +165,7 @@ namespace Anathema.Net
             int mask = netStatusFx.Value;
             // The server holds the real stun, root and panic on its copy (it moves the character); the owner's report
             // of them must not add or remove those.
-            if (IsServer) mask &= ~(FxRoot | FxPanic | FxStun);
+            if (IsServer) mask &= ~(FxRoot | FxPanic | FxStun | FxPetrify | FxTimeslip);
             if (mask == appliedStatusFx) return;
             int changed = mask ^ appliedStatusFx;
             appliedStatusFx = mask;
@@ -162,6 +178,8 @@ namespace Anathema.Net
             ToggleFx<Stealthed>(changed, mask, FxStealth, Stealthed.ShowReplica);
             ToggleFx<Faded>(changed, mask, FxFaded, Faded.ShowReplica);
             ToggleFx<Hasted>(changed, mask, FxHasted, Hasted.ShowReplica);
+            ToggleFx<Petrified>(changed, mask, FxPetrify, Petrified.ShowReplica);
+            ToggleFx<Timeslipped>(changed, mask, FxTimeslip, Timeslipped.ShowReplica);
             if ((changed & FxStun) != 0 && (mask & FxStun) == 0 && TryGetComponent(out StunFx stunFx)) Destroy(stunFx);
             if ((changed & FxEmpowered) != 0)
                 foreach (Ability a in abilities) a.ShowReplicaEmpowered((mask & FxEmpowered) != 0);
@@ -788,6 +806,16 @@ namespace Anathema.Net
         [Rpc(SendTo.NotMe, InvokePermission = RpcInvokePermission.Everyone)]
         void RotStacksRpc(int stacks, float seconds) => Festering.ShowReplica(gameObject, stacks, seconds);
 
+        // Owner: this character stepped back in from Weaver of Fates with Fires of Tzeentch; every other machine draws the
+        // warpfire there (the owner's copy deals the damage).
+        public void SendWarpfire(Vector3 at)
+        {
+            if (IsSpawned && IsOwner) WarpfireRpc(at);
+        }
+
+        [Rpc(SendTo.NotMe, InvokePermission = RpcInvokePermission.Everyone)]
+        void WarpfireRpc(Vector3 at) => Timeslipped.SpawnWarpfire(gameObject, at, false);
+
         [ClientRpc]
         void PoisonBurstClientRpc(float size)
         {
@@ -809,6 +837,50 @@ namespace Anathema.Net
             if (!IsOwner || !victim.TryGet(out NetworkObject victimObject)) return;
             if (TryGetComponent(out Anathema.Abilities.Mandrake.SoulHarvest harvest) && victimObject.TryGetComponent(out Health victimHealth))
                 harvest.Harvest(victimHealth);
+        }
+
+        // Server: this (Bullgryn) character's slabshield blocked `amount` damage, and whether that broke his guard.
+        // The server's copy already counted it; every other machine counts it too (Grit stacks, stamina, the owner's
+        // energy) and plays the spark, and on a guard break drops the shield.
+        public void ServerShieldBlocked(float amount, bool guardBreak)
+        {
+            if (IsServer) ShieldBlockedClientRpc(amount, guardBreak);
+        }
+
+        [ClientRpc]
+        void ShieldBlockedClientRpc(float amount, bool guardBreak)
+        {
+            if (IsServer) return;
+            if (TryGetComponent(out Anathema.Abilities.Bullgryn.Brace brace)) brace.BlockedFromServer(amount, guardBreak);
+        }
+
+        // Server: this character's Curse of the Rubricae burst (its time ran out, or the Sorcerer set it off). Every other machine
+        // plays the burst.
+        public void ServerRubricBurst()
+        {
+            if (IsServer) RubricBurstClientRpc();
+        }
+
+        [ClientRpc]
+        void RubricBurstClientRpc()
+        {
+            if (IsServer) return;
+            RubricMark.PlayBurst(transform.position);
+        }
+
+        // Server: the Sorcerer's Echoes of Prospero sent sand from this (cursed) character's burst to heal `ally`. Every
+        // other machine draws the stream.
+        public void ServerRubricEcho(GameObject ally)
+        {
+            if (!IsServer || ally == null || !ally.TryGetComponent(out NetworkObject allyObject) || !allyObject.IsSpawned) return;
+            RubricEchoClientRpc(allyObject);
+        }
+
+        [ClientRpc]
+        void RubricEchoClientRpc(NetworkObjectReference ally)
+        {
+            if (IsServer || !ally.TryGet(out NetworkObject allyObject)) return;
+            Anathema.Abilities.Sorcerer.EchoesOfProspero.PlayEcho(transform.position, allyObject.transform);
         }
 
         // Server: this character's balefire was set off by its caster's hit. Every other machine plays the burst.
@@ -853,7 +925,9 @@ namespace Anathema.Net
 
         static bool IsSupportive(StatusKind kind) => kind == StatusKind.Ward || kind == StatusKind.Heal || kind == StatusKind.Enrage
                                                      || kind == StatusKind.Barrier || kind == StatusKind.Cleanse
-                                                     || kind == StatusKind.Armor || kind == StatusKind.FaithArmor;
+                                                     || kind == StatusKind.Armor || kind == StatusKind.FaithArmor
+                                                     || kind == StatusKind.AllyHaul || kind == StatusKind.Mending
+                                                     || kind == StatusKind.MendingBloom || kind == StatusKind.Timeslip;
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         void StatusServerRpc(int kind, float a, float b, Vector3 direction, NetworkObjectReference source, bool hasSource, RpcParams rpcParams = default)
@@ -932,7 +1006,7 @@ namespace Anathema.Net
                 case StatusKind.Bleed: Bleeding.Apply(gameObject, attacker, a, b); break;
                 case StatusKind.Panic: Panicked.Apply(gameObject, attacker, a); break;
                 case StatusKind.Ward: PlagueWard.Apply(gameObject, attacker, a, b); break;
-                case StatusKind.Slow: Slowed.Apply(gameObject, a, b); break;
+                case StatusKind.Slow: Slowed.Apply(gameObject, a, b, direction.x > 0f); break;
                 case StatusKind.Burn: Burning.Apply(gameObject, attacker, a, b); break;
                 case StatusKind.PanicBreak: Panicked.Cancel(gameObject); break;
                 case StatusKind.Enrage: Enraged.Apply(gameObject, a); break;
@@ -946,6 +1020,18 @@ namespace Anathema.Net
                         health.HoldArmor(Mathf.Min(a, Anathema.Abilities.Hospitaller.Faith.ReductionCeiling), Mathf.Min(b, 1f));
                     break;
                 case StatusKind.Leech: LeechMark.Refresh(gameObject, attacker, a); break;
+                case StatusKind.AllyHaul: Knockback.Apply(gameObject, direction, a, b); break;
+                case StatusKind.RubricMark: RubricMark.Apply(gameObject, attacker, a, b); break;
+                case StatusKind.RubricBurst: RubricMark.Detonate(gameObject, attacker); break;
+                case StatusKind.Mending: Mending.Apply(gameObject, attacker, a, b); break;
+                case StatusKind.MendingBloom: Mending.Bloom(gameObject, attacker); break;
+                case StatusKind.Petrify: Petrified.Apply(gameObject, a, b, direction.x, attacker); break;
+                case StatusKind.PetrifyBreak: Petrified.Break(gameObject); break;
+                case StatusKind.Timeslip:
+                    // The server holds the untouchable copy and tells the owner, who hides and picks where to come back.
+                    Timeslipped.ApplyHere(gameObject, a, b, Timeslipped.Arrival.Unpack(direction), IsServer, IsOwner);
+                    if (IsServer && !IsOwner) ForwardStatusToOwner(kind, a, b, direction, attacker);
+                    break;
             }
         }
     }

@@ -58,6 +58,15 @@ namespace Anathema.Upgrades
 
         public int Mask => 1 << Bit;
 
+        // Optional character flavour for the category: the name and colour shown on the card instead of the generic
+        // ones (the Thousand Sons Sorcerer's cards show the Cults of Prospero). The category itself is unchanged.
+        public string Theme { get; private set; }
+        public Color? ThemeColor { get; private set; }
+        public UpgradeDef Themed(string label, Color color) { Theme = label; ThemeColor = color; return this; }
+
+        public string CategoryName => Theme ?? CategoryLabel(Category);
+        public Color Accent => ThemeColor ?? CategoryColor(Category);
+
         public static Color CategoryColor(UpgradeCategory category)
         {
             switch (category)

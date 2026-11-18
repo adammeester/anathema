@@ -19,6 +19,17 @@ namespace Anathema.Combat
         public static HitRider Empty => new HitRider { Kind = None };
         public static HitRider Stun(float seconds) => new HitRider { Kind = (int)NetPlayer.StatusKind.Stun, A = seconds };
         public static HitRider Slow(float seconds, float fraction) => new HitRider { Kind = (int)NetPlayer.StatusKind.Slow, A = seconds, B = fraction };
+        // A slow that wears off evenly over `seconds` (1 = a full stop easing back to normal).
+        public static HitRider FadingSnare(float seconds, float fraction) =>
+            new HitRider { Kind = (int)NetPlayer.StatusKind.Slow, A = seconds, B = fraction, Direction = new Vector3(1f, 0f, 0f) };
+        // The Sorcerer's time bomb; damage is credited to the hit's source.
+        public static HitRider RubricCurse(float damage, float seconds) =>
+            new HitRider { Kind = (int)NetPlayer.StatusKind.RubricMark, A = damage, B = seconds };
+        // Sets off a Curse of the Rubricae already on the victim (after this hit's damage).
+        public static HitRider RubricBurst() => new HitRider { Kind = (int)NetPlayer.StatusKind.RubricBurst };
+        // Encased after `delay`, for `seconds`, behind a `shield` damage shell (Petrified).
+        public static HitRider Petrify(float seconds, float shield, float delay) =>
+            new HitRider { Kind = (int)NetPlayer.StatusKind.Petrify, A = seconds, B = shield, Direction = new Vector3(delay, 0f, 0f) };
         public static HitRider Knockback(Vector3 direction, float distance, float seconds) =>
             new HitRider { Kind = (int)NetPlayer.StatusKind.Knockback, A = distance, B = seconds, Direction = direction };
         public static HitRider Root(float seconds) => new HitRider { Kind = (int)NetPlayer.StatusKind.Root, A = seconds };
@@ -116,7 +127,10 @@ namespace Anathema.Combat
             switch ((NetPlayer.StatusKind)r.Kind)
             {
                 case NetPlayer.StatusKind.Stun: Stunned.Apply(victim, r.A); break;
-                case NetPlayer.StatusKind.Slow: Slowed.Apply(victim, r.A, r.B); break;
+                case NetPlayer.StatusKind.Slow: Slowed.Apply(victim, r.A, r.B, r.Direction.x > 0f); break;
+                case NetPlayer.StatusKind.RubricMark: Combat.RubricMark.Apply(victim, attacker, r.A, r.B); break;
+                case NetPlayer.StatusKind.RubricBurst: Combat.RubricMark.Detonate(victim, attacker); break;
+                case NetPlayer.StatusKind.Petrify: Petrified.Apply(victim, r.A, r.B, r.Direction.x, attacker); break;
                 case NetPlayer.StatusKind.Knockback: Knockback.Apply(victim, r.Direction, r.A, r.B); break;
                 case NetPlayer.StatusKind.Root: Rooted.Apply(victim, r.A); break;
                 case NetPlayer.StatusKind.Silence: Silenced.Apply(victim, r.A, r.B > 0f); break;

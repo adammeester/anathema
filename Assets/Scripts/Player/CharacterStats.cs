@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Anathema.Abilities;
+using Anathema.Abilities.Bullgryn;
 using Anathema.Abilities.GreyKnightInterceptor;
 using Anathema.Abilities.Hospitaller;
 using Anathema.Abilities.KhorneBerserker;
@@ -9,6 +10,7 @@ using Anathema.Abilities.Mandrake;
 using Anathema.Abilities.PlagueSurgeon;
 using Anathema.Abilities.Psyker;
 using Anathema.Abilities.SkitariiRanger;
+using Anathema.Abilities.Sorcerer;
 using Anathema.Combat;
 using UnityEngine;
 
@@ -47,6 +49,8 @@ namespace Anathema.Player
             if (player.GetComponent<GalvanicShot>() != null) return "SkitariiRanger";
             if (player.GetComponent<SanctifiedTether>() != null) return "Hospitaller";
             if (player.GetComponent<GlimmersteelBlade>() != null) return "Mandrake";
+            if (player.GetComponent<SlabMaul>() != null) return "Bullgryn";
+            if (player.GetComponent<SandsOfProspero>() != null) return "Sorcerer";
             return null;
         }
 

@@ -2,9 +2,27 @@ using UnityEngine;
 
 namespace Anathema.Combat
 {
+    // Something that can snatch enemy projectiles out of the air (the Sorcerer's Kine Shield). Every machine asks the
+    // catchers about its own copy of each projectile, the same way reflect domes are checked, so a shot caught on the
+    // shooter's machine never sends its hit.
+    public interface IProjectileCatcher
+    {
+        // True if `projectile` (an enemy's, at its current position) is caught; it is then destroyed.
+        bool TryCatch(Projectile projectile);
+    }
+
     public class Projectile : MonoBehaviour
     {
         static readonly RaycastHit[] Hits = new RaycastHit[16];
+
+        public static readonly System.Collections.Generic.List<IProjectileCatcher> Catchers =
+            new System.Collections.Generic.List<IProjectileCatcher>();
+
+        public int OwnerTeam => ownerTeam;
+        public float Damage => damage;
+        public float Speed => speed;
+        public float Radius => radius;
+        public Vector3 Direction => direction;
 
         int ownerTeam;
         float damage;
@@ -81,6 +99,12 @@ namespace Anathema.Combat
 
         void Update()
         {
+            for (int i = 0; i < Catchers.Count; i++)
+            {
+                if (!Catchers[i].TryCatch(this)) continue;
+                Destroy(gameObject);
+                return;
+            }
             TryReflect();
             float step = Mathf.Min(speed * Time.deltaTime, remainingRange);
 

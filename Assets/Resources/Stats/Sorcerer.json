@@ -1,0 +1,96 @@
+{
+  "health": 165,
+  "moveSpeed": 5.0,
+  "maxEnergy": 100,
+  "abilities": {
+    "SandsOfProspero": {
+      "cooldown": 0.85,
+      "damage": 10,
+      "range": 13,
+      "projectileSpeed": 22,
+      "projectileRadius": 0.3,
+      "windup": 0.3,
+      "energyPerHit": 7,
+      "markDamage": 6,
+      "markSeconds": 3.5,
+      "exEnergyCost": 25,
+      "exCooldown": 5,
+      "exDamage": 16,
+      "exRange": 17,
+      "exProjectileSpeed": 34,
+      "exKnockback": 2.5,
+      "exKnockbackDuration": 0.25
+    },
+    "MendingSands": {
+      "cooldown": 0.75,
+      "heal": 12,
+      "mendHeal": 6,
+      "mendSeconds": 3.5,
+      "range": 11,
+      "radius": 2.2,
+      "flightTime": 0.35,
+      "windup": 0.3,
+      "rechargeTime": 6,
+      "energyPerHeal": 5
+    },
+    "KineShield": {
+      "cooldown": 8,
+      "shieldDuration": 1.2,
+      "arcDegrees": 180,
+      "catchRadius": 1.9,
+      "meleeRange": 3.6,
+      "meleeKnockback": 2.5,
+      "moveSpeedScale": 0.7,
+      "recastWindow": 4.5,
+      "throwRange": 14,
+      "throwMinSpeed": 24,
+      "exEnergyCost": 25,
+      "riftRange": 9,
+      "riftRadius": 2.6,
+      "riftDuration": 2,
+      "riftSlow": 0.4
+    },
+    "SinkingSands": {
+      "cooldown": 7,
+      "damage": 12,
+      "radius": 2.3,
+      "minRange": 2,
+      "maxRange": 10,
+      "flightTime": 0.95,
+      "windup": 0.25,
+      "snareSeconds": 1,
+      "energyPerHit": 6,
+      "markDamage": 10,
+      "markSeconds": 3.5
+    },
+    "DustForm": {
+      "cooldown": 10,
+      "range": 8,
+      "minTravelTime": 0.5,
+      "maxTravelTime": 0.65,
+      "passRadius": 1.3,
+      "allyHeal": 12
+    },
+    "DustglassTouch": {
+      "cooldown": 15,
+      "damage": 4,
+      "range": 3.2,
+      "arcDegrees": 140,
+      "windup": 0.3,
+      "knockback": 2.5,
+      "petrifyDelay": 1,
+      "petrifySeconds": 2.7,
+      "petrifyShield": 20,
+      "energyPerHit": 5
+    },
+    "WeaverOfFates": {
+      "energyCost": 100,
+      "castRange": 18,
+      "slipSeconds": 2,
+      "returnRange": 13,
+      "cooldownCut": 0.25,
+      "arrivalStun": 1.75,
+      "arrivalRadius": 2.5
+    }
+  }
+}

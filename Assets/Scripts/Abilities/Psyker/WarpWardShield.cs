@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Anathema.Abilities.Psyker
 {
     // The Warp Ward upgrade's shield: soaks damage for a few seconds after a Warp Step. It uses Health.BonusAbsorber so
-    // it stacks with the Kine Shield instead of replacing it. Only the authority's copy absorbs (damage is resolved on
+    // it stacks with the Psychic Barrier instead of replacing it. Only the authority's copy absorbs (damage is resolved on
     // the server online); every machine shows the shell. Re-granting refreshes the shield.
     public class WarpWardShield : MonoBehaviour
     {

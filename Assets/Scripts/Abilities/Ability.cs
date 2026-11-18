@@ -31,6 +31,12 @@ namespace Anathema.Abilities
         public virtual string ExDescription => "";
         public virtual string ExName => DisplayName;
 
+        // EX versions with charges of their own (e.g. the Bullgryn's Ration Break): pips drawn on the slot while Shift is
+        // held, and the EX can't be used while none is ready (ExReady).
+        public virtual int ExChargeCapacity => 0;
+        public virtual int ExChargesReady => 0;
+        protected virtual bool ExReady => true;
+
         // False while something other than the cooldown stops this ability being used (e.g. an ultimate without a
         // full energy bar). Only affects how the HUD draws the slot.
         public virtual bool Available => true;
@@ -202,6 +208,7 @@ namespace Anathema.Abilities
             get
             {
                 if (ExCost <= 0f || !Input.GetKey(KeyCode.LeftShift)) return false;
+                if (!ExReady) return true;
                 if (exEnergy == null) exEnergy = GetComponent<Energy>();
                 return exEnergy == null || exEnergy.Current < ExCost;
             }

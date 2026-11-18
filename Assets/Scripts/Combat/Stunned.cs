@@ -19,7 +19,7 @@ namespace Anathema.Combat
             // victim's machine, which publishes it so every screen draws it.
             if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Stun, duration, 0f, Vector3.zero)) return null;
 
-            if (Enraged.IsEnraged(target)) return null;
+            if (Enraged.IsEnraged(target) || Unstoppable.Is(target)) return null;
             duration *= Health.CrowdControlScaleOf(target);
 
             var stunned = target.GetComponent<Stunned>();
@@ -37,10 +37,14 @@ namespace Anathema.Combat
             StunFx.Show(target, float.MaxValue);
         }
 
+        // Being encased in dust-glass (Petrified) or pulled out of time (Timeslipped) holds a character just like a stun.
         public static bool IsStunned(GameObject target)
         {
-            return target.TryGetComponent(out Stunned _);
+            return target.TryGetComponent(out Stunned _) || Petrified.IsActive(target) || Timeslipped.IsActive(target);
         }
+
+        // Only a real stun (the stars), not the effects that count as one.
+        public static bool HasStun(GameObject target) => target.TryGetComponent(out Stunned _);
 
         void Awake()
         {

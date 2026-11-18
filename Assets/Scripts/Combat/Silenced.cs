@@ -13,7 +13,7 @@ namespace Anathema.Combat
         {
             if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Silence, duration, interrupt ? 1f : 0f, Vector3.zero)) return null;
 
-            if (Enraged.IsEnraged(target)) return null;
+            if (Enraged.IsEnraged(target) || Unstoppable.Is(target)) return null;
             duration *= Health.CrowdControlScaleOf(target);
 
             var silenced = target.GetComponent<Silenced>();

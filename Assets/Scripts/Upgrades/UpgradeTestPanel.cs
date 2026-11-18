@@ -108,12 +108,12 @@ namespace Anathema.Upgrades
             foreach (UpgradeDef def in all)
             {
                 bool on = state.Has(def.Bit);
-                Color tint = UpgradeDef.CategoryColor(def.Category);
+                Color tint = def.Accent;
                 GUIStyle style = on ? rowOn : row;
 
                 Color previous = GUI.backgroundColor;
                 GUI.backgroundColor = on ? tint : new Color(0.25f, 0.25f, 0.28f);
-                string label = (on ? "[x] " : "[  ] ") + UpgradeDef.CategoryLabel(def.Category).Substring(0, 3) + "  " + def.Name;
+                string label = (on ? "[x] " : "[  ] ") + def.CategoryName.Substring(0, 3) + "  " + def.Name;
                 if (GUI.Button(new Rect(panel.x + 14, y, panel.width - 28, rowH), new GUIContent(label, def.Description), style))
                     state.DebugToggle(def.Bit);
                 GUI.backgroundColor = previous;

@@ -25,6 +25,14 @@ namespace Anathema.Player
         }
     }
 
+    // Implemented by a component that scales its own character's walking speed for a while (e.g. the Bullgryn's Brace).
+    // It must give the same answer on the owner and on the server's copy (both run the movement step), so drive it
+    // from state that replays from ability cues.
+    public interface IMoveSpeedModifier
+    {
+        float MoveSpeedMultiplier { get; }
+    }
+
     // Everything a movement step reads from the character's state, gathered once per step.
     public struct MoveContext
     {
@@ -62,6 +70,7 @@ namespace Anathema.Player
             ctx.Speed = moveSpeed * (maimed != null ? maimed.SpeedMultiplier : 1f) * Enraged.MoveSpeedMultiplier(character)
                         * ReflectDome.SlowMultiplier(character) * Slowed.Multiplier(character)
                         * Stealthed.MoveSpeedMultiplier(character) * Hasted.MoveSpeedMultiplier(character);
+            foreach (IMoveSpeedModifier m in character.GetComponents<IMoveSpeedModifier>()) ctx.Speed *= m.MoveSpeedMultiplier;
 
             ctx.Fleeing = Panicked.TryGetFleeDirection(character, out ctx.FleeDirection);
             ctx.KnockedBack = Knockback.TryGetVelocity(character, out ctx.KnockbackVelocity);

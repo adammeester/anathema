@@ -120,7 +120,7 @@ namespace Anathema.Net
                         "Damage 16 (22.4 vs Charged, x0.7 per jump)  |  Cooldown 5s  |  Range 12  |  2 jumps  |  +6 energy per hit"),
                     A("Q", "Cripple", "Fire a slow, heavy bolt of crippling warp force at the first enemy in its path. It does a little damage and stuns the target. C during the wind-up cancels it.",
                         "Damage 5  |  Stun 1.5s  |  Cooldown 8s  |  Range 14  |  +12 energy per hit"),
-                    A("E", "Kine Shield", "Wrap yourself in a telekinetic shield that soaks damage, area and over-time damage included. It fades if unused, and recasting replaces it. C drops it.",
+                    A("E", "Psychic Barrier", "Wrap yourself in a telekinetic shield that soaks damage, area and over-time damage included. It fades if unused, and recasting replaces it. C drops it.",
                         "Absorbs 50  |  Lasts 5s  |  Cooldown 10s"),
                     A("Space", "Warp Step", "You have no counter. Step through the warp, vanishing and reappearing at the cursor (over walls, but never into one). A pool of warp-fire is left where you land, burning enemies inside it.",
                         "Cooldown 6s  |  Range 8  |  Fire 12/s  |  Radius 2.2  |  Lasts 4s"),
@@ -212,6 +212,62 @@ namespace Anathema.Net
                         "Damage 14 (28 from stealth)  |  Stun 1.25s  |  +2 poison stacks from stealth  |  Range 3  |  Cooldown 14s  |  Costs 35 energy"),
                     EX("Shift+Q", "Umbral Return", "Shadow Jump as normal, but you leave a shadow mark where you stood. Press Q again within 3s to snap back to it, as long as it is still within jump range. The return doesn't break Shadow Veil or charge your blade again. C lets the mark fade.",
                         "Return window 3s  |  Range 7  |  Costs 35 energy")
+                }
+            },
+            new CharacterInfo
+            {
+                name = "Bullgryn", epithet = "The Living Bulwark", prefabPath = "Net/Player_Bullgryn",
+                role = Role.Melee, accent = new Color(0.95f, 0.65f, 0.1f),
+                blurb = "Ogryn shield-wall. The toughest body on the field: blocks for his team, hauls enemies in and walls them off.",
+                footnote = "Hold Shift in game to use EX abilities",
+                passive = P("Grit", "Damage your slabshield blocks builds Grit. Every stack makes you take less damage and shortens the stuns and slows you suffer. At full Grit your next basic attack is empowered and spends every stack. Go a few seconds without blocking and the stacks fade one by one.",
+                    "1 stack per 15 damage blocked, max 5  |  -4% damage taken and -8% crowd control per stack  |  Fades after 4s"),
+                abilities = new[]
+                {
+                    A("LMB", "Slab Maul", "Click or hold to swing the maul in a wide arc in front of you. Every third swing in a row that connects also shoves. At full Grit the swing becomes a Slab Slam: much harder, and it stuns. Taking the Grenadier Gauntlet (an Armament pick after round 1) turns this into a lobbed grenade that bursts at the cursor; at full Grit it fires a wider Krak Shell that slows.",
+                        "Maul: Damage 13  |  Every 1s  |  Range 2.6, 110 degrees  |  Slam +60% and 0.75s stun  |  Gauntlet: Damage 11 in 2.2 radius  |  Range 4-11  |  Every 1.1s"),
+                    A("RMB", "Shield Bash", "Slam the shield's rim into everything just in front of you: it interrupts casts and channels, knocks back and slows. Can't be used while Living Wall stands. C during the wind-up cancels it.",
+                        "Damage 8  |  Knockback 2  |  30% slow for 2s  |  Range 3, 90 degrees  |  Cooldown 7s"),
+                    A("Q", "Bull Charge", "After a short wind-up, barrel forward. Nothing can stop you while you charge. The first enemy you hit is carried along; drive them into a wall (your Living Wall counts) and they are stunned, otherwise they are dropped with a brief stun.",
+                        "Damage 12  |  Distance 7  |  Wall stun 1.25s, otherwise 0.4s  |  Cooldown 9s"),
+                    A("E", "Chain Haul", "Hurl a hooked chain along your aim. The first character it reaches is dragged to you: an enemy takes a little damage and lands in front of you, an ally is pulled out of trouble. Walls stop it.",
+                        "Damage 6  |  Range 9  |  Cooldown 12s"),
+                    A("Space", "Brace", "You have no counter. Hold to raise the slabshield. Hits and projectiles from the front are blocked, stuns and slows with them; the shield also stops shots aimed at allies behind you. Area damage still gets through. You move slowly, turn slowly and can't attack. Every hit you block wears down the shield's stamina; if it runs out your guard breaks and you can't brace for a few seconds. It recovers while the shield is down.",
+                        "140 degree arc  |  45% move speed  |  Stamina 100 (1 per damage blocked, refills 20/s)  |  Guard break: 3s lockout"),
+                    A("R", "Living Wall", "Costs a full energy bar. Slam the slabshield into the ground: a wall that blocks movement and projectiles from both sides. Press R or right-click again (from anywhere) to shove it the way it faces: enemies in its path are pushed along, and anyone pinned against terrain is stunned. You have no shield while it stands.",
+                        "Wall 4 wide for 6s  |  Shove 3m after a 0.25s warning  |  Damage 10  |  Pin stun 1.5s  |  Costs 100 energy", true),
+                    EX("Shift+Space", "Ration Break", "Wolf down a ration and recover a chunk of health on the spot. No cast time. Two charges, each recharging on its own; every use costs energy.",
+                        "Heals 20% of max health  |  Instant  |  2 charges, 15s recharge each  |  Costs 50 energy per use")
+                }
+            },
+            new CharacterInfo
+            {
+                name = "Thousand Sons Sorcerer", epithet = "The Weaver of Sands", prefabPath = "Net/Player_Sorcerer",
+                role = Role.Support, accent = new Color(0.3f, 0.75f, 1f),
+                blurb = "Sorcerer of Prospero. Lays the Curse of the Rubricae on his foes, mends allies with enchanted sand and bends time itself.",
+                footnote = "Hold Shift in game to use EX abilities",
+                passive = P("Echoes of Prospero", "Sands of Prospero lays the Curse of the Rubricae, an echo of the spell that turned his brothers to dust: a few seconds later it bursts for extra damage. Bolt of Change, Sinking Sands and Dust Form set it off at once. Whenever one of your curses bursts, its sand streams to the ally nearest the victim (you included) and heals them.",
+                    "Curse bursts for 10 after 3.5s (refreshes, doesn't stack)  |  Each burst heals the nearest ally within 6 for 4"),
+                abilities = new[]
+                {
+                    A("LMB", "Sands of Prospero", "Hold to hurl bolts of enchanted sand. Every hit lays the Curse of the Rubricae.",
+                        "Damage 10 (+10 curse)  |  Range 13  |  0.3s cast  |  +7 energy per hit"),
+                    A("RMB", "Mending Sands", "Throw a handful of healing dust onto the ground at the cursor. Every teammate inside the circle, you included, is healed. The Rejuvenate upgrade also leaves a second, delayed heal on them.",
+                        "Heal 12  |  Radius 2.2  |  Range 11  |  3 charges, 6s recharge each  |  Rejuvenate: +6 after 3.5s"),
+                    A("Space", "Dust Form", "Come apart into sand and pour to the cursor, through walls and characters, untouchable on the way. Teammates you pass through are healed (and a Rejuvenate heal on them lands at once); enemies you pass through have their curse set off.",
+                        "Range 8  |  0.5-0.65s travel  |  Ally heal 12  |  Cooldown 10s"),
+                    A("Q", "Kine Shield", "Hold a half-circle of telekinetic force in front of you. Attacks and projectiles from the front are negated and melee attackers are hurled back. The first bolt it stops is caught: press Q again to fling it back along your aim.",
+                        "Lasts 1.2s  |  180 degree arc  |  Throw within 4.5s  |  Cooldown 8s"),
+                    A("E", "Sinking Sands", "Lob an hourglass in a slow, high arc to the cursor. It shatters for area damage and the ground swallows everyone inside: they stop dead and the snare wears off over a second. Sets off the Curse of the Rubricae at once.",
+                        "Damage 18  |  Radius 2.3  |  Range 2-10  |  0.95s flight  |  Cooldown 7s"),
+                    A("R", "Dustglass Touch", "Sweep your staff in front of you: enemies are hurled back and, a second later, encased in dust-glass. They can't move or act until the shell is broken or the effect ends.",
+                        "Damage 4  |  Knockback 2.5  |  Encased after 1s for 2.7s  |  Shell 20  |  Range 3.2, 140 degrees  |  Cooldown 15s"),
+                    A("F", "Weaver of Fates", "Costs a full energy bar. Pull the teammate nearest the cursor (or yourself) out of time. They vanish, untouchable, and their cooldowns are cut; then they step back in wherever they are aiming, stunning every enemy around the spot.",
+                        "Gone for 2s  |  -25% cooldowns  |  Cast range 18  |  Return within 13, over walls  |  Stun 1.75s in 2.5 radius  |  Costs 100 energy", true),
+                    EX("Shift+LMB", "Bolt of Change", "A faster, longer bolt that hits harder, knocks back and sets off the Curse of the Rubricae at once.",
+                        "Damage 18  |  Range 17  |  Knockback 2.5  |  Cooldown 5s  |  Costs 25 energy"),
+                    EX("Shift+Q", "Warp Rift", "Instead of the shield, tear open a rift at the cursor: enemies inside are slowed and enemy projectiles that enter are turned back.",
+                        "Radius 2.6  |  Lasts 2s  |  40% slow  |  Range 9  |  Costs 25 energy")
                 }
             }
         };

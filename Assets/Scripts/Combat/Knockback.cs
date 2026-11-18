@@ -32,7 +32,7 @@ namespace Anathema.Combat
 
             if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Knockback, distance, duration, direction)) return;
 
-            if (Enraged.IsEnraged(target) || IsImmune(target)) return;
+            if (Enraged.IsEnraged(target) || IsImmune(target) || Unstoppable.Is(target)) return;
 
             var knockback = target.GetComponent<Knockback>();
             if (knockback == null) knockback = target.AddComponent<Knockback>();

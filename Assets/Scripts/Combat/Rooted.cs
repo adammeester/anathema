@@ -21,7 +21,7 @@ namespace Anathema.Combat
             // Online: a remote player's status is applied on their own machine.
             if (Anathema.Net.NetPlayer.RouteControl(target, Anathema.Net.NetPlayer.StatusKind.Root, duration, 0f, Vector3.zero)) return null;
 
-            if (Enraged.IsEnraged(target)) return null;
+            if (Enraged.IsEnraged(target) || Unstoppable.Is(target)) return null;
             duration *= Health.CrowdControlScaleOf(target);
 
             var rooted = target.GetComponent<Rooted>();

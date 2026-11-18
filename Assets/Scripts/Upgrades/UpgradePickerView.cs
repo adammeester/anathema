@@ -96,7 +96,7 @@ namespace Anathema.Upgrades
         // Returns true when the card is clicked.
         bool DrawCard(Rect r, UpgradeDef def, int index)
         {
-            Color accent = UpgradeDef.CategoryColor(def.Category);
+            Color accent = def.Accent;
             bool hover = r.Contains(Event.current.mousePosition);
 
             Fill(new Rect(r.x - 4f, r.y - 4f, r.width + 8f, r.height + 8f), hover ? accent : new Color(accent.r * 0.5f, accent.g * 0.5f, accent.b * 0.5f));
@@ -104,7 +104,7 @@ namespace Anathema.Upgrades
 
             var header = new Rect(r.x, r.y, r.width, 44f);
             Fill(header, accent);
-            GUI.Label(header, UpgradeDef.CategoryLabel(def.Category), categoryStyle);
+            GUI.Label(header, def.CategoryName, categoryStyle);
 
             GUI.Label(new Rect(r.x + 20f, r.y + 62f, r.width - 40f, 110f), def.Name, nameStyle);
             Fill(new Rect(r.x + 40f, r.y + 178f, r.width - 80f, 2f), DarkGold);

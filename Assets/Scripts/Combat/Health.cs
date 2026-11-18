@@ -194,6 +194,9 @@ namespace Anathema.Combat
         // A third shield slot for a short generic barrier (see Barrier: Overdose, Chitinous Wings). It soaks first.
         public Func<float, GameObject, float> BarrierAbsorber;
 
+        // A fourth shield slot for a status effect's own shell (Petrified's dust-glass). It soaks before every other.
+        public Func<float, GameObject, float> StatusAbsorber;
+
         // Each passes part of every hit (after armour, before shields) to someone else, in the order added. Receives
         // (amount, source); returns the amount this character still takes. Added by the Hospitaller's Sanctified Tether
         // and Martyrdom on allies; runs on the authority.
@@ -350,11 +353,12 @@ namespace Anathema.Combat
             // A fully absorbed hit still counts as landing (the attacker gets their energy) but doesn't touch health.
             // A shield-breaking hit uses up the shield faster: the shield sees the hit scaled up, and whatever it could not
             // absorb is scaled back down before it reaches health.
-            if (BarrierAbsorber != null || BonusAbsorber != null || Absorber != null)
+            if (StatusAbsorber != null || BarrierAbsorber != null || BonusAbsorber != null || Absorber != null)
             {
                 float breaker = Mathf.Max(1f, shieldBreak);
                 amount *= breaker;
-                if (BarrierAbsorber != null) amount = BarrierAbsorber(amount, source);
+                if (StatusAbsorber != null) amount = StatusAbsorber(amount, source);
+                if (amount > 0f && BarrierAbsorber != null) amount = BarrierAbsorber(amount, source);
                 if (amount > 0f && BonusAbsorber != null) amount = BonusAbsorber(amount, source);
                 if (amount > 0f && Absorber != null) amount = Absorber(amount, source);
                 amount /= breaker;

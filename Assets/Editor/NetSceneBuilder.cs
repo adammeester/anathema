@@ -31,13 +31,15 @@ namespace Anathema.EditorTools
         const string SkitariiRangerPrefab = PrefabDir + "/Player_SkitariiRanger.prefab";
         const string HospitallerPrefab = PrefabDir + "/Player_Hospitaller.prefab";
         const string MandrakePrefab = PrefabDir + "/Player_Mandrake.prefab";
+        const string BullgrynPrefab = PrefabDir + "/Player_Bullgryn.prefab";
+        const string SorcererPrefab = PrefabDir + "/Player_Sorcerer.prefab";
 
         static NetSceneBuilder()
         {
             EditorApplication.delayCall += () =>
             {
                 if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
-                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(ShrinePath) || !File.Exists(CruciblePath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab) || !File.Exists(HospitallerPrefab) || !File.Exists(MandrakePrefab);
+                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(ShrinePath) || !File.Exists(CruciblePath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab) || !File.Exists(HospitallerPrefab) || !File.Exists(MandrakePrefab) || !File.Exists(BullgrynPrefab) || !File.Exists(SorcererPrefab);
                 if (missing && File.Exists("Assets/Models/GreyKnight.fbx")) BuildAll();
             };
         }
@@ -58,6 +60,8 @@ namespace Anathema.EditorTools
             BuildPlayerPrefab(ArenaSceneBuilder.Character.SkitariiRanger, SkitariiRangerPrefab);
             BuildPlayerPrefab(ArenaSceneBuilder.Character.Hospitaller, HospitallerPrefab);
             BuildPlayerPrefab(ArenaSceneBuilder.Character.Mandrake, MandrakePrefab);
+            BuildPlayerPrefab(ArenaSceneBuilder.Character.Bullgryn, BullgrynPrefab);
+            BuildPlayerPrefab(ArenaSceneBuilder.Character.Sorcerer, SorcererPrefab);
             BuildVersusScene(VersusPath, ArenaSceneBuilder.MapColosseum);
             BuildVersusScene(ShrinePath, ArenaSceneBuilder.MapShrine);
             BuildVersusScene(CruciblePath, ArenaSceneBuilder.MapCrucible);

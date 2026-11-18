@@ -83,8 +83,8 @@ namespace Anathema.Net
             public int team; // 0 = team A, 1 = team B (only used in Teams mode)
         }
 
-        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon", "Psyker", "Skitarii Ranger", "Hospitaller", "Mandrake" };
-        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon", "Net/Player_Psyker", "Net/Player_SkitariiRanger", "Net/Player_Hospitaller", "Net/Player_Mandrake" };
+        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon", "Psyker", "Skitarii Ranger", "Hospitaller", "Mandrake", "Bullgryn", "Thousand Sons Sorcerer" };
+        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon", "Net/Player_Psyker", "Net/Player_SkitariiRanger", "Net/Player_Hospitaller", "Net/Player_Mandrake", "Net/Player_Bullgryn", "Net/Player_Sorcerer" };
 
         public static NetGame Instance { get; private set; }
         public static bool Online => Instance != null && Instance.manager != null && Instance.manager.IsListening;

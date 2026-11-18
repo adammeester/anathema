@@ -247,7 +247,7 @@ namespace Anathema.Player
             for (int n = 0; n < owned.Count; n++)
             {
                 var r = new Rect(gx + n % PerRow * (pip + pipGap), pr.y + nameH + 6f * scale + n / PerRow * (pip + pipGap), pip, pip);
-                Color c = UpgradeDef.CategoryColor(owned[n].Category);
+                Color c = owned[n].Accent;
                 DrawRect(new Rect(r.x - 1.5f * scale, r.y - 1.5f * scale, r.width + 3f * scale, r.height + 3f * scale), Panel);
                 DrawRect(r, new Color(c.r * 0.55f, c.g * 0.55f, c.b * 0.55f));
                 GUI.DrawTexture(new Rect(r.x, r.y, r.width, r.height * 0.5f), sheen);
@@ -294,7 +294,7 @@ namespace Anathema.Player
             {
                 if (!upgrades.Has(all[i].Bit)) continue;
                 DrawText(new Rect(24f * scale, y, 360f * scale, lineH), all[i].Name, Mathf.RoundToInt(18f * scale),
-                    FontStyle.Bold, UpgradeDef.CategoryColor(all[i].Category));
+                    FontStyle.Bold, all[i].Accent);
                 y -= lineH;
             }
         }
@@ -394,6 +394,8 @@ namespace Anathema.Player
             // Charge pips along the top edge: filled gold for each ready charge, dark sockets for spent ones.
             if (ability.ChargeCapacity > 1 && !exShow)
                 DrawChargePips(r, ability.ChargeCapacity, ability.ChargesReady, f);
+            else if (exShow && ability.ExChargeCapacity > 1)
+                DrawChargePips(r, ability.ExChargeCapacity, ability.ExChargesReady, f);
 
             // Key badge on the bottom edge.
             if (!string.IsNullOrEmpty(ability.KeyLabel))
