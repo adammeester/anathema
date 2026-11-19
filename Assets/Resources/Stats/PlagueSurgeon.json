@@ -12,12 +12,29 @@
       "attachDuration": 4,
       "enemyDamagePerSecond": 7,
       "allyHealPerSecond": 7,
-      "exEnergyCost": 40,
-      "burstRadius": 3.5,
-      "burstDamage": 28,
-      "burstHeal": 28,
-      "burstPanic": 1.25,
+      "exEnergyCost": 35,
+      "splitRange": 5,
       "energyPerTick": 2
+    },
+    "PestilentBurst": {
+      "cooldown": 15,
+      "projectileSpeed": 16.2,
+      "range": 13,
+      "projectileRadius": 0.45,
+      "muzzleHeight": 1.1,
+      "burstRadius": 3.5,
+      "burstDamage": 12,
+      "burstPanic": 1.25
+    },
+    "PoxFlask": {
+      "cooldown": 9,
+      "range": 10,
+      "flightTime": 0.5,
+      "arcHeight": 2.5,
+      "splashRadius": 2.5,
+      "damage": 8,
+      "stacks": 2,
+      "holdSeconds": 3
     },
     "PlagueCloud": {
       "cooldown": 7,
@@ -31,7 +48,7 @@
       "energyPerTick": 2
     },
     "PlagueSpit": {
-      "cooldown": 0.7,
+      "cooldown": 0.9,
       "damage": 5,
       "rotDamagePerSecond": 2,
       "range": 13,

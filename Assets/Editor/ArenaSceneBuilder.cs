@@ -1355,42 +1355,49 @@ namespace Anathema.EditorTools
             {
                 // Support caster: poison gas and plague flies, no counter (Winged Escape takes the Space slot).
                 root.AddComponent<PlagueSpit>();
-                root.AddComponent<PlagueCloud>();
                 root.AddComponent<PestilentFly>();
+                root.AddComponent<PoxFlask>();
+                root.AddComponent<PlagueCloud>();
                 root.AddComponent<WingedEscape>();
+                root.AddComponent<PestilentBurst>();
                 root.AddComponent<WardOfPlague>();
             }
             else if (ranger)
             {
-                // Long-range sniper: a quick shot, a chargeable piercing stun shot, shrapnel / shotgun, a disengage and a 4-shot volley.
+                // Long-range sniper: a quick shot, a chargeable piercing root shot, shrapnel / shotgun, a disengage, a
+                // hidden stunning cog-mine (Noospheric Snare) and a 4-shot volley.
                 root.AddComponent<GalvanicShot>();
                 root.AddComponent<TransuranicShot>();
                 root.AddComponent<ShrapnelField>();
                 root.AddComponent<Disengage>();
                 root.AddComponent<RangerCounter>();
+                root.AddComponent<NoosphericSnare>();
                 root.AddComponent<CullingVolley>();
             }
             else if (hospitaller)
             {
                 // Healer: a tether beam (burns enemies / shares an ally's pain), a placed heal pulse split between the
-                // allies it catches, a knockback flare, diving doves that root, a counter and the Martyrdom ultimate.
+                // allies it catches, a knockback flare, diving doves that root, a counter, an area cleanse (Absolution)
+                // and the Martyrdom ultimate.
                 root.AddComponent<SanctifiedTether>();
                 root.AddComponent<SanctusPulse>();
                 root.AddComponent<BlindingRadiance>();
                 root.AddComponent<DoveStrike>();
                 root.AddComponent<MartyrsGrace>();
+                root.AddComponent<Absolution>();
                 root.AddComponent<Martyrdom>();
             }
             else if (mandrake)
             {
                 // Stealth assassin: a rhythmic three-strike blade chain (the cleave poisons), a balefire bolt that bursts
-                // on his next hit, a teleport that charges the next strike, a stealth veil (EX: a stunning cut) and a
-                // counter (Umbral Riposte) that steps behind the attacker.
+                // on his next hit, a teleport that charges the next strike, a stealth veil (EX: shed every debuff), a
+                // counter (Umbral Riposte) that steps behind the attacker, a stunning cut (Shadow Rend) and Shadow Cross.
                 root.AddComponent<GlimmersteelBlade>();
                 root.AddComponent<BalefireBolt>();
                 root.AddComponent<ShadowJump>();
                 root.AddComponent<ShadowVeil>();
                 root.AddComponent<UmbralRiposte>();
+                root.AddComponent<ShadowRend>();
                 root.AddComponent<ShadowCross>();
                 root.AddComponent<SoulHarvest>();
             }
@@ -1425,12 +1432,14 @@ namespace Anathema.EditorTools
             }
             else if (psyker)
             {
-                // Glass-cannon caster: ranged bolts, chain lightning, a stunning shot, a damage-absorbing barrier, a blink and a channelled beam ultimate.
+                // Glass-cannon caster: ranged bolts, chain lightning, a discharge that spends Charges, a damage-absorbing
+                // barrier, a blink, a stunning shot (Cripple) and a channelled beam ultimate.
                 root.AddComponent<WarpBolt>();
-                root.AddComponent<Cripple>();
                 root.AddComponent<ChainLightning>();
+                root.AddComponent<Discharge>();
                 root.AddComponent<PsychicBarrier>();
                 root.AddComponent<WarpStep>();
+                root.AddComponent<Cripple>();
                 root.AddComponent<PsychicBlast>();
             }
             else
@@ -1440,8 +1449,9 @@ namespace Anathema.EditorTools
                 {
                     root.AddComponent<HalberdSweep>();
                     root.AddComponent<Smite>();
-                    root.AddComponent<Consecrate>();
+                    root.AddComponent<TeleportStrike>();
                     root.AddComponent<InterceptorCounter>();
+                    root.AddComponent<Consecrate>();
                     root.AddComponent<Purgatus>();
                 }
             }

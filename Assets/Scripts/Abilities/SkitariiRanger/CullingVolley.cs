@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.SkitariiRanger
 {
-    // Ultimate (R): Culling Volley. Costs a full energy bar. After a short gather the Ranger plants herself and fires
+    // Ultimate (F): Culling Volley. Costs a full energy bar. After a short gather the Ranger plants herself and fires
     // four enormous shots at fixed intervals, each along the cursor's direction at that moment. Each shot has a huge
     // range, pierces every enemy in its line, hits hard and slows what it hits slightly. A laser sight shows where the
     // next shot will go. Stuns, panic, silence and knockback interrupt it (and C or death); an interrupted volley keeps
@@ -44,7 +44,7 @@ namespace Anathema.Abilities.SkitariiRanger
         protected override bool CooldownStartsOnStrike => true;
 
         public override string DisplayName => "Culling Volley";
-        public override string KeyLabel => "R";
+        public override string KeyLabel => "F";
         public override bool RootsMovement => phase != Phase.Idle;
         public override bool Available => energy != null && energy.Current >= energyCost && !Silenced.IsSilenced(gameObject) && !Panicked.IsPanicked(gameObject);
 
@@ -69,7 +69,7 @@ namespace Anathema.Abilities.SkitariiRanger
 
         protected override bool IsTriggered()
         {
-            return Input.GetKeyDown(KeyCode.R) && energy != null && energy.Current >= energyCost;
+            return Input.GetKeyDown(KeyCode.F) && energy != null && energy.Current >= energyCost;
         }
 
         protected override void Activate()

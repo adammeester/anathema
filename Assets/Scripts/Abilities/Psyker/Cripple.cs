@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Psyker
 {
-    // Q: a slow, heavy bolt of crippling warp force. It does a little damage and stuns whoever it hits for 1.5s
+    // R: a slow, heavy bolt of crippling warp force. It does a little damage and stuns whoever it hits for 1.5s
     // (Stunned.Apply forwards the stun to the victim's machine online). Only the first enemy in its path is hit.
     public class Cripple : Ability
     {
@@ -42,7 +42,7 @@ namespace Anathema.Abilities.Psyker
         }
 
         public override string DisplayName => "Cripple";
-        public override string KeyLabel => "Q";
+        public override string KeyLabel => "R";
         public override float ExCost => exEnergyCost;
         public override string ExDescription => "Gravity Well";
         public override string ExName => "Gravity Well";
@@ -50,7 +50,7 @@ namespace Anathema.Abilities.Psyker
         // Applied only when added in the editor.
         void Reset()
         {
-            cooldown = 8f;
+            cooldown = 13f;
         }
 
         protected override void Awake()
@@ -67,7 +67,7 @@ namespace Anathema.Abilities.Psyker
 
         protected override bool IsTriggered()
         {
-            return Input.GetKeyDown(KeyCode.Q);
+            return Input.GetKeyDown(KeyCode.R);
         }
 
         protected override void Activate()

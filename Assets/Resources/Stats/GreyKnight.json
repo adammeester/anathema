@@ -30,13 +30,20 @@
       "OverchargeRadius": 2,
       "OverchargePanic": 2.5
     },
+    "TeleportStrike": {
+      "cooldown": 10,
+      "range": 8,
+      "burstRadius": 2.5,
+      "damage": 12,
+      "energyPerHit": 8
+    },
     "Consecrate": {
-      "cooldown": 8,
+      "cooldown": 14,
       "damage": 10,
       "range": 10,
       "radius": 3,
       "delay": 0.6,
-      "rootDuration": 0.75,
+      "rootDuration": 1.25,
       "energyPerHit": 8,
       "exEnergyCost": 35,
       "domeRadius": 4,

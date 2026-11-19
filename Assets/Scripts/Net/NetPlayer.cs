@@ -50,7 +50,8 @@ namespace Anathema.Net
             MendingBloom,   // a Mending heals now, held by the server
             Petrify,        // encased in dust-glass (a = seconds, b = shield, direction.x = delay): a control effect like a stun
             PetrifyBreak,   // server -> owner: the dust-glass shell broke
-            Timeslip        // a teammate pulled out of time by Weaver of Fates (a = seconds, b = range, direction = Timeslipped.Arrival)
+            Timeslip,       // a teammate pulled out of time by Weaver of Fates (a = seconds, b = range, direction = Timeslipped.Arrival)
+            Purge           // Absolution: strip every crowd control and debuff; held by the server, which tells the owner too
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -927,7 +928,8 @@ namespace Anathema.Net
                                                      || kind == StatusKind.Barrier || kind == StatusKind.Cleanse
                                                      || kind == StatusKind.Armor || kind == StatusKind.FaithArmor
                                                      || kind == StatusKind.AllyHaul || kind == StatusKind.Mending
-                                                     || kind == StatusKind.MendingBloom || kind == StatusKind.Timeslip;
+                                                     || kind == StatusKind.MendingBloom || kind == StatusKind.Timeslip
+                                                     || kind == StatusKind.Purge;
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
         void StatusServerRpc(int kind, float a, float b, Vector3 direction, NetworkObjectReference source, bool hasSource, RpcParams rpcParams = default)
@@ -1030,6 +1032,12 @@ namespace Anathema.Net
                 case StatusKind.Timeslip:
                     // The server holds the untouchable copy and tells the owner, who hides and picks where to come back.
                     Timeslipped.ApplyHere(gameObject, a, b, Timeslipped.Arrival.Unpack(direction), IsServer, IsOwner);
+                    if (IsServer && !IsOwner) ForwardStatusToOwner(kind, a, b, direction, attacker);
+                    break;
+                case StatusKind.Purge:
+                    // The server strips its copy (damage over time, marks, the stun/root/panic it holds) and tells the
+                    // owner, who holds the control effects it predicts movement and ability use with.
+                    Purge.Strip(gameObject, health.IsAuthority);
                     if (IsServer && !IsOwner) ForwardStatusToOwner(kind, a, b, direction, attacker);
                     break;
             }

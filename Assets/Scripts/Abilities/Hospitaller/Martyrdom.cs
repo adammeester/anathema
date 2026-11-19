@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Hospitaller
 {
-    // R: Martyrdom. Costs a full energy bar. She raises the icon and holy fire gathers around her (rooted, 0.9s): embers
+    // F: Martyrdom. Costs a full energy bar. She raises the icon and holy fire gathers around her (rooted, 0.9s): embers
     // stream in from all sides and flames climb her body, so everyone can see it coming. Then for 5s she takes on her
     // team's pain:
     //   - every ally within 10m at the moment it lands is bound to her by a burning thread; half of every hit they take
@@ -60,7 +60,7 @@ namespace Anathema.Abilities.Hospitaller
         float absorbed;
 
         public override string DisplayName => "Martyrdom";
-        public override string KeyLabel => "R";
+        public override string KeyLabel => "F";
         public override bool RootsMovement => IsWindingUp;
         public override bool Available => energy != null && energy.Current >= energyCost && !Silenced.IsSilenced(gameObject) && !Panicked.IsPanicked(gameObject);
 
@@ -81,7 +81,7 @@ namespace Anathema.Abilities.Hospitaller
 
         protected override bool IsTriggered()
         {
-            return !active && Input.GetKeyDown(KeyCode.R) && energy != null && energy.Current >= energyCost;
+            return !active && Input.GetKeyDown(KeyCode.F) && energy != null && energy.Current >= energyCost;
         }
 
         // ---- Gathering (the wind-up: shown on every machine) ---------------------------------------------------------

@@ -109,6 +109,13 @@ namespace Anathema.Combat
 
         public float ExposedMultiplier => Time.time < exposedEnd ? 1f + exposed : 1f;
 
+        // Absolution: lifts any healing cut and extra damage taken (Penance, Holy Pyre, Balefire...). Authority only.
+        public void ClearAfflictions()
+        {
+            healCutEnd = float.NegativeInfinity;
+            exposedEnd = float.NegativeInfinity;
+        }
+
         // Armour held by a passive that keeps refreshing it (the Hospitaller's Faith). Unlike GrantTemporaryArmor each
         // refresh replaces the value, so it can fall as well as rise; it lapses if the refreshes stop. Authority only.
         float heldArmor;

@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.GreyKnightInterceptor
 {
-    // Ultimate (R): Purgatus, the Cleansing Nova. Costs a full energy bar. The knight channels for a moment (a
+    // Ultimate (F): Purgatus, the Cleansing Nova. Costs a full energy bar. The knight channels for a moment (a
     // ground telegraph shows the full radius, with an inner disc filling as the charge builds), then releases a ring
     // of warp-fire that expands outwards. Every enemy it sweeps over is damaged once, knocked back and silenced.
     // Pressing C (or dying) during the channel cancels it and refunds the energy. Nothing refunds it once released.
@@ -36,7 +36,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         protected override bool CooldownStartsOnStrike => true;
 
         public override string DisplayName => "Purgatus";
-        public override string KeyLabel => "R";
+        public override string KeyLabel => "F";
 
         // Planted for the whole cast: the channel and the moment the ring leaves him.
         public override bool RootsMovement => channeling || expanding;
@@ -108,7 +108,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         protected override bool IsTriggered()
         {
-            return Input.GetKeyDown(KeyCode.R) && energy != null && energy.Current >= energyCost;
+            return Input.GetKeyDown(KeyCode.F) && energy != null && energy.Current >= energyCost;
         }
 
         protected override void Activate()

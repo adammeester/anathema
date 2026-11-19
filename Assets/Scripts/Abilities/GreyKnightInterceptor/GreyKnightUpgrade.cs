@@ -72,7 +72,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                 "Two-handed heavy weapon. Attack fires a ball of psychic energy that explodes on contact or at the end of its range, damaging everything around it; Sweep (Q) becomes the Overcharged Round, a slow-charging shell with a huge blast that panics everything it hits. Smite is kept. Replaces the halberd and storm bolter.")
                 .InGroup(WeaponGroup),
             new UpgradeDef(PurifierOrder, UpgradeCategory.Ferocity, "Purifier Order",
-                "Your helmet and shoulders turn white. Smite becomes Purifying Flame, a 2s flame-thrower channel with about the same damage as Smite plus burning. Consecrate, Purgatus, Sweep, the Psycannon and the Daemonhammer also set enemies on fire (5 damage per second for 4s); the halberd sweep leaves burning ground, and so does the hammer slam (but not its swings).")
+                "Your helmet and shoulders turn white. Smite becomes Purifying Flame, a 2s flame-thrower channel with about the same damage as Smite plus burning. Consecrate, Teleport Strike, Purgatus, Sweep, the Psycannon and the Daemonhammer also set enemies on fire (5 damage per second for 4s); the halberd sweep leaves burning ground, and so does the hammer slam (but not its swings).")
                 .InGroup(OrderGroup),
             new UpgradeDef(PaladinOrder, UpgradeCategory.Endurance, "Paladin Order",
                 "Your helmet and shoulders turn gold. Sanctified armour: +30 maximum health and 25% less damage from every hit. Martyr's Resolve: once per round, a hit that would kill you leaves you on 1 health and immune for 2s. Cannot be combined with the Purifier Order.")

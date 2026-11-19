@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Psyker
 {
-    // Ultimate (R): Psychic Blast. Costs a full energy bar. After a gather the Psyker unleashes a channelled beam
+    // Ultimate (F): Psychic Blast. Costs a full energy bar. After a gather the Psyker unleashes a channelled beam
     // of white lightning that pierces everything in its path until it hits a wall. She is planted while channelling, but
     // the beam follows the cursor (at a limited turn rate), so it can be swept across enemies. Every tick damages each
     // enemy in the beam.
@@ -82,7 +82,7 @@ namespace Anathema.Abilities.Psyker
         protected override bool CooldownStartsOnStrike => true;
 
         public override string DisplayName => "Psychic Blast";
-        public override string KeyLabel => "R";
+        public override string KeyLabel => "F";
         public override bool RootsMovement => phase != Phase.Idle;
         public override bool Available => energy != null && energy.Current >= energyCost && !Silenced.IsSilenced(gameObject) && !Panicked.IsPanicked(gameObject);
 
@@ -109,7 +109,7 @@ namespace Anathema.Abilities.Psyker
 
         protected override bool IsTriggered()
         {
-            return Input.GetKeyDown(KeyCode.R) && energy != null && energy.Current >= energyCost;
+            return Input.GetKeyDown(KeyCode.F) && energy != null && energy.Current >= energyCost;
         }
 
         protected override void Activate()

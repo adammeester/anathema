@@ -79,6 +79,16 @@ namespace Anathema.Abilities.PlagueSurgeon
             return festering;
         }
 
+        // Pox Flask: every stack is refreshed to its full duration plus `extraSeconds`, so the rot holds while the surgeon
+        // stops spitting. Published like any refresh (the latest expiry goes out), so other machines draw it for as long.
+        public void Hold(float extraSeconds)
+        {
+            if (visualOnly) return;
+            float until = Time.time + stackDuration + Mathf.Max(0f, extraSeconds);
+            for (int i = 0; i < expiries.Count; i++) expiries[i] = Mathf.Max(expiries[i], until);
+            publishDirty = true;
+        }
+
         // Bursting Pustules: strips every stack at once and says how many there were. The component goes with its next
         // update unless a new stack is laid first.
         public int Consume()

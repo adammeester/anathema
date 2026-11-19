@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Anathema.Abilities.SkitariiRanger
 {
     // RMB: hold to charge the arquebus, release to fire one huge piercing shot along the aim line. The longer it is
-    // charged the harder it hits and the longer it stuns every enemy in the line (up to maxStun at full charge).
+    // charged the harder it hits and the longer it roots every enemy in the line (up to maxRoot at full charge).
     // The Ranger is planted while charging; a cast bar over her head fills with the charge. Held at full charge for
     // autoReleaseDelay seconds, the shot fires by itself (the bar flashes amber to red and a fuse strip drains first).
     // Stuns, silence, panic and knockback (and C or death) break the charge with no shot.
@@ -16,8 +16,8 @@ namespace Anathema.Abilities.SkitariiRanger
         [SerializeField] float chargeTime = 1.6f;
         [SerializeField] float minDamage = 18f;
         [SerializeField] float maxDamage = 40f;
-        [SerializeField] float minStun = 0.25f;
-        [SerializeField] float maxStun = 1.5f;
+        [SerializeField] float minRoot = 0.5f;
+        [SerializeField] float maxRoot = 1.5f;
         [SerializeField] float range = 34f;
         [SerializeField] float shotRadius = 0.45f;
         [SerializeField] float boltSpeed = 54f; // units/s; slow enough to dodge or break line of sight once the shot is away
@@ -198,7 +198,7 @@ namespace Anathema.Abilities.SkitariiRanger
             Sfx.Play(Sfx.Longrifle, Mathf.Lerp(0.45f, 0.65f, t), Mathf.Lerp(0.95f, 0.72f, t), Mathf.Lerp(1f, 0.78f, t));
 
             float damage = Mathf.Lerp(minDamage, maxDamage, t);
-            float stun = Mathf.Lerp(minStun, maxStun, t);
+            float root = Mathf.Lerp(minRoot, maxRoot, t);
             bool full = t >= RangerUpgrade.FullCharge;
             bool executioner = full && RangerUpgrade.Has(gameObject, RangerUpgrade.ExecutionersRound);
             bool irradiate = full && RangerUpgrade.Has(gameObject, RangerUpgrade.RadSaturation);
@@ -214,8 +214,8 @@ namespace Anathema.Abilities.SkitariiRanger
                     if (executioner && target.Max > 0f && target.Current < target.Max * RangerUpgrade.ExecutionerThreshold)
                         scale += RangerUpgrade.ExecutionerBonus;
 
-                    // The stun rides on the hit: if a counter (or anything else) negates the shot, there is no stun.
-                    Hit hit = Hit.Direct(damage * scale).WithStun(stun);
+                    // The root rides on the hit: if a counter (or anything else) negates the shot, there is no root.
+                    Hit hit = Hit.Direct(damage * scale).WithRoot(root);
                     if (irradiate) hit = hit.WithIrradiate(RangerUpgrade.RadSaturationBonus, RangerUpgrade.RadSaturationSeconds);
                     target.Strike(hit, gameObject, landed =>
                     {

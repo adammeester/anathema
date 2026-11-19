@@ -43,8 +43,15 @@
       "leechHealPerSecond": 16,
       "leechEnergyPerSecond": 12
     },
+    "Discharge": {
+      "cooldown": 7,
+      "range": 12,
+      "damage": 16,
+      "energyPerHit": 8,
+      "windup": 0.5
+    },
     "Cripple": {
-      "cooldown": 8,
+      "cooldown": 13,
       "damage": 5,
       "stunDuration": 1.5,
       "range": 14,

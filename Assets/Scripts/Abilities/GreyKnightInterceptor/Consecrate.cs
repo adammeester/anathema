@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.GreyKnightInterceptor
 {
-    // Press E to inscribe a warding sigil at the cursor (clamped to range). A ground telegraph shows the full radius
+    // Press R to inscribe a warding sigil at the cursor (clamped to range). A ground telegraph shows the full radius
     // while an inner disc fills over the delay, then the sigil detonates: every enemy inside takes a little damage and
     // is rooted in place. Pressing C (or dying) before the detonation cancels it and refunds the cooldown.
     public class Consecrate : Ability
@@ -13,7 +13,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         [SerializeField] float range = 10f;
         [SerializeField] float radius = 3f;
         [SerializeField] float delay = 0.6f;
-        [SerializeField] float rootDuration = 0.75f;
+        [SerializeField] float rootDuration = 1.25f;
         [SerializeField] float energyPerHit = 8f;
         [SerializeField] float fireDuration = 2f;   // how long the flames burn on the ground (visual only; the root is rootDuration)
         [SerializeField] Color telegraphColor = new Color(1f, 1f, 1f, 0.15f);
@@ -40,7 +40,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         protected override bool CooldownStartsOnStrike => true;
 
         public override string DisplayName => "Consecrate";
-        public override string KeyLabel => "E";
+        public override string KeyLabel => "R";
         public override float ExCost => exEnergyCost;
         public override string ExDescription => "Sanctum";
         public override string ExName => "Sanctum";
@@ -48,7 +48,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         // Applied only when added in the editor.
         void Reset()
         {
-            cooldown = 8f;
+            cooldown = 14f;
         }
 
         protected override void Awake()
@@ -96,7 +96,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
 
         protected override bool IsTriggered()
         {
-            return Input.GetKeyDown(KeyCode.E);
+            return Input.GetKeyDown(KeyCode.R);
         }
 
         protected override void Activate()

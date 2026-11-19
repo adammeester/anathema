@@ -219,7 +219,7 @@ namespace Anathema.Abilities.PlagueSurgeon
             }
         }
 
-        // The EX fly's burst: damage and panic for every enemy near `center`, healing for every ally, all at once.
+        // Pestilent Burst (R): damage and panic for every enemy near `center`, healing for every ally (if heal > 0), all at once.
         // `visualOnly` (a remote surgeon's replica) just plays the flash; the real hits come from the owner's machine.
         public static void Detonate(Vector3 center, GameObject source, int sourceTeam, float radius,
             float damage, float heal, float panic, bool visualOnly)
@@ -251,9 +251,16 @@ namespace Anathema.Abilities.PlagueSurgeon
                     // The stench sends survivors running from the surgeon.
                     Hit burst = Hit.Direct(damage).AsAoe();
                     if (panic > 0f) burst = burst.WithPanic(panic);
-                    h.Strike(burst, source, onBurstResult);
+                    Health struck = h;
+                    h.Strike(burst, source, landed =>
+                    {
+                        // TEMPORARY: did the hit land, and is the panic on them afterwards?
+                        Debug.Log($"[PestilentBurst DEBUG] struck {struck.name}: landed={landed}, panicked now={Panicked.IsPanicked(struck.gameObject)}, " +
+                                  $"enraged={Enraged.IsEnraged(struck.gameObject)}, unstoppable={Unstoppable.Is(struck.gameObject)}");
+                        onBurstResult?.Invoke(landed);
+                    });
                 }
-                else Healing.Apply(h, heal, source);
+                else if (heal > 0f) Healing.Apply(h, heal, source);
             }
         }
 

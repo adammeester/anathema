@@ -18,11 +18,25 @@
       "chargeTime": 1.6,
       "minDamage": 18,
       "maxDamage": 40,
-      "minStun": 0.25,
-      "maxStun": 1.5,
+      "minRoot": 0.5,
+      "maxRoot": 1.5,
       "range": 34,
       "shotRadius": 0.45,
       "energyPerHit": 25
+    },
+    "NoosphericSnare": {
+      "cooldown": 14,
+      "range": 6,
+      "plantWindup": 0.35,
+      "armTime": 1,
+      "lifetime": 25,
+      "triggerRadius": 1.1,
+      "blastRadius": 2.2,
+      "damage": 20,
+      "stunDuration": 1.25,
+      "energyPerHit": 10,
+      "maxSnares": 2,
+      "minSpacing": 3
     },
     "ShrapnelField": {
       "cooldown": 8,

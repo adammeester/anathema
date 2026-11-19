@@ -55,6 +55,10 @@
       "smiteDamage": 6,
       "silenceSeconds": 1.2
     },
+    "Absolution": {
+      "cooldown": 16,
+      "radius": 7
+    },
     "Martyrdom": {
       "energyCost": 100,
       "gatherTime": 0.9,

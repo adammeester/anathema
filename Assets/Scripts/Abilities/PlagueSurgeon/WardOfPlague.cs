@@ -3,8 +3,8 @@ using UnityEngine;
 
 namespace Anathema.Abilities.PlagueSurgeon
 {
-    // Ultimate (R): Ward of Plague. Costs a full energy bar. Wraps an ally in a shield of plague-light: aim at the ally
-    // nearest the cursor (within range) and press R. With no ally near the cursor, the surgeon wards himself.
+    // Ultimate (F): Ward of Plague. Costs a full energy bar. Wraps an ally in a shield of plague-light: aim at the ally
+    // nearest the cursor (within range) and press F. With no ally near the cursor, the surgeon wards himself.
     // The ward absorbs damage until its strength is spent or its time runs out; either way it ruptures and infects every
     // enemy near the holder with a heavy Festering (see PlagueWard).
     public class WardOfPlague : Ability
@@ -18,7 +18,7 @@ namespace Anathema.Abilities.PlagueSurgeon
         Energy energy;
 
         public override string DisplayName => "Ward of Plague";
-        public override string KeyLabel => "R";
+        public override string KeyLabel => "F";
 
         protected override float WindupDuration => 0.6f;
         protected override Color WindupColor => new Color(0.6f, 0.9f, 0.3f, 1f);
@@ -46,7 +46,7 @@ namespace Anathema.Abilities.PlagueSurgeon
 
         protected override bool IsTriggered()
         {
-            return Input.GetKeyDown(KeyCode.R) && energy != null && energy.Current >= energyCost;
+            return Input.GetKeyDown(KeyCode.F) && energy != null && energy.Current >= energyCost;
         }
 
         protected override void Activate()

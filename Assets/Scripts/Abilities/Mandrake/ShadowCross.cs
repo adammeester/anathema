@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Anathema.Abilities.Mandrake
 {
-    // R, ultimate (costs a full energy bar): Shadow Cross. A ghostly X is marked on the ground at the cursor during a short
+    // F, ultimate (costs a full energy bar): Shadow Cross. A ghostly X is marked on the ground at the cursor during a short
     // wind-up. Then the Mandrake blinks to one end of the first diagonal and tears along it in a single huge slash, blinks
     // to the start of the other diagonal and tears across that one, carving an X. Everyone along either line is cut and
     // is poisoned; anyone standing where the lines cross is hit twice, and if they already carried poison it detonates.
@@ -37,7 +37,7 @@ namespace Anathema.Abilities.Mandrake
         Telegraph telegraph;
 
         public override string DisplayName => "Shadow Cross";
-        public override string KeyLabel => "R";
+        public override string KeyLabel => "F";
         public override float MovementRange => castRange + slashLength * 2.5f;
         public override bool RootsMovement => phase != Phase.Idle;
         public override bool Available => energy != null && energy.Current >= energyCost && !Silenced.IsSilenced(gameObject) && !Panicked.IsPanicked(gameObject);
@@ -56,7 +56,7 @@ namespace Anathema.Abilities.Mandrake
             energy = GetComponent<Energy>();
         }
 
-        protected override bool IsTriggered() => Input.GetKeyDown(KeyCode.R) && energy != null && energy.Current >= energyCost;
+        protected override bool IsTriggered() => Input.GetKeyDown(KeyCode.F) && energy != null && energy.Current >= energyCost;
 
         protected override void OnWindupStart()
         {

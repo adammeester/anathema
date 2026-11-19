@@ -35,17 +35,20 @@
       "cooldown": 12,
       "duration": 5,
       "exEnergyCost": 35,
-      "exWindup": 0.15,
-      "exExtraCooldown": 2,
-      "slashDamage": 8,
-      "slashStealthBonusDamage": 14,
-      "slashStunDuration": 1.25,
-      "slashStealthPoisonStacks": 2,
-      "slashPoisonDamagePerSecond": 1,
-      "slashPoisonDuration": 4,
-      "slashRange": 3,
-      "slashArcDegrees": 80,
-      "slashEnergyPerHit": 10
+      "exHasteSeconds": 2
+    },
+    "ShadowRend": {
+      "cooldown": 13,
+      "windup": 0.15,
+      "damage": 8,
+      "stealthBonusDamage": 14,
+      "stunDuration": 1.25,
+      "stealthPoisonStacks": 2,
+      "poisonDamagePerSecond": 1,
+      "poisonDuration": 4,
+      "range": 3,
+      "arcDegrees": 80,
+      "energyPerHit": 10
     },
     "UmbralRiposte": {
       "cooldown": 6
