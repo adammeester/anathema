@@ -158,6 +158,7 @@ ready rooms and the gas; they differ in cover and dressing. Built by `ArenaScene
 | Colosseum | `Versus.unity` | Four barricades around the centre, four chevron bunkers on the diagonals |
 | Shrine | `Versus_Shrine.unity` | Same layout as the Colosseum, dressed as a ruined chapel |
 | Crucible | `Versus_Crucible.unity` | Forge temple with a **breakable floor** (below) |
+| Hoarfrost Basilica | `Versus_Hoarfrost.unity` | Frozen cathedral with **slam-launched reliquary caskets** (below) |
 
 **Crucible layout** (mirror-symmetric on both axes): an unbreakable dais in the centre (where the charge orb appears) ringed by four
 anvils; a forge wall north and south of the centre, each split by a gap in the middle; a bulwark in front of each doorway; an L-shaped
@@ -166,7 +167,8 @@ bunker in each corner, open towards the centre; and an unbreakable steel walkway
 **Breakable floor** (`Scripts/Arena/DestructibleFloor.cs`): the dark stone plates (with glowing seams) can be smashed; the light, seamless
 steel deck can't. Ground slams break every plate under the impact, which drops into a pit of lava:
 
-- Slams: Grey Knight **Daemonhammer Q slam** (2.7m radius) and the Khorne Berserker's **Blood for the Blood God** (along the whole charge, 1.2m either side).
+- Slams: Grey Knight **Daemonhammer Q slam** (2.7m radius), the Khorne Berserker's **Blood for the Blood God** (along the whole charge, 1.2m either side),
+  the Sorcerer's **Sinking Sands** (where the hourglass lands) and the Psyker's **Gravity Well** (where it collapses).
   Call `DestructibleFloor.Slam(caster, from, to, radius)` from an ability's owner-side impact to add more.
 - A pit flashes white-hot for 0.4s, then burns anyone standing in it (either team) for 10 damage/s (AoE, damage over time) for the rest
   of the round: the arena gets more dangerous as the fight goes on. The whole floor resets with the gas every round. (Tick `regenerate`
@@ -175,3 +177,37 @@ steel deck can't. Ground slams break every plate under the impact, which drops i
   tells every machine which ones broke, so everyone sees the same holes. Fire damage is server-side, like the gas.
 - Testing offline: **Anathema > Arenas > Rebuild Crucible Training (Khorne Berserker / Grey Knight)** builds `Arena_Crucible.unity` with the
   usual dummies (the Grey Knight needs the Daemonhammer from the F1 upgrade panel to slam).
+
+**Hoarfrost Basilica layout** (`Versus_Hoarfrost.unity`, mirror-symmetric on both axes): a frozen cathedral with an ice floor, tighter
+than the other maps (25m radius instead of 28m). Four **frozen reliquaries** stand on gold plinths on the diagonals at (±6.5, ±6.5);
+four screen walls on the axes 10.5m out form an inner ring of hard cover between them; eight ice-clad pillars ring the middle at 16m
+(30 degrees either side of each axis); a broken altar wall stands north and south; and a bulwark in front of each doorway stops any
+slide leaving through a doorway into a ready room.
+
+**Reliquary caskets** (`Scripts/Arena/CasketField.cs`, `ReliquaryCasket.cs`, `Combat/CasketCarried.cs`): at rest a casket is solid cover
+(it blocks movement and shots, and wall-slam abilities like Bull Charge treat it as a wall). A slam that lands on one launches it:
+
+- Slams: the Bullgryn's **Slab Slam** (empowered maul), **Shield Bash** and **Living Wall** shove, the Berserker's **Gorecleave** and
+  **Blood for the Blood God**, the Psyker's **Kine Slam** and the Grey Knight's **Daemonhammer Q slam**. A radial slam pushes the casket away
+  from the impact, a swing pushes it away from the attacker, Living Wall pushes it along the wall's path. Call `CasketField.Slam`, `Cone` or
+  `Sweep` from an ability's owner-side impact to add more (every `DestructibleFloor.Slam` already counts).
+- It slides at 20 m/s in a straight line until solid scenery stops it (up to 42m: across the whole map), leaving a frost trail.
+- The first enemy of the slammer in its path is pinned to its front and carried: no walking or steering. When they reach the wall
+  (or a pillar, or another casket) they take **50 damage** and are **stunned for 2.5s** (Grit shortens it like any stun).
+- **Escaping:** a carried enemy who casts a dedicated movement ability breaks free with no stun, and the casket slides on. That is any
+  ability with a `MovementRange` (`Ability.EscapesCasket`): Teleport Strike, Axe Rush, Warp Step, Disengage, Shadow Jump, Dust Form,
+  Winged Escape and Bull Charge. Ultimates don't count (Blood for the Blood God and Shadow Cross opt out), and the Hospitaller has none.
+  A stun, silence or panic on the carried enemy shuts the escape off.
+- Enemies who can't be shoved (Unstoppable, Enraged, Augmetic Bracing) stop the casket dead: 50 damage, no carry, no stun.
+- A casket shatters when its slide ends and is back on its plinth 10s later (and at every round reset), the ice visibly re-forming; it waits while anyone stands on the plinth. A free slide that ends against
+  another resting casket knocks that one on in the same direction.
+- Online the caster's machine reports the slam to the server (named message `casketSlam`); the server picks the caskets, works out each
+  slide and tells every machine (`casket`). Catches, escapes (`casketEscape`, sent before the movement ability's cue) and impacts are decided
+  on the server only; the impact is resolved 0.12s after the casket stops, so an escape sent just before impact still counts.
+- **Breakable ice** (`DestructibleFloor` in frozen-water mode): the clear ice plates break like the Crucible's, the packed snow (the centre,
+  under cover, the plinths, the doorway approaches) doesn't. A hole is open water with floes in it: no damage, but **25% slower** while
+  standing in it (`DestructibleFloor.SpeedMultiplierAt`, read by `MovementSim` on the server and the owner alike). It freezes over again
+  20s later. Every casket-launching slam above cracks the ice where it lands (`CasketField.Slam`/`Cone`/`Sweep` call
+  `DestructibleFloor.Crack`), so do Sinking Sands and Gravity Well, and so does a casket smashing into the wall.
+- Testing offline: **Anathema > Arenas > Rebuild Hoarfrost Training (Bullgryn / Khorne Berserker)** builds `Arena_Hoarfrost.unity` with the
+  usual dummies.

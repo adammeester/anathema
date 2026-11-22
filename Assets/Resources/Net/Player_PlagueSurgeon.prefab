@@ -18,9 +18,11 @@ GameObject:
   - component: {fileID: 8069376456712288108}
   - component: {fileID: 5599149733977541847}
   - component: {fileID: 8610875842569332576}
-  - component: {fileID: 3883982233785064924}
   - component: {fileID: 7392440692247637873}
+  - component: {fileID: 9034287341846175884}
+  - component: {fileID: 3883982233785064924}
   - component: {fileID: 908609012080933479}
+  - component: {fileID: 3489539963139369687}
   - component: {fileID: 4884217856632192748}
   - component: {fileID: 2478805619290617082}
   - component: {fileID: 6275509048069835562}
@@ -197,6 +199,50 @@ MonoBehaviour:
   muzzleForward: 0.7
   energyPerHit: 6
   globColor: {r: 0.45, g: 0.75, b: 0.1, a: 1}
+--- !u!114 &7392440692247637873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892664339697253521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 485c676ff9b224e4ab46fdf79f2c0454, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.PlagueSurgeon.PestilentFly
+  cooldown: 6
+  projectileSpeed: 18
+  range: 13
+  projectileRadius: 0.45
+  muzzleHeight: 1.1
+  attachDuration: 4
+  enemyDamagePerSecond: 7
+  allyHealPerSecond: 7
+  energyPerTick: 2
+  exEnergyCost: 35
+  splitRange: 5
+--- !u!114 &9034287341846175884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892664339697253521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f9627d820e7dbc143a9f9bd2167beb74, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.PlagueSurgeon.PoxFlask
+  cooldown: 9
+  range: 10
+  flightTime: 0.5
+  arcHeight: 2.5
+  splashRadius: 2.5
+  damage: 8
+  stacks: 2
+  holdSeconds: 3
+  muzzleHeight: 1.4
 --- !u!114 &3883982233785064924
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -218,32 +264,6 @@ MonoBehaviour:
   healPerSecond: 10
   exEnergyCost: 35
   energyPerTick: 2
---- !u!114 &7392440692247637873
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7892664339697253521}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 485c676ff9b224e4ab46fdf79f2c0454, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.PlagueSurgeon.PestilentFly
-  cooldown: 6
-  projectileSpeed: 18
-  range: 13
-  projectileRadius: 0.45
-  muzzleHeight: 1.1
-  attachDuration: 4
-  enemyDamagePerSecond: 7
-  allyHealPerSecond: 7
-  exEnergyCost: 40
-  burstRadius: 3.5
-  burstDamage: 28
-  burstHeal: 28
-  burstPanic: 1.25
-  energyPerTick: 2
 --- !u!114 &908609012080933479
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -261,6 +281,26 @@ MonoBehaviour:
   flightDuration: 0.4
   wingSpan: 2.6
   wingColor: {r: 0.72, g: 0.85, b: 0.4, a: 0.85}
+--- !u!114 &3489539963139369687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7892664339697253521}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 462d547498d4ada4f84c3142f2803340, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.PlagueSurgeon.PestilentBurst
+  cooldown: 15
+  projectileSpeed: 18
+  range: 13
+  projectileRadius: 0.45
+  muzzleHeight: 1.1
+  burstRadius: 3.5
+  burstDamage: 12
+  burstPanic: 1.25
 --- !u!114 &4884217856632192748
 MonoBehaviour:
   m_ObjectHideFlags: 0

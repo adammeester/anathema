@@ -82,6 +82,7 @@ namespace Anathema.Abilities.Bullgryn
                 });
             }
             if (hits > 0) MeleeSound.Impact(hits);
+            Anathema.Arena.CasketField.Cone(gameObject, transform.position, dir, range, arcDegrees);
         }
 
         bool UpgradeHasBonebreaker() => Anathema.Upgrades.UpgradeState.Has(gameObject, BullgrynUpgrade.Bonebreaker);

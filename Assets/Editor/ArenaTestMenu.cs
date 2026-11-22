@@ -23,11 +23,26 @@ namespace Anathema.EditorTools
         [MenuItem("Anathema/Arenas/Open Crucible Training (Arena_Crucible)")]
         static void OpenCrucibleTraining() => Open(ArenaSceneBuilder.CrucibleTrainingPath);
 
+        [MenuItem("Anathema/Arenas/Open Online Arena - Hoarfrost Basilica (Versus_Hoarfrost)")]
+        static void OpenHoarfrost() => Open("Assets/Scenes/Versus_Hoarfrost.unity");
+
+        // Built on first use (as the Bullgryn: most of the casket-launching slams are his).
+        [MenuItem("Anathema/Arenas/Open Hoarfrost Training (Arena_Hoarfrost)")]
+        static void OpenHoarfrostTraining()
+        {
+            if (!System.IO.File.Exists(ArenaSceneBuilder.HoarfrostTrainingPath))
+            {
+                ArenaSceneBuilder.BuildHoarfrostBullgryn(); // builds and opens it
+                return;
+            }
+            Open(ArenaSceneBuilder.HoarfrostTrainingPath);
+        }
+
         [MenuItem("Anathema/Arenas/Rebuild All Arenas (Training + Online)")]
         static void RebuildAll()
         {
             ArenaSceneBuilder.Build();   // training Arena.unity
-            NetSceneBuilder.BuildAll();  // Menu, Versus, Versus_Shrine, Versus_Crucible + prefabs
+            NetSceneBuilder.BuildAll();  // Menu, Versus, Versus_Shrine, Versus_Crucible, Versus_Hoarfrost + prefabs
         }
 
         static void Open(string path)

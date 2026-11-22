@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 4717878336103322777}
   - component: {fileID: 4603777759089121390}
   - component: {fileID: 379551382520722453}
+  - component: {fileID: 8639620853196104290}
   - component: {fileID: 1548097633421666006}
   - component: {fileID: 6786198470343834369}
   - component: {fileID: 4826386207606045372}
@@ -290,6 +291,20 @@ MonoBehaviour:
   healRadius: 6
   smiteDamage: 6
   silenceSeconds: 1.2
+--- !u!114 &8639620853196104290
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3111486025670265819}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c019710d5a472e346b1a1f638c4ba44e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Hospitaller.Absolution
+  cooldown: 16
+  radius: 7
 --- !u!114 &1548097633421666006
 MonoBehaviour:
   m_ObjectHideFlags: 0

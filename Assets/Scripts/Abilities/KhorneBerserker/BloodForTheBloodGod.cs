@@ -70,6 +70,7 @@ namespace Anathema.Abilities.KhorneBerserker
 
         public override string DisplayName => "Blood God";
         public override float MovementRange => chargeDistance;
+        public override bool EscapesCasket => false; // an ultimate, not a dedicated movement ability
         public override string KeyLabel => "R";
 
         // The HUD greys the slot out until the bar is full.

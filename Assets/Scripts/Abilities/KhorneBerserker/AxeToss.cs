@@ -302,6 +302,7 @@ namespace Anathema.Abilities.KhorneBerserker
             float knock = cleaveKnockbackDistance * (earthshaker ? BerserkerUpgrade.EarthshakerKnockbackScale : 1f);
             SlashEffect.Spawn(origin, aim, reach, cleaveArcDegrees, curSwing * 3f, new Color(1f, 0.15f, 0.08f, 0.9f));
             MeleeSound.ChainSwing(0.55f, 0.8f, 0.9f, 1.4f);
+            if (!IsReplica) Anathema.Arena.CasketField.Cone(gameObject, origin, aim, reach, cleaveArcDegrees);
 
             foreach (Health target in BerserkerWeapons.EnemiesInCone(gameObject, Health, origin, aim, reach, cleaveArcDegrees))
             {

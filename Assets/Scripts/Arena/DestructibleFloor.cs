@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Anathema.Arena
 {
-    // The Crucible's breakable floor. The arena builder lays a square grid of stone plates over a lava bed and hands the
+    // The Crucible's (and the Hoarfrost Basilica's) breakable floor. The arena builder lays a square grid of stone plates over a lava bed and hands the
     // breakable ones to this component (grid cell + plate transform each). Ground-slam abilities call Slam(); the plates
     // under the impact crumble away and leave a pit of fire that damages anyone standing in it for the rest of the
     // round (or, with regenerate on, until the lava crusts over and the plate re-forms). Everything resets with the gas every round.
@@ -13,6 +13,11 @@ namespace Anathema.Arena
     // Online the slam is reported by the caster's machine to the server (NetPlayer.SendFloorBreak), which picks the
     // plates from its own copy of the floor and tells every machine which ones broke, so all machines agree. Damage
     // goes through Health.TakeDamage like the gas, so only the server's copy actually applies it.
+    //
+    // Frozen water (the Hoarfrost Basilica, ConfigureFrozenWater): the plates are ice over freezing water. A broken plate
+    // leaves open water with floes bobbing in it; it does no damage, but anyone standing in it moves waterSlow slower
+    // (MovementSim reads SpeedMultiplierAt, so the server and the predicting owner agree). The water freezes over again
+    // and the plate re-forms regenerateAfter seconds later.
     public class DestructibleFloor : MonoBehaviour
     {
         public static DestructibleFloor Instance { get; private set; }
@@ -28,6 +33,10 @@ namespace Anathema.Arena
         [SerializeField] bool regenerate = false;       // off: a broken plate stays a fire pit until the round resets
         [SerializeField] float regenerateAfter = 18f;   // with regenerate on, the plate is whole again this long after breaking
         [SerializeField] float coolDuration = 2.5f;     // the last part of that: the lava crusts over and stops burning
+
+        [Header("Frozen water")]
+        [SerializeField] bool frozenWater = false;      // ice over water instead of stone over lava: slows, never burns
+        [SerializeField] float waterSlow = 0.25f;       // movement speed lost while standing in open water
 
         // When a broken plate comes back (never, unless regenerate is on); the lava crusts over coolDuration before that.
         float RegenerateAt => regenerate ? regenerateAfter : float.PositiveInfinity;
@@ -84,6 +93,27 @@ namespace Anathema.Arena
             cells = plateCells;
         }
 
+        // Editor (arena builder): ice over freezing water. Holes slow by `slow` instead of burning, and freeze over again.
+        public void ConfigureFrozenWater(float slow, float refreezeAfter)
+        {
+            frozenWater = true;
+            waterSlow = slow;
+            regenerate = true;
+            regenerateAfter = refreezeAfter;
+            coolDuration = 2.5f;
+            igniteDelay = 0.3f;
+        }
+
+        public bool FrozenWater => frozenWater;
+
+        // How fast someone standing at `position` may move (1 = normal): open water on a frozen-water floor slows them.
+        public static float SpeedMultiplierAt(Vector3 position)
+        {
+            DestructibleFloor floor = Instance;
+            if (floor == null || !floor.frozenWater || position.y > 1.5f) return 1f;
+            return floor.IsBurning(position) ? 1f - floor.waterSlow : 1f;
+        }
+
         void Awake()
         {
             Instance = this;
@@ -103,8 +133,13 @@ namespace Anathema.Arena
                 restScale[i] = tiles[i].localScale;
             }
             // The procedural lava shader (Resources/Arena), shared by every pit; each pit sets its own heat.
-            lavaMaterial = Resources.Load<Material>("Arena/CrucibleLava");
-            if (lavaMaterial == null || !lavaMaterial.shader.isSupported)
+            lavaMaterial = frozenWater ? null : Resources.Load<Material>("Arena/CrucibleLava");
+            if (frozenWater)
+            {
+                lavaMaterial = VisualUtil.UnlitMaterial(WaterColor);
+                ownsLavaMaterial = true;
+            }
+            else if (lavaMaterial == null || !lavaMaterial.shader.isSupported)
             {
                 lavaMaterial = VisualUtil.UnlitMaterial(new Color(1f, 0.38f, 0.05f));
                 ownsLavaMaterial = true;
@@ -114,6 +149,12 @@ namespace Anathema.Arena
             flameMaterial = VisualUtil.UnlitMaterial(new Color(1f, 0.45f, 0.08f, 0.8f), 3002);
             tipMaterial = VisualUtil.UnlitMaterial(new Color(1f, 0.9f, 0.4f, 0.9f), 3003);
             emberMaterial = VisualUtil.UnlitMaterial(new Color(1f, 0.75f, 0.3f, 1f), 3004);
+            if (frozenWater)
+            {
+                // Floes of broken ice and the rime that spreads back over the water.
+                flameMaterial.color = new Color(0.86f, 0.94f, 1f, 0.95f);
+                tipMaterial.color = new Color(0.7f, 0.86f, 1f, 0.9f);
+            }
             GasZone.Restarted += ResetAll;
         }
 
@@ -131,6 +172,15 @@ namespace Anathema.Arena
         // when they are the same). Only the caster's own machine reports it (replicas are ignored), and nothing breaks in prep.
         public static void Slam(GameObject source, Vector3 from, Vector3 to, float radius)
         {
+            // Every floor-breaking slam also launches the Hoarfrost caskets it lands on (no-op on other maps).
+            CasketField.LaunchOnly(source, from, to, radius);
+            Crack(source, from, to, radius);
+        }
+
+        // Just the floor part of a slam: breaks the plates under it (CasketField's slams call this on a frozen-water floor,
+        // so on the Hoarfrost Basilica every casket-launching slam cracks the ice as well).
+        public static void Crack(GameObject source, Vector3 from, Vector3 to, float radius)
+        {
             DestructibleFloor floor = Instance;
             if (floor == null || source == null || NetGame.InPrep) return;
             if (NetPlayer.IsReplicaObject(source)) return;
@@ -141,6 +191,25 @@ namespace Anathema.Arena
                 return;
             }
             floor.Break(floor.TilesIn(from, to, radius));
+        }
+
+        // Server (or offline) only: break the plates around `at` on every machine, e.g. where a casket smashes into a wall.
+        public static void ServerCrackAt(Vector3 at, float radius)
+        {
+            DestructibleFloor floor = Instance;
+            if (floor == null || NetGame.InPrep) return;
+            int[] plates = floor.TilesIn(at, at, radius);
+            if (plates.Length == 0) return;
+            if (Unity.Netcode.NetworkManager.Singleton != null && Unity.Netcode.NetworkManager.Singleton.IsListening)
+            {
+                foreach (NetPlayer p in NetPlayer.All)
+                {
+                    if (p == null || !p.IsSpawned) continue;
+                    p.ServerBroadcastFloorBreak(plates);
+                    return;
+                }
+            }
+            floor.Break(plates);
         }
 
         // The intact plates within `radius` of the segment from..to.
@@ -176,6 +245,12 @@ namespace Anathema.Arena
             if (count == 0) return;
 
             Vector3 centre = sum / count;
+            if (frozenWater)
+            {
+                Sfx.Play(Sfx.Impact, 0.45f, 1.25f, 1.4f);
+                Sfx.Play(Sfx.Fissure, 0.25f, 1.5f, 1.7f, 0.9f); // the ice cracking
+                return;
+            }
             AddLight(centre);
             Sfx.Play(Sfx.Fissure, 0.35f, 0.8f, 0.9f, 1.2f);
         }
@@ -224,7 +299,7 @@ namespace Anathema.Arena
             AnimateTiles();
             AnimateLights();
 
-            if (NetGame.InPrep || NetGame.Frozen) return;
+            if (frozenWater || NetGame.InPrep || NetGame.Frozen) return; // open water slows (SpeedMultiplierAt), never hurts
             tickTimer += Time.deltaTime;
             if (tickTimer < tickInterval) return;
             tickTimer -= tickInterval;
@@ -281,6 +356,11 @@ namespace Anathema.Arena
         {
             Pit pit = pits[i];
             if (pit == null) return;
+            if (frozenWater)
+            {
+                AnimateWaterPit(pit, i, age);
+                return;
+            }
 
             // Heat: 2 (white-hot as it opens, the warning before it burns) -> 1 (burning) -> 0 (crusted over, regenerate only).
             float coolStart = RegenerateAt - coolDuration;
@@ -349,8 +429,70 @@ namespace Anathema.Arena
             pit.root.SetActive(true);
         }
 
+        static readonly Color WaterColor = new Color(0.04f, 0.1f, 0.16f, 1f);
+        static readonly Color RimeColor = new Color(0.62f, 0.76f, 0.86f, 1f);
+        const int FloesPerPit = 3;
+
+        // Open water: dark, with a few floes of the broken plate bobbing in it; it rimes over (lighter) as it refreezes.
+        Pit BuildWaterPit(int i)
+        {
+            var pit = new Pit();
+            pit.root = new GameObject($"Water Hole {i}");
+            pit.root.transform.SetParent(transform, false);
+            Vector3 rest = restPosition[i];
+            pit.root.transform.localPosition = new Vector3(rest.x, 0f, rest.z);
+
+            GameObject water = Part(pit, PrimitiveType.Cube, "Water", lavaMaterial);
+            water.transform.localPosition = new Vector3(0f, LavaTop - 0.01f, 0f);
+            water.transform.localScale = new Vector3(spacing, 0.02f, spacing);
+            pit.lava = water.GetComponent<Renderer>();
+
+            var rng = new System.Random(i * 7919 + 17);
+            pit.flames = new Transform[FloesPerPit];
+            pit.flameSize = new float[FloesPerPit];
+            pit.flamePhase = new float[FloesPerPit];
+            for (int f = 0; f < FloesPerPit; f++)
+            {
+                GameObject floe = Part(pit, PrimitiveType.Cube, "Floe", f % 2 == 0 ? flameMaterial : tipMaterial);
+                float x = ((float)rng.NextDouble() - 0.5f) * spacing * 0.6f;
+                float z = ((float)rng.NextDouble() - 0.5f) * spacing * 0.6f;
+                float size = 0.35f + (float)rng.NextDouble() * 0.4f;
+                floe.transform.localPosition = new Vector3(x, LavaTop + 0.02f, z);
+                floe.transform.localRotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 90f, 0f);
+                floe.transform.localScale = new Vector3(size, 0.05f, size * (0.6f + (float)rng.NextDouble() * 0.5f));
+                pit.flames[f] = floe.transform;
+                pit.flameSize[f] = size;
+                pit.flamePhase[f] = (float)rng.NextDouble() * 10f;
+            }
+            pit.embers = new Transform[0];
+            pit.emberPhase = new float[0];
+            return pit;
+        }
+
+        void AnimateWaterPit(Pit pit, int i, float age)
+        {
+            // 0 = open water, 1 = frozen over again (the last coolDuration before the plate re-forms).
+            float coolStart = RegenerateAt - coolDuration;
+            float rime = age < coolStart ? 0f : Mathf.Clamp01((age - coolStart) / coolDuration);
+            heatBlock.SetColor(ColorId, Color.Lerp(WaterColor, RimeColor, rime));
+            pit.lava.SetPropertyBlock(heatBlock);
+
+            float now = Time.time;
+            for (int f = 0; f < pit.flames.Length; f++)
+            {
+                Transform floe = pit.flames[f];
+                float t = now * 1.6f + pit.flamePhase[f];
+                Vector3 p = floe.localPosition;
+                floe.localPosition = new Vector3(p.x, LavaTop + 0.02f + Mathf.Sin(t) * 0.015f * (1f - rime), p.z);
+                floe.localRotation = Quaternion.Euler(Mathf.Sin(t * 0.7f) * 4f * (1f - rime), pit.flamePhase[f] * 9f, Mathf.Cos(t) * 4f * (1f - rime));
+            }
+        }
+
+        static readonly int ColorId = Shader.PropertyToID("_Color");
+
         Pit BuildPit(int i)
         {
+            if (frozenWater) return BuildWaterPit(i);
             var pit = new Pit();
             pit.root = new GameObject($"Fire Pit {i}");
             pit.root.transform.SetParent(transform, false);

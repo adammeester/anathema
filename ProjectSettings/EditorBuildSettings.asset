@@ -18,6 +18,9 @@ EditorBuildSettings:
     path: Assets/Scenes/Versus_Crucible.unity
     guid: b7f569cbd4c3c904e8af9f2308998b52
   - enabled: 1
+    path: Assets/Scenes/Versus_Hoarfrost.unity
+    guid: b3749635fb702f04386b3a2183887ab6
+  - enabled: 1
     path: Assets/Scenes/Arena.unity
     guid: c8e56e24f1c6b0046a19fd4a94673696
   m_configObjects: {}

@@ -18,10 +18,11 @@ GameObject:
   - component: {fileID: 5555797694109250182}
   - component: {fileID: 6718889239421477003}
   - component: {fileID: 6677596520718113654}
-  - component: {fileID: 8388641068491544697}
   - component: {fileID: 2532294745468691654}
+  - component: {fileID: 5508108538608404926}
   - component: {fileID: 6841414072090863450}
   - component: {fileID: 8272604845336622420}
+  - component: {fileID: 8388641068491544697}
   - component: {fileID: 2735570303233492133}
   - component: {fileID: 4687864249785004690}
   - component: {fileID: 8933078460256570817}
@@ -208,34 +209,6 @@ MonoBehaviour:
   staveComboLength: 3
   staveComboWindow: 1.1
   staveFinisherDamage: 1.3
---- !u!114 &8388641068491544697
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8844120712653753745}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f7a3332eef07e8c46ba411a5a7641082, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Psyker.Cripple
-  cooldown: 8
-  damage: 5
-  stunDuration: 1.5
-  range: 14
-  projectileSpeed: 20
-  projectileRadius: 0.35
-  muzzleHeight: 1.25
-  muzzleForward: 0.6
-  energyPerHit: 12
-  exEnergyCost: 35
-  wellRange: 12
-  wellRadius: 4
-  wellDuration: 1.8
-  wellPullSpeed: 6
-  wellDetonationDamage: 25
-  boltColor: {r: 0.75, g: 0.55, b: 1, a: 1}
 --- !u!114 &2532294745468691654
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -273,6 +246,23 @@ MonoBehaviour:
   leechDamagePerSecond: 16
   leechHealPerSecond: 16
   leechEnergyPerSecond: 12
+--- !u!114 &5508108538608404926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f89bf4881b6716140b4e93d883f057cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Psyker.Discharge
+  cooldown: 7
+  range: 12
+  damage: 16
+  energyPerHit: 8
+  windup: 0.5
 --- !u!114 &6841414072090863450
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -309,6 +299,34 @@ MonoBehaviour:
   fireRadius: 2.2
   fireDuration: 4
   fireDamagePerSecond: 12
+--- !u!114 &8388641068491544697
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8844120712653753745}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f7a3332eef07e8c46ba411a5a7641082, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Psyker.Cripple
+  cooldown: 13
+  damage: 5
+  stunDuration: 1.5
+  range: 14
+  projectileSpeed: 20
+  projectileRadius: 0.35
+  muzzleHeight: 1.25
+  muzzleForward: 0.6
+  energyPerHit: 12
+  exEnergyCost: 35
+  wellRange: 12
+  wellRadius: 4
+  wellDuration: 1.8
+  wellPullSpeed: 6
+  wellDetonationDamage: 25
+  boltColor: {r: 0.75, g: 0.55, b: 1, a: 1}
 --- !u!114 &2735570303233492133
 MonoBehaviour:
   m_ObjectHideFlags: 0

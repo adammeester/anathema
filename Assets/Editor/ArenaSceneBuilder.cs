@@ -102,6 +102,17 @@ namespace Anathema.EditorTools
         [MenuItem("Anathema/Arenas/Rebuild Crucible Training (Grey Knight)")]
         static void BuildCrucibleGreyKnight() => Build(Character.GreyKnight, MapCrucible, CrucibleTrainingPath);
 
+        // The training ground on the Hoarfrost Basilica (slam-launched caskets), in its own scene like the Crucible's.
+        // Slams that launch a casket: the Bullgryn's Slab Slam, Shield Bash and Living Wall shove, the Berserker's Gorecleave
+        // and R, the Psyker's Kine Slam and the Grey Knight's Daemonhammer Q.
+        internal const string HoarfrostTrainingPath = "Assets/Scenes/Arena_Hoarfrost.unity";
+
+        [MenuItem("Anathema/Arenas/Rebuild Hoarfrost Training (Bullgryn)")]
+        public static void BuildHoarfrostBullgryn() => Build(Character.Bullgryn, MapHoarfrost, HoarfrostTrainingPath);
+
+        [MenuItem("Anathema/Arenas/Rebuild Hoarfrost Training (Khorne Berserker)")]
+        static void BuildHoarfrostBerserker() => Build(Character.KhorneBerserker, MapHoarfrost, HoarfrostTrainingPath);
+
         static void Build(Character character) => Build(character, MapColosseum, ScenePath);
 
         static void Build(Character character, int map, string scenePath)
@@ -155,6 +166,7 @@ namespace Anathema.EditorTools
         internal const int MapColosseum = 0;
         internal const int MapShrine = 1;
         internal const int MapCrucible = 2;
+        internal const int MapHoarfrost = 3; // the frozen basilica (slam-launched reliquary caskets)
 
         internal static void CreateLight(int map = MapColosseum)
         {
@@ -171,6 +183,16 @@ namespace Anathema.EditorTools
                 light.color = new Color(0.62f, 0.8f, 0.78f);
                 go.transform.rotation = Quaternion.Euler(58f, 25f, 0f);
                 RenderSettings.ambientLight = new Color(0.13f, 0.17f, 0.16f);
+                return;
+            }
+
+            if (map == MapHoarfrost)
+            {
+                // Pale, cold daylight through the broken roof; the braziers and candles are the only warmth.
+                light.intensity = 1.0f;
+                light.color = new Color(0.78f, 0.88f, 1f);
+                go.transform.rotation = Quaternion.Euler(52f, 15f, 0f);
+                RenderSettings.ambientLight = new Color(0.2f, 0.25f, 0.33f);
                 return;
             }
 
@@ -208,6 +230,11 @@ namespace Anathema.EditorTools
             if (map == MapCrucible)
             {
                 CreateCrucibleArena(readyRooms);
+                return;
+            }
+            if (map == MapHoarfrost)
+            {
+                CreateHoarfrostArena(readyRooms);
                 return;
             }
 
@@ -868,6 +895,387 @@ namespace Anathema.EditorTools
             if (readyRooms) CreateReadyRooms(ArenaRadius, iron, iron, ironDark, 3.2f);
         }
 
+        // The Hoarfrost Basilica: a frozen Imperial cathedral on an ice world. A tighter 25m round footprint (the other maps
+        // are 28m; the free-for-all spawns at 23m still fit) with the usual ready-room doorways; mirror symmetric on both axes:
+        //   - four frozen reliquaries (CasketField) on plinths on the diagonals around the centre: a slam sends one sliding
+        //     across the ice, carrying the first enemy in its way into whatever it meets (see ReliquaryCasket / CasketField),
+        //   - four screen walls on the axes around the centre, the inner ring of hard cover between the caskets,
+        //   - eight ice-clad pillars in a ring at 16m, 30 degrees either side of each axis,
+        //   - a broken altar wall north and south, and a bulwark in front of each doorway (so no slide leaves through a
+        //     doorway into a ready room),
+        //   - snow drifting against the outer wall, icicles on its cap, warm braziers against the cold light.
+        static void CreateHoarfrostArena(bool readyRooms = false)
+        {
+            const float ArenaRadius = 25f; // tighter than the other maps (28m); the ready rooms sit on the wall line wherever it is
+            const int WallSegments = 24;
+
+            Material water = GetMaterial("HoarfrostWater", new Color(0.03f, 0.06f, 0.09f));
+            Material ice = GetMaterial("HoarfrostIce", new Color(0.6f, 0.74f, 0.84f));
+            Material iceDark = GetMaterial("HoarfrostIceDark", new Color(0.42f, 0.56f, 0.68f));
+            Material iceLight = GetMaterial("HoarfrostIceLight", new Color(0.78f, 0.88f, 0.95f));
+            Material snow = GetMaterial("HoarfrostSnow", new Color(0.9f, 0.93f, 0.97f));
+            Material stone = GetMaterial("HoarfrostStone", new Color(0.33f, 0.35f, 0.41f));
+            Material stoneDark = GetMaterial("HoarfrostStoneDark", new Color(0.17f, 0.19f, 0.24f));
+            Material gold = GetMaterial("HoarfrostGold", new Color(0.66f, 0.52f, 0.2f));
+            Material coffin = GetMaterial("HoarfrostCoffin", new Color(0.14f, 0.1f, 0.09f));
+            Material crack = GetUnlitMaterial("HoarfrostCrack", new Color(0.86f, 0.95f, 1f, 0.7f));
+            Material frost = GetUnlitMaterial("HoarfrostFrost", new Color(0.78f, 0.92f, 1f, 0.7f));
+            Material casketIce = GetUnlitMaterial("HoarfrostCasketIce", new Color(0.62f, 0.85f, 1f, 0.45f));
+            Material holy = GetUnlitMaterial("HoarfrostHoly", new Color(0.55f, 0.85f, 1f));
+            Material holyDim = GetUnlitMaterial("HoarfrostHolyDim", new Color(0.3f, 0.5f, 0.7f));
+            Material flame = GetUnlitMaterial("HoarfrostFlame", new Color(1f, 0.6f, 0.22f));
+            Material window = GetUnlitMaterial("HoarfrostWindow", new Color(0.45f, 0.7f, 0.95f));
+
+            var rng = new System.Random(1818);
+
+            // Collider floor, under a frozen lake outside the walls.
+            Box("Ground Collider", new Vector3(0f, -0.5f, 0f), new Vector3(130f, 1f, 130f), water);
+            Disc("Frozen Lake", 200f, 0.005f, iceDark);
+
+            // The floor is a grid of ice plates (laid further down, once the cover is placed) over dark water; the seams
+            // between them show this bed, so they read as cracks in the ice. The holy sigil in the middle (where the orb
+            // appears) sits on top of solid packed snow.
+            Disc("Ice Bed", ArenaRadius * 2f + 2f, 0.03f, iceDark);
+            Disc("Center Ring Outer", 6.2f, 0.10f, holy);
+            Disc("Center Ring Gap", 5.9f, 0.11f, iceDark);
+            Disc("Center Ring Disc", 3.6f, 0.12f, iceLight);
+            Disc("Center Ring Core", 2.4f, 0.13f, iceDark);
+            for (int i = 0; i < 2; i++) // the Imperial cross inside the ring
+            {
+                var bar = Box($"Center Cross {i}", new Vector3(0f, 0.14f, 0f), new Vector3(5.2f, 0.01f, 0.5f), holyDim);
+                bar.transform.rotation = Quaternion.Euler(0f, i * 90f + 45f, 0f);
+                RemoveCollider(bar);
+            }
+            // Everything solid standing on the floor: the plates under it can't break.
+            var footprints = new System.Collections.Generic.List<(Vector3 centre, Vector3 size, float yaw)>();
+            var coreLight = new GameObject("Center Glow Light");
+            coreLight.transform.position = new Vector3(0f, 1.6f, 0f);
+            AddLight(coreLight, new Color(0.55f, 0.8f, 1f), 11f, 1.2f);
+
+            // ---- Cover ----------------------------------------------------------------------------------------------
+
+            GameObject StoneCover(string name, Vector3 centre, Vector3 size)
+            {
+                var block = Box(name, new Vector3(centre.x, size.y * 0.5f, centre.z), size, stone);
+                var cap = Box(name + " Snow", new Vector3(centre.x, size.y + 0.08f, centre.z), new Vector3(size.x + 0.2f, 0.16f, size.z + 0.2f), snow);
+                RemoveCollider(cap);
+                var rime = Box(name + " Rime", new Vector3(centre.x, 0.2f, centre.z), new Vector3(size.x + 0.16f, 0.4f, size.z + 0.16f), frost);
+                RemoveCollider(rime);
+                footprints.Add((centre, size, 0f));
+                return block;
+            }
+
+            void Ribs(string name, Vector3 centre, Vector3 size, float height)
+            {
+                // Gold ribs across the long face of a wall.
+                bool alongZ = size.z > size.x;
+                float length = alongZ ? size.z : size.x;
+                for (int k = -1; k <= 1; k += 2)
+                {
+                    Vector3 offset = (alongZ ? Vector3.forward : Vector3.right) * (k * length * 0.33f);
+                    Vector3 ribSize = alongZ ? new Vector3(size.x + 0.2f, height - 0.1f, 0.25f) : new Vector3(0.25f, height - 0.1f, size.z + 0.2f);
+                    var rib = Box($"{name} Rib {k}", centre + offset + Vector3.up * (height * 0.5f), ribSize, gold);
+                    RemoveCollider(rib);
+                }
+            }
+
+            // A bulwark in front of each doorway (nothing slides out through a doorway into a ready room).
+            for (int sx = -1; sx <= 1; sx += 2)
+            {
+                Vector3 c = new Vector3(sx * 18.5f, 0f, 0f), size = new Vector3(1.1f, 1.8f, 4.2f);
+                StoneCover($"Bulwark {(sx < 0 ? "W" : "E")}", c, size);
+                Ribs($"Bulwark {sx}", c, size, 1.8f);
+            }
+
+            // Four screen walls around the centre, on the axes: the inner ring of hard cover. Caskets sit between them.
+            for (int k = 0; k < 4; k++)
+            {
+                float angle = k * 90f;
+                Vector3 c = RadialPos(10.5f, angle, 0f);
+                bool alongZ = k % 2 == 0; // the east and west walls run north-south
+                Vector3 size = alongZ ? new Vector3(1.1f, 1.8f, 4.4f) : new Vector3(4.4f, 1.8f, 1.1f);
+                StoneCover($"Screen Wall {k}", c, size);
+                Ribs($"Screen Wall {k}", c, size, 1.8f);
+            }
+
+            // Broken altar walls, north and south, with frozen candles along the top.
+            for (int sz = -1; sz <= 1; sz += 2)
+            {
+                Vector3 c = new Vector3(0f, 0f, sz * 19f);
+                StoneCover($"Altar Wall {(sz < 0 ? "S" : "N")}", c, new Vector3(5.6f, 1.6f, 1.1f));
+                var cloth = Box($"Altar Cloth {sz}", new Vector3(0f, 1.0f, c.z - sz * 0.57f), new Vector3(2.2f, 1.1f, 0.04f), gold);
+                RemoveCollider(cloth);
+                for (int k = -2; k <= 2; k++)
+                {
+                    var candle = Box($"Altar Candle {sz}.{k}", new Vector3(k * 1.1f, 1.95f, c.z), new Vector3(0.12f, 0.3f, 0.12f), snow);
+                    RemoveCollider(candle);
+                    var wick = Box($"Altar Flame {sz}.{k}", new Vector3(k * 1.1f, 2.16f, c.z), new Vector3(0.08f, 0.12f, 0.08f), flame);
+                    RemoveCollider(wick);
+                }
+                var lightGo = new GameObject($"Altar Light {sz}");
+                lightGo.transform.position = new Vector3(0f, 2.6f, c.z);
+                AddLight(lightGo, new Color(1f, 0.65f, 0.3f), 7f, 1.1f);
+            }
+
+            // Eight pillars sheathed in ice, in a ring between the screen walls and the outer wall (30 degrees either side
+            // of each axis, so the ring is mirror symmetric on both).
+            float[] pillarAngles = { 30f, 60f, 120f, 150f, 210f, 240f, 300f, 330f };
+            for (int i = 0; i < pillarAngles.Length; i++)
+            {
+                string q = $"{i}";
+                Vector3 c = RadialPos(16f, pillarAngles[i], 0f);
+                var core = Box($"Pillar {q}", new Vector3(c.x, 2.2f, c.z), new Vector3(1.4f, 4.4f, 1.4f), stone);
+                footprints.Add((c, new Vector3(1.8f, 0f, 1.8f), 0f));
+                core.transform.rotation = Quaternion.Euler(0f, 45f, 0f);
+                var sheath = Box($"Pillar Ice {q}", new Vector3(c.x, 1.3f, c.z), new Vector3(1.75f, 2.6f, 1.75f), casketIce);
+                sheath.transform.rotation = Quaternion.Euler(0f, 20f, 0f);
+                RemoveCollider(sheath);
+                var capital = Box($"Pillar Capital {q}", new Vector3(c.x, 4.5f, c.z), new Vector3(1.9f, 0.3f, 1.9f), stoneDark);
+                capital.transform.rotation = core.transform.rotation;
+                RemoveCollider(capital);
+                var drift = Box($"Pillar Snow {q}", new Vector3(c.x, 4.7f, c.z), new Vector3(1.8f, 0.14f, 1.8f), snow);
+                drift.transform.rotation = core.transform.rotation;
+                RemoveCollider(drift);
+                for (int k = 0; k < 5; k++) // icicles hanging off the capital
+                {
+                    float a = k * 72f + (float)rng.NextDouble() * 20f;
+                    Vector3 p = c + RadialDir(a) * 0.95f;
+                    float h = 0.4f + (float)rng.NextDouble() * 0.6f;
+                    var icicle = Box($"Pillar Icicle {q}.{k}", new Vector3(p.x, 4.35f - h * 0.5f, p.z), new Vector3(0.1f, h, 0.1f), frost);
+                    RemoveCollider(icicle);
+                }
+            }
+
+            // ---- The frozen reliquaries -----------------------------------------------------------------------------
+            var fieldRoot = new GameObject("Reliquary Caskets");
+            var caskets = new System.Collections.Generic.List<ReliquaryCasket>();
+            int n = 0;
+            for (int sz = -1; sz <= 1; sz += 2)
+            for (int sx = -1; sx <= 1; sx += 2)
+            {
+                Vector3 c = new Vector3(sx * 6.5f, 0f, sz * 6.5f);
+
+                // The plinth stays when the casket is gone.
+                var plinth = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                plinth.name = $"Casket Plinth {n}";
+                plinth.transform.position = new Vector3(c.x, 0.1f, c.z);
+                footprints.Add((c, new Vector3(2.4f, 0f, 2.4f), 0f));
+                plinth.transform.localScale = new Vector3(2.5f, 0.03f, 2.5f);
+                plinth.GetComponent<Renderer>().sharedMaterial = gold;
+                RemoveCollider(plinth);
+                var plinthTop = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                plinthTop.name = $"Casket Plinth Top {n}";
+                plinthTop.transform.position = new Vector3(c.x, 0.12f, c.z);
+                plinthTop.transform.localScale = new Vector3(2.2f, 0.03f, 2.2f);
+                plinthTop.GetComponent<Renderer>().sharedMaterial = stoneDark;
+                RemoveCollider(plinthTop);
+
+                var root = new GameObject($"Reliquary Casket {n}");
+                root.transform.position = c;
+                root.transform.SetParent(fieldRoot.transform, true);
+                var solid = root.AddComponent<BoxCollider>();
+                solid.center = new Vector3(0f, 0.55f, 0f);
+                solid.size = new Vector3(ReliquaryCasket.HalfSize * 2f, 1.1f, ReliquaryCasket.HalfSize * 2f);
+
+                var body = new GameObject("Body");
+                body.transform.SetParent(root.transform, false);
+                void Part(string name, Vector3 local, Vector3 size, Material m, float yaw = 0f)
+                {
+                    var p = Box(name, root.transform.TransformPoint(local), size, m);
+                    p.transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+                    RemoveCollider(p);
+                    p.transform.SetParent(body.transform, true);
+                }
+                // The saint's casket inside, then the ice around it.
+                Part("Coffin", new Vector3(0f, 0.45f, 0f), new Vector3(0.55f, 0.5f, 1.1f), coffin, 45f);
+                Part("Coffin Lid", new Vector3(0f, 0.73f, 0f), new Vector3(0.62f, 0.08f, 1.16f), gold, 45f);
+                Part("Coffin Aquila", new Vector3(0f, 0.79f, 0f), new Vector3(0.5f, 0.04f, 0.12f), gold, -45f);
+                Part("Ice Block", new Vector3(0f, 0.55f, 0f), new Vector3(1.4f, 1.1f, 1.4f), casketIce);
+                Part("Ice Cap", new Vector3(0f, 1.13f, 0f), new Vector3(1.3f, 0.08f, 1.3f), snow);
+                for (int k = 0; k < 4; k++) // jagged frost at the corners
+                {
+                    Vector3 corner = new Vector3((k % 2 == 0 ? 1f : -1f) * 0.62f, 0.65f, (k < 2 ? 1f : -1f) * 0.62f);
+                    Part($"Ice Spur {k}", corner, new Vector3(0.22f, 1.3f, 0.22f), frost, 30f * k);
+                }
+
+                var casket = root.AddComponent<ReliquaryCasket>();
+                casket.Configure(body.transform);
+                caskets.Add(casket);
+
+                var glowGo = new GameObject("Casket Glow");
+                glowGo.transform.SetParent(body.transform, false);
+                glowGo.transform.localPosition = Vector3.up * 0.6f;
+                AddLight(glowGo, new Color(0.5f, 0.8f, 1f), 4f, 0.9f);
+                n++;
+            }
+            fieldRoot.AddComponent<CasketField>().Configure(caskets.ToArray());
+
+            // ---- Ice plates over freezing water --------------------------------------------------------------------
+            // Clear ice can be smashed by slams (DestructibleFloor in frozen-water mode): the hole is open water that
+            // slows anyone in it by 25% (no damage) until it freezes over again. Packed snow can't break: the centre,
+            // everything under cover, the casket plinths and the doorway approaches.
+            const float Spacing = 2.4f;   // plate grid
+            const float Plate = 2.3f;     // plate size: the gap between plates shows the dark bed, like cracks
+            const float PlateTop = 0.08f;
+            const float PlateThickness = 0.3f;
+            Material iceMid = GetMaterial("HoarfrostIceMid", new Color(0.52f, 0.66f, 0.78f));
+            Material packed = GetMaterial("HoarfrostPacked", new Color(0.82f, 0.85f, 0.9f));
+            Material packedAlt = GetMaterial("HoarfrostPackedAlt", new Color(0.76f, 0.8f, 0.86f));
+            Material[] iceShades = { ice, iceMid, iceLight };
+
+            bool UnderCover(Vector2 c)
+            {
+                float half = Plate * 0.4f;
+                foreach (var f in footprints)
+                {
+                    Vector3 local = Quaternion.Euler(0f, -f.yaw, 0f) * (new Vector3(c.x, 0f, c.y) - new Vector3(f.centre.x, 0f, f.centre.z));
+                    if (Mathf.Abs(local.x) <= f.size.x * 0.5f + half && Mathf.Abs(local.z) <= f.size.z * 0.5f + half) return true;
+                }
+                return false;
+            }
+
+            var iceRoot = new GameObject("Breakable Ice");
+            var packedRoot = new GameObject("Packed Snow");
+            var plates = new System.Collections.Generic.List<Transform>();
+            var cells = new System.Collections.Generic.List<Vector2Int>();
+            int extent = Mathf.CeilToInt((ArenaRadius + 1f) / Spacing);
+            for (int gz = -extent; gz <= extent; gz++)
+            for (int gx = -extent; gx <= extent; gx++)
+            {
+                var c = new Vector2(gx * Spacing, gz * Spacing);
+                float r = c.magnitude;
+                if (r > ArenaRadius + 0.8f) continue; // the outermost plates tuck under the wall
+
+                bool solid = r < 3.4f
+                             || (Mathf.Abs(c.y) < 3.7f && Mathf.Abs(c.x) > ArenaRadius - 3.5f) // doorway approaches
+                             || UnderCover(c);
+
+                Material m = solid ? ((gx + gz) % 2 == 0 ? packed : packedAlt) : iceShades[rng.Next(iceShades.Length)];
+                float size = solid ? Spacing + 0.01f : Plate;
+                var plate = Box($"Ice {gx},{gz}", new Vector3(c.x, PlateTop - PlateThickness * 0.5f, c.y), new Vector3(size, PlateThickness, size), m);
+                RemoveCollider(plate); // everyone walks on the ground collider; the plates are only the look
+                plate.transform.SetParent(solid ? packedRoot.transform : iceRoot.transform, true);
+                if (solid) continue;
+                // White fracture lines across some of the ice, so it reads apart from the packed snow.
+                if (rng.NextDouble() < 0.45)
+                {
+                    var line = Box("Fracture", Vector3.zero, Vector3.one, crack);
+                    RemoveCollider(line);
+                    line.transform.SetParent(plate.transform, false);
+                    line.transform.localScale = new Vector3(0.75f, 0.04f, 0.025f);
+                    line.transform.localPosition = new Vector3(0f, 0.5f, 0f);
+                    line.transform.localRotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 180f, 0f);
+                }
+                plates.Add(plate.transform);
+                cells.Add(new Vector2Int(gx, gz));
+            }
+            var iceFloor = iceRoot.AddComponent<DestructibleFloor>();
+            iceFloor.Configure(Spacing, plates.ToArray(), cells.ToArray());
+            iceFloor.ConfigureFrozenWater(0.25f, 20f);
+
+            // ---- Perimeter: snow-capped stone with icicles, buttresses and frosted lancet windows -------------------
+            float chord = 2f * (ArenaRadius + 1f) * Mathf.Tan(Mathf.PI / WallSegments) + 0.25f;
+            for (int i = 0; i < WallSegments; i++)
+            {
+                if (readyRooms && IsDoorSegment(i)) continue;
+                float angle = i * 360f / WallSegments;
+                Quaternion rot = Quaternion.Euler(0f, 90f - angle, 0f);
+
+                var seg = Box($"Wall {i}", RadialPos(ArenaRadius + 1.1f, angle, 1.7f), new Vector3(chord, 3.4f, 1.6f), stone);
+                seg.transform.rotation = rot;
+                var cap = Box($"Wall Snow {i}", RadialPos(ArenaRadius + 1.1f, angle, 3.5f), new Vector3(chord, 0.3f, 1.9f), snow);
+                cap.transform.rotation = rot;
+                RemoveCollider(cap);
+                var rime = Box($"Wall Rime {i}", RadialPos(ArenaRadius + 0.28f, angle, 0.25f), new Vector3(chord, 0.5f, 0.2f), frost);
+                rime.transform.rotation = rot;
+                RemoveCollider(rime);
+                for (int k = 0; k < 4; k++)
+                {
+                    float h = 0.3f + (float)rng.NextDouble() * 0.7f;
+                    Vector3 p = RadialPos(ArenaRadius + 0.3f, angle, 3.35f - h * 0.5f) + rot * Vector3.right * (((float)rng.NextDouble() - 0.5f) * chord * 0.9f);
+                    var icicle = Box($"Wall Icicle {i}.{k}", p, new Vector3(0.09f, h, 0.09f), frost);
+                    RemoveCollider(icicle);
+                }
+
+                if (i % 2 == 0)
+                {
+                    var buttress = Box($"Buttress {i}", RadialPos(ArenaRadius + 2.4f, angle, 2.6f), new Vector3(1f, 5.2f, 1.6f), stoneDark);
+                    buttress.transform.rotation = rot;
+                    RemoveCollider(buttress);
+                    var spire = Box($"Buttress Snow {i}", RadialPos(ArenaRadius + 2.4f, angle, 5.3f), new Vector3(1.1f, 0.2f, 1.7f), snow);
+                    spire.transform.rotation = rot;
+                    RemoveCollider(spire);
+                }
+                else
+                {
+                    var lancet = Box($"Lancet {i}", RadialPos(ArenaRadius + 0.26f, angle, 1.9f), new Vector3(0.8f, 2.2f, 0.06f), window);
+                    lancet.transform.rotation = rot;
+                    RemoveCollider(lancet);
+                }
+
+                // Snow drifted against the foot of the wall.
+                for (int k = 0; k < 2; k++)
+                {
+                    Vector3 p = RadialPos(ArenaRadius - 0.6f - (float)rng.NextDouble() * 0.8f, angle + ((float)rng.NextDouble() - 0.5f) * 12f, 0.1f);
+                    var drift = Box($"Snow Drift {i}.{k}", p, new Vector3(1.6f + (float)rng.NextDouble() * 2.2f, 0.12f, 0.9f + (float)rng.NextDouble() * 0.8f), snow);
+                    drift.transform.rotation = rot * Quaternion.Euler(0f, ((float)rng.NextDouble() - 0.5f) * 30f, 0f);
+                    RemoveCollider(drift);
+                    if (readyRooms && InReadyRoomZone(p + RadialDir(angle) * 2f)) Object.DestroyImmediate(drift);
+                }
+            }
+
+            // Warm braziers in the four corners, cold light around the edge.
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 p = RadialPos(ArenaRadius - 2.5f, 45f + i * 90f, 0f);
+                var root = new GameObject($"Brazier {i}");
+                root.transform.position = p;
+                foreach (var (name, local, size, m) in new[]
+                         {
+                             ("Stem", new Vector3(0f, 0.55f, 0f), new Vector3(0.16f, 1.1f, 0.16f), stoneDark),
+                             ("Bowl", new Vector3(0f, 1.15f, 0f), new Vector3(0.7f, 0.3f, 0.7f), gold),
+                             ("Flame", new Vector3(0f, 1.5f, 0f), new Vector3(0.32f, 0.5f, 0.32f), flame)
+                         })
+                {
+                    var part = Box($"Brazier {i} {name}", p + local, size, m);
+                    part.transform.rotation = Quaternion.Euler(0f, 45f, 0f);
+                    RemoveCollider(part);
+                    part.transform.SetParent(root.transform, true);
+                }
+                var lightGo = new GameObject("Brazier Light");
+                lightGo.transform.SetParent(root.transform, false);
+                lightGo.transform.localPosition = Vector3.up * 1.7f;
+                AddLight(lightGo, new Color(1f, 0.6f, 0.25f), 8f, 1.4f);
+            }
+            for (int i = 0; i < 8; i++)
+            {
+                var lightGo = new GameObject($"Frost Light {i}");
+                lightGo.transform.position = RadialPos(ArenaRadius - 2.5f, 22.5f + i * 45f, 2.4f);
+                AddLight(lightGo, new Color(0.55f, 0.78f, 1f), 10f, 0.9f);
+            }
+
+            // ---- Outside: snow-covered spires rising out of the frozen lake -------------------------------------------
+            for (int i = 0; i < 22; i++)
+            {
+                float angle = i * 16.4f + (float)rng.NextDouble() * 6f;
+                float radius = 36f + (float)rng.NextDouble() * 10f;
+                float h = 9f + (float)rng.NextDouble() * 14f;
+                Vector3 p = RadialPos(radius, angle, h * 0.5f);
+                if (readyRooms && InReadyRoomZone(p)) continue;
+                float w = 2.2f + (float)rng.NextDouble() * 2f;
+                var tower = Box($"Spire {i}", p, new Vector3(w, h, w), stoneDark);
+                tower.transform.rotation = Quaternion.Euler(0f, (float)rng.NextDouble() * 90f, 0f);
+                RemoveCollider(tower);
+                var roof = Box($"Spire Snow {i}", new Vector3(p.x, h + 0.6f, p.z), new Vector3(w * 0.7f, 1.2f, w * 0.7f), snow);
+                roof.transform.rotation = tower.transform.rotation * Quaternion.Euler(0f, 45f, 0f);
+                RemoveCollider(roof);
+                var glass = Box($"Spire Window {i}", RadialPos(radius - w * 0.5f - 0.05f, angle, h * 0.7f), new Vector3(0.5f, h * 0.25f, 0.5f), window);
+                RemoveCollider(glass);
+            }
+
+            if (readyRooms) CreateReadyRooms(ArenaRadius, stone, stone, stoneDark, 3.4f);
+        }
+
         // Two ready rooms outside the perimeter wall, one through each doorway (-X "left" and +X "right"). Each is a walled
         // pen with a floor, a glowing threshold and a gate that ReadyRoom raises/lowers with the ready phase. Local space:
         // the root sits on the wall line with +Z pointing out of the arena (see ReadyRoom).
@@ -1515,6 +1923,7 @@ namespace Anathema.EditorTools
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = map == MapShrine ? new Color(0.02f, 0.04f, 0.04f)
                 : map == MapCrucible ? new Color(0.1f, 0.03f, 0.01f)
+                : map == MapHoarfrost ? new Color(0.03f, 0.05f, 0.08f)
                 : new Color(0.08f, 0.03f, 0.03f);
             camera.nearClipPlane = 0.3f;
             camera.farClipPlane = 200f;

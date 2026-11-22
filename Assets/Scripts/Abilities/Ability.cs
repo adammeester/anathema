@@ -52,6 +52,10 @@ namespace Anathema.Abilities
         public virtual float MovementRange => 0f;
         public virtual float MovementWindow => 3f;
 
+        // True for a dedicated movement ability: cast while pinned to a sliding Hoarfrost casket, it breaks the carry
+        // (no stun). Every ability that moves its caster counts unless it says otherwise (ultimates opt out).
+        public virtual bool EscapesCasket => MovementRange > 0f;
+
         // True while this ability holds the character in place (PlayerMovement stops walking; gravity still applies).
         public virtual bool RootsMovement => false;
 
@@ -275,6 +279,9 @@ namespace Anathema.Abilities
             float cooldownScale = ScalesWithAttackSpeed ? Enraged.AttackSpeedMultiplier(gameObject) : 1f;
             nextUseTime = CooldownStartsOnStrike ? float.PositiveInfinity : Time.time + EffectiveCooldown / cooldownScale;
             ExActivation = false;
+            // Pinned to a sliding casket: a movement ability breaks free before it runs (the server is told first, so
+            // the escape reaches it ahead of this ability's cue).
+            if (EscapesCasket && CasketCarried.IsCarried(gameObject)) CasketCarried.Escape(gameObject);
             BeginCast();
 
             // Tell the other machines to replay this ability's visuals.

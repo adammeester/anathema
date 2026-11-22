@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 8295218482821591522}
   - component: {fileID: 7269797312337418369}
   - component: {fileID: 1664197901265150345}
+  - component: {fileID: 2754784085417090873}
   - component: {fileID: 9087539931648789355}
   - component: {fileID: 5805089132585312830}
   - component: {fileID: 7088536076019283163}
@@ -264,17 +265,7 @@ MonoBehaviour:
   cooldown: 12
   duration: 4
   exEnergyCost: 35
-  exWindup: 0.15
-  exExtraCooldown: 2
-  slashDamage: 14
-  slashStealthBonusDamage: 14
-  slashStunDuration: 1.25
-  slashStealthPoisonStacks: 2
-  slashPoisonDamagePerSecond: 1
-  slashPoisonDuration: 4
-  slashRange: 3
-  slashArcDegrees: 80
-  slashEnergyPerHit: 10
+  exHasteSeconds: 2
 --- !u!114 &1664197901265150345
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -301,6 +292,29 @@ MonoBehaviour:
   shadowStrikeWindow: 2
   stepReach: 8
   behindDistance: 1.3
+--- !u!114 &2754784085417090873
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6882082503625080852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 756a6da444a5a0746a6c6d25902732a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Mandrake.ShadowRend
+  cooldown: 13
+  windup: 0.15
+  damage: 14
+  stealthBonusDamage: 14
+  stunDuration: 1.25
+  stealthPoisonStacks: 2
+  poisonDamagePerSecond: 1
+  poisonDuration: 4
+  range: 3
+  arcDegrees: 80
+  energyPerHit: 10
 --- !u!114 &9087539931648789355
 MonoBehaviour:
   m_ObjectHideFlags: 0

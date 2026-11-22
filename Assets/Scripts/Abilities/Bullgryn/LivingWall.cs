@@ -138,6 +138,8 @@ namespace Anathema.Abilities.Bullgryn
             float speed = shoveDistance / shoveDuration;
             float halfSpan = barrier.Width * 0.5f;
             var struck = new List<Health>();
+            // A Hoarfrost casket in the wall's path is shoved away along it.
+            Anathema.Arena.CasketField.Sweep(gameObject, front, front + dir * shoveDistance, halfSpan);
 
             Vector3 boxCentre = front + dir * (shoveDistance * 0.5f) + Vector3.up;
             var halfExtents = new Vector3(halfSpan + 0.6f, 1.2f, shoveDistance * 0.5f + 1.6f);

@@ -20,8 +20,9 @@ GameObject:
   - component: {fileID: 3449674634982891412}
   - component: {fileID: 4837569456695845875}
   - component: {fileID: 38576047845612300}
-  - component: {fileID: 6674872844131464224}
+  - component: {fileID: 1206275934858677955}
   - component: {fileID: 6052617179607475017}
+  - component: {fileID: 6674872844131464224}
   - component: {fileID: 7266512648813761551}
   - component: {fileID: 1009416531663172638}
   - component: {fileID: 1336181537263645045}
@@ -261,7 +262,7 @@ MonoBehaviour:
   flameHalfAngle: 20
   flameTotalDamage: 32
   beamColor: {r: 0.5, g: 0.8, b: 1, a: 0.95}
---- !u!114 &6674872844131464224
+--- !u!114 &1206275934858677955
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -270,24 +271,15 @@ MonoBehaviour:
   m_GameObject: {fileID: 5502954624590640559}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 234459730bdae9d4db18710a511e29db, type: 3}
+  m_Script: {fileID: 11500000, guid: 16385bf8e4ac6d1468e7cc83819a5add, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.GreyKnightInterceptor.Consecrate
-  cooldown: 8
-  damage: 10
-  range: 10
-  radius: 3
-  delay: 0.6
-  rootDuration: 0.75
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.GreyKnightInterceptor.TeleportStrike
+  cooldown: 10
+  range: 8
+  burstRadius: 2.5
+  damage: 12
   energyPerHit: 8
-  fireDuration: 2
-  telegraphColor: {r: 1, g: 1, b: 1, a: 0.15}
-  fillColor: {r: 1, g: 1, b: 1, a: 0.3}
-  exEnergyCost: 35
-  domeRadius: 3.5
-  domeDuration: 6
-  domeSlow: 0.5
-  domeColor: {r: 0.4, g: 0.7, b: 1, a: 1}
+  color: {r: 0.75, g: 0.5, b: 1, a: 0.8}
 --- !u!114 &6052617179607475017
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -316,6 +308,33 @@ MonoBehaviour:
   teleportRange: 9
   empowerDuration: 3
   teleportColor: {r: 0.75, g: 0.5, b: 1, a: 0.8}
+--- !u!114 &6674872844131464224
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5502954624590640559}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 234459730bdae9d4db18710a511e29db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.GreyKnightInterceptor.Consecrate
+  cooldown: 14
+  damage: 10
+  range: 10
+  radius: 3
+  delay: 0.6
+  rootDuration: 1.25
+  energyPerHit: 8
+  fireDuration: 2
+  telegraphColor: {r: 1, g: 1, b: 1, a: 0.15}
+  fillColor: {r: 1, g: 1, b: 1, a: 0.3}
+  exEnergyCost: 35
+  domeRadius: 3.5
+  domeDuration: 6
+  domeSlow: 0.5
+  domeColor: {r: 0.4, g: 0.7, b: 1, a: 1}
 --- !u!114 &7266512648813761551
 MonoBehaviour:
   m_ObjectHideFlags: 0

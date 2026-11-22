@@ -280,6 +280,7 @@ namespace Anathema.Abilities.Psyker
             PsykerFx.Ring(centre, 0.4f, slamRadius, 0.35f, PsykerFx.Cyan, 0.3f);
             PsykerFx.Ring(centre, 0.2f, slamRadius * 0.7f, 0.3f, new Color(1f, 1f, 1f, 0.8f), 0.16f);
             Sfx.Play(Sfx.SlamExplosion, 0.45f, 1.1f, 1.2f);
+            if (!IsReplica) Anathema.Arena.CasketField.Slam(gameObject, centre, centre, slamRadius);
 
             foreach (Health h in FindObjectsByType<Health>())
             {

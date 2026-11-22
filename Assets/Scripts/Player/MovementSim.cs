@@ -63,7 +63,8 @@ namespace Anathema.Player
 
             var counter = character.GetComponent<Counter>();
             bool planted = (counter != null && counter.IsGuarding) || Stunned.IsStunned(character)
-                           || Rooted.IsRooted(character) || RootedByAbility(character);
+                           || Rooted.IsRooted(character) || RootedByAbility(character)
+                           || CasketCarried.IsCarried(character); // pinned to a sliding casket: no walking out of the lane
             ctx.CanSteer = !planted;
 
             var maimed = character.GetComponent<Maimed>();
@@ -71,6 +72,8 @@ namespace Anathema.Player
                         * ReflectDome.SlowMultiplier(character) * Slowed.Multiplier(character)
                         * Stealthed.MoveSpeedMultiplier(character) * Hasted.MoveSpeedMultiplier(character);
             foreach (IMoveSpeedModifier m in character.GetComponents<IMoveSpeedModifier>()) ctx.Speed *= m.MoveSpeedMultiplier;
+            // Open water on the Hoarfrost Basilica's broken ice (same floor state on the server and the owner).
+            ctx.Speed *= Anathema.Arena.DestructibleFloor.SpeedMultiplierAt(character.transform.position);
 
             ctx.Fleeing = Panicked.TryGetFleeDirection(character, out ctx.FleeDirection);
             ctx.KnockedBack = Knockback.TryGetVelocity(character, out ctx.KnockbackVelocity);

@@ -40,6 +40,26 @@ namespace Anathema.Combat
             knockback.endTime = Time.time + duration;
         }
 
+        // Applies a shove on this machine with no routing and no immunity checks. For callers that have already decided
+        // (the Hoarfrost caskets' carry, which checks immunity on the server before it catches anyone).
+        public static void Force(GameObject target, Vector3 direction, float distance, float duration)
+        {
+            direction.y = 0f;
+            if (target == null || direction.sqrMagnitude < 0.0001f || duration <= 0f) return;
+            var knockback = target.GetComponent<Knockback>();
+            if (knockback == null) knockback = target.AddComponent<Knockback>();
+            knockback.velocity = direction.normalized * (distance / duration);
+            knockback.endTime = Time.time + duration;
+        }
+
+        // Ends any shove on this machine right away.
+        public static void Clear(GameObject target)
+        {
+            if (target == null || !target.TryGetComponent(out Knockback k)) return;
+            k.endTime = 0f; // stops at once (Destroy only lands at the end of the frame)
+            Destroy(k);
+        }
+
         void Awake()
         {
             controller = GetComponent<CharacterController>();

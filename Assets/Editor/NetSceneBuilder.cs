@@ -22,6 +22,7 @@ namespace Anathema.EditorTools
         const string VersusPath = "Assets/Scenes/Versus.unity";
         const string ShrinePath = "Assets/Scenes/Versus_Shrine.unity";
         const string CruciblePath = "Assets/Scenes/Versus_Crucible.unity";
+        const string HoarfrostPath = "Assets/Scenes/Versus_Hoarfrost.unity";
         const string TrainingPath = "Assets/Scenes/Arena.unity";
         const string PrefabDir = "Assets/Resources/Net";
         const string GreyKnightPrefab = PrefabDir + "/Player_GreyKnight.prefab";
@@ -39,7 +40,7 @@ namespace Anathema.EditorTools
             EditorApplication.delayCall += () =>
             {
                 if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
-                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(ShrinePath) || !File.Exists(CruciblePath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab) || !File.Exists(HospitallerPrefab) || !File.Exists(MandrakePrefab) || !File.Exists(BullgrynPrefab) || !File.Exists(SorcererPrefab);
+                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(ShrinePath) || !File.Exists(CruciblePath) || !File.Exists(HoarfrostPath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab) || !File.Exists(HospitallerPrefab) || !File.Exists(MandrakePrefab) || !File.Exists(BullgrynPrefab) || !File.Exists(SorcererPrefab);
                 if (missing && File.Exists("Assets/Models/GreyKnight.fbx")) BuildAll();
             };
         }
@@ -65,6 +66,7 @@ namespace Anathema.EditorTools
             BuildVersusScene(VersusPath, ArenaSceneBuilder.MapColosseum);
             BuildVersusScene(ShrinePath, ArenaSceneBuilder.MapShrine);
             BuildVersusScene(CruciblePath, ArenaSceneBuilder.MapCrucible);
+            BuildVersusScene(HoarfrostPath, ArenaSceneBuilder.MapHoarfrost);
             BuildMenuScene();
 
             if (previous.IsValid()) SceneManager.SetActiveScene(previous);
@@ -75,6 +77,7 @@ namespace Anathema.EditorTools
                 new EditorBuildSettingsScene(VersusPath, true),
                 new EditorBuildSettingsScene(ShrinePath, true),
                 new EditorBuildSettingsScene(CruciblePath, true),
+                new EditorBuildSettingsScene(HoarfrostPath, true),
                 new EditorBuildSettingsScene(TrainingPath, true)
             };
 

@@ -184,6 +184,8 @@ namespace Anathema.Abilities.Bullgryn
                     lastConnect = Time.time;
                 }
                 else connectStreak = 0;
+                // Slab Slam hits the ground hard enough to send a Hoarfrost casket across the ice.
+                if (empowered) Anathema.Arena.CasketField.Cone(gameObject, transform.position, dir, range, arcDegrees);
             }
 
             if (hits > 0 || IsReplica)

@@ -24,6 +24,7 @@ GameObject:
   - component: {fileID: 6360411861373990085}
   - component: {fileID: 2233083949750399087}
   - component: {fileID: 2846723993477891786}
+  - component: {fileID: 1122032998490035805}
   - component: {fileID: 5101338128184028033}
   - component: {fileID: 5402478218089928787}
   - component: {fileID: 4784820353405775788}
@@ -222,7 +223,8 @@ MonoBehaviour:
   mendHeal: 6
   mendSeconds: 3.5
   range: 11
-  flightSpeed: 20
+  radius: 2.2
+  flightTime: 0.35
   windup: 0.3
   rechargeTime: 6
   energyPerHeal: 5
@@ -277,6 +279,8 @@ MonoBehaviour:
   windup: 0.25
   snareSeconds: 1
   energyPerHit: 6
+  markDamage: 10
+  markSeconds: 3.5
 --- !u!114 &6360411861373990085
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -332,12 +336,26 @@ MonoBehaviour:
   m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Sorcerer.WeaverOfFates
   cooldown: 1
   energyCost: 100
-  castRange: 12
+  castRange: 18
   slipSeconds: 2
-  returnRange: 9
+  returnRange: 13
   cooldownCut: 0.25
   arrivalStun: 1.75
   arrivalRadius: 2.5
+--- !u!114 &1122032998490035805
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7672678544144062685}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 190970f721f4b6a48b7a43e422634705, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Sorcerer.EchoesOfProspero
+  heal: 4
+  radius: 6
 --- !u!114 &5101338128184028033
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -436,47 +454,47 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 2105953495862873934}
     m_Modifications:
-    - target: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_LocalPosition.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_LocalPosition.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_LocalRotation.w
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_LocalRotation.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_LocalRotation.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_LocalRotation.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 919132149155446097, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - target: {fileID: 919132149155446097, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       propertyPath: m_Name
       value: Model
       objectReference: {fileID: 0}
@@ -484,13 +502,13 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 786ff2df94032494790461a4e22f4774, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7353044030494901744}
-  m_SourcePrefab: {fileID: 100100000, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+  m_SourcePrefab: {fileID: 100100000, guid: 786ff2df94032494790461a4e22f4774, type: 3}
 --- !u!1 &3650576396094169715 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 786ff2df94032494790461a4e22f4774, type: 3}
   m_PrefabInstance: {fileID: 4496873046733446946}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &7353044030494901744
@@ -521,6 +539,6 @@ MonoBehaviour:
   coatSway: 14
 --- !u!4 &4171075737084639433 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 93fc8fbb02af9924996af5fc4853274a, type: 3}
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 786ff2df94032494790461a4e22f4774, type: 3}
   m_PrefabInstance: {fileID: 4496873046733446946}
   m_PrefabAsset: {fileID: 0}

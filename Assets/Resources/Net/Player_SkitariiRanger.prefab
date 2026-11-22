@@ -22,6 +22,7 @@ GameObject:
   - component: {fileID: 6366959596729987380}
   - component: {fileID: 2294260938901556395}
   - component: {fileID: 7643171429579760611}
+  - component: {fileID: 2007078120481799472}
   - component: {fileID: 1942283802079846888}
   - component: {fileID: 7086551724263475339}
   - component: {fileID: 460217385042202048}
@@ -220,8 +221,8 @@ MonoBehaviour:
   chargeTime: 1.6
   minDamage: 18
   maxDamage: 40
-  minStun: 0.25
-  maxStun: 1.5
+  minRoot: 0.5
+  maxRoot: 1.5
   range: 34
   shotRadius: 0.45
   boltSpeed: 54
@@ -309,6 +310,30 @@ MonoBehaviour:
   glowScale: 1.06
   glowColor: {r: 0.3, g: 0.6, b: 1, a: 0.4}
   chargeFraction: 0.5
+--- !u!114 &2007078120481799472
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2315638733845888692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3d3a11b309442247b3b75658868f57b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SkitariiRanger.NoosphericSnare
+  cooldown: 14
+  range: 6
+  plantWindup: 0.35
+  armTime: 1
+  lifetime: 25
+  triggerRadius: 1.1
+  blastRadius: 2.2
+  damage: 20
+  stunDuration: 1.25
+  energyPerHit: 10
+  maxSnares: 2
+  minSpacing: 3
 --- !u!114 &1942283802079846888
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -102,6 +102,8 @@ namespace Anathema.Abilities.Sorcerer
             Sfx.Play(Sfx.Impact, 0.45f, 0.75f, 0.85f, 0.5f);
             Sfx.Play(Sfx.Fissure, 0.35f, 1.15f, 1.3f, 0.7f); // the ground cracking open and swallowing
             if (!owner || this == null || Health == null) return;
+            // The hourglass breaks the floor where it lands, like a ground slam (the Crucible's plates, the Hoarfrost ice).
+            Anathema.Arena.DestructibleFloor.Crack(gameObject, centre, centre, Mathf.Min(area, 4f));
 
             bool dunes = SorcererUpgrade.Has(gameObject, SorcererUpgrade.ShiftingDunes);
             var mending = GetComponent<MendingSands>();

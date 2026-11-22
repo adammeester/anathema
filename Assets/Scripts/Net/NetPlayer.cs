@@ -51,7 +51,8 @@ namespace Anathema.Net
             Petrify,        // encased in dust-glass (a = seconds, b = shield, direction.x = delay): a control effect like a stun
             PetrifyBreak,   // server -> owner: the dust-glass shell broke
             Timeslip,       // a teammate pulled out of time by Weaver of Fates (a = seconds, b = range, direction = Timeslipped.Arrival)
-            Purge           // Absolution: strip every crowd control and debuff; held by the server, which tells the owner too
+            Purge,          // Absolution: strip every crowd control and debuff; held by the server, which tells the owner too
+            CasketCarry     // pinned to a sliding Hoarfrost casket (a = distance, b = seconds, direction); server -> owner only
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -585,7 +586,16 @@ namespace Anathema.Net
             // The server picks the plates from its own floor, so every machine breaks the same ones.
             int[] plates = floor.TilesIn(from, to, radius);
             if (plates.Length == 0) return;
-            if (!IsClient) floor.Break(plates); // a dedicated server runs no ClientRpcs but needs the holes for the fire damage
+            ServerBroadcastFloorBreak(plates);
+        }
+
+        // Server: break these plates on every machine (a slam above, or a Hoarfrost casket smashing into a wall).
+        public void ServerBroadcastFloorBreak(int[] plates)
+        {
+            if (!IsServer || plates == null || plates.Length == 0) return;
+            Anathema.Arena.DestructibleFloor floor = Anathema.Arena.DestructibleFloor.Instance;
+            if (floor == null) return;
+            if (!IsClient) floor.Break(plates); // a dedicated server runs no ClientRpcs but needs the holes (fire damage, water slow)
             FloorBreakClientRpc(plates);
         }
 
@@ -942,7 +952,8 @@ namespace Anathema.Net
             // at a teammate, and nothing while they are down. Panic breaks and enrages are the server's own decisions.
             if (sender != NetworkManager.ServerClientId)
             {
-                if (status == StatusKind.PanicBreak || status == StatusKind.Enrage || status == StatusKind.Heal) return;
+                if (status == StatusKind.PanicBreak || status == StatusKind.Enrage || status == StatusKind.Heal
+                    || status == StatusKind.CasketCarry) return;
                 NetPlayer from = PlayerOf(sender);
                 if (from == null || from.health.IsDead || NetGame.Frozen) return;
                 bool sameTeam = from.health.Team == health.Team;
@@ -1029,6 +1040,7 @@ namespace Anathema.Net
                 case StatusKind.MendingBloom: Mending.Bloom(gameObject, attacker); break;
                 case StatusKind.Petrify: Petrified.Apply(gameObject, a, b, direction.x, attacker); break;
                 case StatusKind.PetrifyBreak: Petrified.Break(gameObject); break;
+                case StatusKind.CasketCarry: CasketCarried.ApplyHere(gameObject, direction, a, b); break;
                 case StatusKind.Timeslip:
                     // The server holds the untouchable copy and tells the owner, who hides and picks where to come back.
                     Timeslipped.ApplyHere(gameObject, a, b, Timeslipped.Arrival.Unpack(direction), IsServer, IsOwner);

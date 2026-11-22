@@ -39,6 +39,7 @@ namespace Anathema.Abilities.Mandrake
         public override string DisplayName => "Shadow Cross";
         public override string KeyLabel => "F";
         public override float MovementRange => castRange + slashLength * 2.5f;
+        public override bool EscapesCasket => false; // an ultimate, not a dedicated movement ability
         public override bool RootsMovement => phase != Phase.Idle;
         public override bool Available => energy != null && energy.Current >= energyCost && !Silenced.IsSilenced(gameObject) && !Panicked.IsPanicked(gameObject);
 
