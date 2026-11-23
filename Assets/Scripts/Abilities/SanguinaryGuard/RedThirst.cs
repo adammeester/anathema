@@ -12,8 +12,10 @@ namespace Anathema.Abilities.SanguinaryGuard
     // back above the threshold.
     //
     // Derived from his health alone, which every machine has, so the owner, the server and replicas all agree without
-    // any extra network traffic. The look: his eye lenses flare blood red and leave streaks as he moves, a red glow
-    // beats on his chest like a racing heart, and dark red vapour rises off him.
+    // any extra network traffic. The look: his eye lenses flare blood red and leave streaks as he moves, and the same
+    // flares burn along his blade (whatever weapon he holds, hidden while Blade Hurl has it) and at both wing tips, streaking
+    // through every swing and beat; a red glow beats on his chest like a racing heart, and dark red vapour rises off him.
+    [DefaultExecutionOrder(210)] // after the poses and GuardWeaponVisual have placed the head, blade and wings
     public class RedThirst : MonoBehaviour, IMoveSpeedModifier, IAttackSpeedModifier
     {
         [SerializeField] float threshold = 0.2f;
@@ -37,15 +39,25 @@ namespace Anathema.Abilities.SanguinaryGuard
         Transform head;
         float modelScale = 1f;
 
-        Transform[] eyes;
+        // The flares: 0-1 the eyes, 2-3 the blade (middle and point), 4-5 the wing tips.
+        const int EyeL = 0, EyeR = 1, BladeMid = 2, BladeTip = 3, WingTipL = 4, WingTipR = 5, FlareCount = 6;
+        Transform[] eyes;   // every flare (the name kept from when there were only eyes)
         TrailRenderer[] trails;
+        readonly bool[] placed = new bool[FlareCount];
+        GuardWeaponVisual weaponVisual;
+        CrimsonRush rush;
+        Transform swordBone, swordTip;       // fallback when there is no GuardWeaponVisual
+        Transform wingL, wingR;
+        Vector3 wingTipLocalL, wingTipLocalR;   // each wing's tip in its own bone's space, so it follows the beat
         Light heartLight;
         Material eyeMaterial, haloMaterial, vapourMaterial;
         float glow;          // 0..1, eased in and out
         float vapourDebt;
         bool wasActive;
 
-        public bool Active => health != null && !health.IsDead && health.Max > 0f && health.Current <= health.Max * threshold;
+        // Unquenched raises the threshold.
+        public float CurrentThreshold => GuardUpgrade.Has(gameObject, GuardUpgrade.Unquenched) ? GuardUpgrade.UnquenchedThreshold : threshold;
+        public bool Active => health != null && !health.IsDead && health.Max > 0f && health.Current <= health.Max * CurrentThreshold;
 
         public float MoveSpeedMultiplier => Active ? 1f + moveSpeedBonus : 1f;
         public float AttackSpeedMultiplier => Active ? 1f + attackSpeedBonus : 1f;
@@ -79,6 +91,22 @@ namespace Anathema.Abilities.SanguinaryGuard
                 float height = head.position.y - transform.position.y;
                 if (height > 0.1f) modelScale = height / HeadBoneHeight;
             }
+            rush = GetComponent<CrimsonRush>();
+            if (model != null)
+            {
+                foreach (Transform t in model.GetComponentsInChildren<Transform>(true))
+                {
+                    // depth-first: the real skeleton, not a later glow clone
+                    if (swordBone == null && t.name == "Chainsword") swordBone = t;
+                    if (swordTip == null && t.name == "Chainsword_Tip") swordTip = t;
+                    if (wingL == null && t.name == "Wing_L") wingL = t;
+                    if (wingR == null && t.name == "Wing_R") wingR = t;
+                }
+                // The wing tips at rest (Art/sanguinary_guard.py: mount to tip is 0.61 out and 0.92 up), kept in the bone's
+                // space so they lift and beat with Wings of the Angel.
+                wingTipLocalL = WingTipLocal(wingL);
+                wingTipLocalR = WingTipLocal(wingR);
+            }
             BuildLook();
         }
 
@@ -88,30 +116,14 @@ namespace Anathema.Abilities.SanguinaryGuard
             haloMaterial = VisualUtil.UnlitMaterial(EyeHaloColor, 3000);
             vapourMaterial = VisualUtil.UnlitMaterial(VapourColor, 2998);
 
-            eyes = new Transform[2];
-            trails = new TrailRenderer[2];
-            for (int i = 0; i < 2; i++)
-            {
-                var eye = new GameObject(i == 0 ? "Thirst Eye L" : "Thirst Eye R").transform;
-                eye.SetParent(transform, false);
-
-                GameObject core = Primitive(PrimitiveType.Sphere, eyeMaterial, eye);
-                core.transform.localScale = new Vector3(0.11f, 0.07f, 0.07f);
-                GameObject halo = Primitive(PrimitiveType.Sphere, haloMaterial, eye);
-                halo.transform.localScale = Vector3.one * 0.26f;
-
-                var trail = eye.gameObject.AddComponent<TrailRenderer>();
-                trail.sharedMaterial = eyeMaterial;
-                trail.time = 0.22f;
-                trail.minVertexDistance = 0.05f;
-                trail.widthCurve = new AnimationCurve(new Keyframe(0f, 0.07f), new Keyframe(1f, 0f));
-                trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                trail.emitting = false;
-
-                eyes[i] = eye;
-                trails[i] = trail;
-                eye.gameObject.SetActive(false);
-            }
+            eyes = new Transform[FlareCount];
+            trails = new TrailRenderer[FlareCount];
+            MakeFlare(EyeL, "Thirst Eye L", new Vector3(0.11f, 0.07f, 0.07f), 0.26f, 0.07f, 0.22f);
+            MakeFlare(EyeR, "Thirst Eye R", new Vector3(0.11f, 0.07f, 0.07f), 0.26f, 0.07f, 0.22f);
+            MakeFlare(BladeMid, "Thirst Blade", Vector3.one * 0.1f, 0.3f, 0.12f, 0.25f);
+            MakeFlare(BladeTip, "Thirst Blade Point", Vector3.one * 0.13f, 0.38f, 0.14f, 0.3f);
+            MakeFlare(WingTipL, "Thirst Wing L", Vector3.one * 0.12f, 0.4f, 0.12f, 0.35f);
+            MakeFlare(WingTipR, "Thirst Wing R", Vector3.one * 0.12f, 0.4f, 0.12f, 0.35f);
 
             var lightGo = new GameObject("Thirst Heart Light");
             lightGo.transform.SetParent(transform, false);
@@ -122,6 +134,35 @@ namespace Anathema.Abilities.SanguinaryGuard
             heartLight.range = 4.5f;
             heartLight.intensity = 0f;
             heartLight.enabled = false;
+        }
+
+        // A blood-red core in a soft halo that leaves a streak behind it as it moves.
+        void MakeFlare(int index, string name, Vector3 core, float halo, float trailWidth, float trailTime)
+        {
+            var flare = new GameObject(name).transform;
+            flare.SetParent(transform, false);
+            Primitive(PrimitiveType.Sphere, eyeMaterial, flare).transform.localScale = core;
+            Primitive(PrimitiveType.Sphere, haloMaterial, flare).transform.localScale = Vector3.one * halo;
+
+            var trail = flare.gameObject.AddComponent<TrailRenderer>();
+            trail.sharedMaterial = eyeMaterial;
+            trail.time = trailTime;
+            trail.minVertexDistance = 0.05f;
+            trail.widthCurve = new AnimationCurve(new Keyframe(0f, trailWidth), new Keyframe(1f, 0f));
+            trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            trail.emitting = false;
+
+            eyes[index] = flare;
+            trails[index] = trail;
+            flare.gameObject.SetActive(false);
+        }
+
+        Vector3 WingTipLocal(Transform wing)
+        {
+            if (wing == null) return Vector3.zero;
+            float side = Vector3.Dot(wing.position - transform.position, transform.right) >= 0f ? 1f : -1f;
+            Vector3 tip = wing.position + (transform.right * (side * 0.61f) + Vector3.up * 0.92f) * modelScale;
+            return wing.InverseTransformPoint(tip);
         }
 
         static GameObject Primitive(PrimitiveType type, Material material, Transform parent)
@@ -153,16 +194,10 @@ namespace Anathema.Abilities.SanguinaryGuard
             float beat = Mathf.Repeat(Time.time * 1.6f, 1f);
             float pulse = Mathf.Exp(-Mathf.Pow((beat - 0.1f) * 18f, 2f)) + 0.7f * Mathf.Exp(-Mathf.Pow((beat - 0.32f) * 18f, 2f));
 
-            for (int i = 0; i < 2; i++)
-            {
-                if (eyes[i].gameObject.activeSelf != visible)
-                {
-                    eyes[i].gameObject.SetActive(visible);
-                    trails[i].Clear();
-                }
+            for (int i = 0; i < FlareCount; i++)
                 if (visible) eyes[i].localScale = Vector3.one * (glow * (0.9f + 0.25f * pulse));
-                trails[i].emitting = active;
-            }
+            thirstVisible = visible;
+            thirstActive = active;
 
             heartLight.enabled = visible;
             if (visible) heartLight.intensity = glow * (1.2f + 2.2f * pulse);
@@ -171,17 +206,44 @@ namespace Anathema.Abilities.SanguinaryGuard
             if (active) ShedVapour();
         }
 
+        bool thirstVisible, thirstActive;
+
+        // Every flare is placed after the poses, the flight and the weapon have moved this frame. A flare with nowhere to
+        // be (the blade while it is thrown) hides and drops its streak.
         void LateUpdate()
         {
-            if (eyes == null || !eyes[0].gameObject.activeSelf) return;
-            // Placed on the lenses every frame, after the swing and flight poses have moved the head.
+            if (eyes == null) return;
             Vector3 root = head != null ? head.position : transform.position + Vector3.up * HeadBoneHeight * modelScale;
             for (int i = 0; i < 2; i++)
             {
                 float side = i == 0 ? -1f : 1f;
-                eyes[i].position = root + (transform.right * (side * EyeOffset.x) + Vector3.up * EyeOffset.y
-                                           + transform.forward * EyeOffset.z) * modelScale;
+                Place(i, root + (transform.right * (side * EyeOffset.x) + Vector3.up * EyeOffset.y
+                                 + transform.forward * EyeOffset.z) * modelScale, true);
             }
+
+            if (weaponVisual == null) weaponVisual = GetComponent<GuardWeaponVisual>();
+            Transform from = weaponVisual != null ? weaponVisual.BladeFrom : swordBone;
+            Transform to = weaponVisual != null ? weaponVisual.BladeTo : swordTip;
+            bool inHand = weaponVisual != null ? weaponVisual.InHand : rush == null || !rush.Disarmed;
+            bool blade = inHand && from != null && to != null;
+            Place(BladeMid, blade ? Vector3.Lerp(from.position, to.position, 0.55f) : Vector3.zero, blade);
+            Place(BladeTip, blade ? to.position : Vector3.zero, blade);
+
+            Place(WingTipL, wingL != null ? wingL.TransformPoint(wingTipLocalL) : Vector3.zero, wingL != null);
+            Place(WingTipR, wingR != null ? wingR.TransformPoint(wingTipLocalR) : Vector3.zero, wingR != null);
+        }
+
+        void Place(int i, Vector3 at, bool there)
+        {
+            bool show = thirstVisible && there;
+            if (show) eyes[i].position = at;   // first, so a fresh streak starts here
+            if (eyes[i].gameObject.activeSelf != show)
+            {
+                eyes[i].gameObject.SetActive(show);
+                trails[i].Clear();
+            }
+            if (!show) return;
+            trails[i].emitting = thirstActive;
         }
 
         void ShedVapour()

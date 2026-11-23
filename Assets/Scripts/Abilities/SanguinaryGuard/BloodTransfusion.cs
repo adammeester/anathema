@@ -9,6 +9,9 @@ namespace Anathema.Abilities.SanguinaryGuard
     // blood, so lead moving allies and throw past the melee, not through it.
     // What he pays stays healable, so the Exsanguinating Arc's lifesteal can win it back, and it fills Vitae
     // (SanguinaryKit.Pay). He can't cast it if paying would leave him below SanguinaryKit.SacrificeFloor of max health.
+    // With the Encarmine Axe it becomes Sanguine Font: he pours the blood on the ground up to `FontRange` away, and allies
+    // standing in the pool heal over time (SanguineFont). With the Glaive Encarmine the bolt heals less but bounces on to
+    // the nearest other ally.
     public class BloodTransfusion : Ability
     {
         [SerializeField] float cost = 12f;
@@ -25,7 +28,9 @@ namespace Anathema.Abilities.SanguinaryGuard
         protected override float WindupDuration => 0.12f;
         protected override Color WindupColor => SanguinaryKit.Blood;
 
-        public override string DisplayName => "Blood Transfusion";
+        GuardWeapon Weapon => GuardUpgrade.WeaponOf(gameObject);
+
+        public override string DisplayName => Weapon == GuardWeapon.EncarmineAxe ? "Sanguine Font" : "Blood Transfusion";
         public override string KeyLabel => "RMB";
         public override bool Available => SanguinaryKit.CanPay(Health, cost);
 
@@ -39,9 +44,22 @@ namespace Anathema.Abilities.SanguinaryGuard
             return Input.GetMouseButtonDown(1) && SanguinaryKit.CanPay(Health, cost);
         }
 
+        protected override void Update()
+        {
+            // The Font is a bigger heal, so it comes round slower (only changed while ready, for the HUD's sweep).
+            if (CooldownRemaining <= 0f && cooldown > 0f)
+                CooldownScale = Weapon == GuardWeapon.EncarmineAxe ? GuardUpgrade.FontCooldown / cooldown : 1f;
+            base.Update();
+        }
+
         protected override void Activate()
         {
             Vector3 aim = IsReplica && Health.Net != null ? Health.Net.ReplicaAimPoint : Aim.AimPoint;
+            if (Weapon == GuardWeapon.EncarmineAxe)
+            {
+                PourFont(aim);
+                return;
+            }
             Vector3 origin = transform.position + Vector3.up * muzzleHeight;
             Vector3 dir = SanguinaryKit.Flat(aim - transform.position);
             dir = dir.sqrMagnitude > 0.25f ? dir.normalized : transform.forward;
@@ -89,13 +107,46 @@ namespace Anathema.Abilities.SanguinaryGuard
               .WithAllyHit(OnAllyHit);
         }
 
-        // Every machine's bolt stops on the teammate; only the owner's heals.
+        // Every machine's bolt stops on the teammate; only the owner's heals. With the Glaive the blood leaps on to the
+        // nearest other teammate (never him) within BounceRange.
         void OnAllyHit(Health ally)
         {
             if (ally == null || ally.IsDead) return;
             Hospitaller.HospitallerFx.Burst(ally.transform.position, 1f, SanguinaryKit.Blood, 0.4f, 1.1f);
+            bool glaive = Weapon == GuardWeapon.GlaiveEncarmine;
+            Health next = glaive ? NextAlly(ally) : null;
+            if (next != null) SanguinaryKit.BloodStream(ally.transform.position, next.transform);
             if (IsReplica) return;
-            SanguinaryKit.Heal(gameObject, ally, heal);
+            SanguinaryKit.Heal(gameObject, ally, glaive ? GuardUpgrade.GlaiveBoltHeal : heal);
+            if (next != null)
+                SanguinaryKit.Heal(gameObject, next, GuardUpgrade.Has(gameObject, GuardUpgrade.BloodRicochet) ? GuardUpgrade.GlaiveBoltHeal : GuardUpgrade.BounceHeal);
+        }
+
+        Health NextAlly(Health from)
+        {
+            Health best = null;
+            float bestSq = float.PositiveInfinity;
+            foreach (Health h in SanguinaryKit.AlliesNear(Health, from.transform.position, GuardUpgrade.BounceRange, includeSelf: false).ToArray())
+            {
+                if (h == from) continue;
+                float sq = SanguinaryKit.Flat(h.transform.position - from.transform.position).sqrMagnitude;
+                if (sq < bestSq) { bestSq = sq; best = h; }
+            }
+            return best;
+        }
+
+        // Sanguine Font (Encarmine Axe): the blood poured on the ground where he aims (up to FontRange away).
+        void PourFont(Vector3 aim)
+        {
+            Vector3 to = SanguinaryKit.Flat(aim - transform.position);
+            if (to.magnitude > GuardUpgrade.FontRange) to = to.normalized * GuardUpgrade.FontRange;
+            Vector3 at = transform.position + to;
+            SanguinaryKit.Mist(transform.position, 0.8f, 0.35f);
+            Sfx.Play(Sfx.MagicAttack1, 0.3f, 0.7f, 0.8f, 0.6f);
+            if (!IsReplica) SanguinaryKit.Pay(Health, GuardUpgrade.FontCost);
+            bool well = GuardUpgrade.Has(gameObject, GuardUpgrade.Wellspring);
+            SanguineFont.Pour(at, Health, !IsReplica, well ? GuardUpgrade.WellspringSeconds : GuardUpgrade.FontSeconds,
+                well ? GuardUpgrade.WellspringLinger : 0f);
         }
 
         void OnDestroy()

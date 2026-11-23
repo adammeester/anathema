@@ -73,6 +73,10 @@ namespace Anathema.Upgrades
                 gameObject.AddComponent<Anathema.Abilities.Hospitaller.HospitallerUpgradeEffects>();
             if (character == "Bullgryn" && GetComponent<Anathema.Abilities.Bullgryn.BullgrynWeaponVisual>() == null)
                 gameObject.AddComponent<Anathema.Abilities.Bullgryn.BullgrynWeaponVisual>();
+            if (character == "SanguinaryGuard" && GetComponent<Anathema.Abilities.SanguinaryGuard.GuardUpgradeEffects>() == null)
+                gameObject.AddComponent<Anathema.Abilities.SanguinaryGuard.GuardUpgradeEffects>();
+            if (character == "SanguinaryGuard" && GetComponent<Anathema.Abilities.SanguinaryGuard.GuardWeaponVisual>() == null)
+                gameObject.AddComponent<Anathema.Abilities.SanguinaryGuard.GuardWeaponVisual>();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (!NetGame.Online && GetComponent<UpgradeTestPanel>() == null) gameObject.AddComponent<UpgradeTestPanel>();
 #endif

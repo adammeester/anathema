@@ -91,8 +91,12 @@ namespace Anathema.Abilities.SanguinaryGuard
         // above this share of his max health.
         public const float SacrificeFloor = 0.15f;
 
+        // Deep Veins lowers the floor.
+        public static float FloorOf(Health guard) =>
+            guard != null && GuardUpgrade.Has(guard.gameObject, GuardUpgrade.DeepVeins) ? GuardUpgrade.DeepVeinsFloor : SacrificeFloor;
+
         public static bool CanPay(Health guard, float cost) =>
-            guard != null && !guard.IsDead && guard.Current - cost >= guard.Max * SacrificeFloor;
+            guard != null && !guard.IsDead && guard.Current - cost >= guard.Max * FloorOf(guard);
 
         // Owner: spend `cost` of his own health (Health.Sacrifice; the server's copy applies it online). What he pays
         // fills Vitae.
@@ -102,6 +106,12 @@ namespace Anathema.Abilities.SanguinaryGuard
             float paid = Mathf.Min(cost, guard.Current - 1f);
             guard.Sacrifice(cost);
             if (paid > 0f && guard.TryGetComponent(out Vitae vitae)) vitae.OnSacrifice(paid);
+            // Blood Ward: what he bleeds hardens into a short shield (handed to the server online).
+            if (paid > 0f && GuardUpgrade.Has(guard.gameObject, GuardUpgrade.BloodWard))
+            {
+                float ward = paid * GuardUpgrade.BloodWardShare;
+                Barrier.Grant(guard.gameObject, ward, GuardUpgrade.BloodWardSeconds, ward, guard.gameObject);
+            }
             Mist(guard.transform.position, 0.6f, 0.35f);
         }
 

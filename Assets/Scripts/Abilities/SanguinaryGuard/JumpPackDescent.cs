@@ -166,6 +166,7 @@ namespace Anathema.Abilities.SanguinaryGuard
             {
                 float dealt = damage * (thirst != null ? thirst.SlamDamageMultiplier : 1f);
                 Hit hit = Hit.Direct(dealt).AsAoe().WithSlow(slowDuration, slow);
+                if (GuardUpgrade.Has(gameObject, GuardUpgrade.DeathFromAbove)) hit = hit.WithStun(GuardUpgrade.DeathFromAboveStun);
                 enemy.Strike(hit, gameObject, landed =>
                 {
                     if (!landed) return;

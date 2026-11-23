@@ -8,30 +8,36 @@ namespace Anathema.Abilities.SanguinaryGuard
     // A weak button from the back line, a strong one in the middle of the fight.
     // Like Blood Transfusion it can't be cast if paying would leave him below SanguinaryKit.SacrificeFloor of his max
     // health, or with no teammate to heal; he only pays if someone is still there to heal when it lands.
-    // EX Chalice of Wrath: he drinks instead of pouring. No health cost: every enemy within `exRadius` takes `exDamage`
-    // and each hit that lands heals him for `exLifesteal` of it (like the Arc, this never fills Vitae). It needs an enemy
-    // in reach to cast; if none is left when it lands, the charge and energy are given back.
+    // EX Chalice of Wrath: he drinks instead of pouring. No health cost: every enemy within `exRadius` takes from
+    // `exMinDamage` (empty chalice) up to `exDamage` (full), scaling with Vitae, which it does not spend. Each hit that
+    // lands heals him for `exLifesteal` of it (like the Arc, this never fills Vitae). It casts with
+    // nobody in reach: a whiff still spends the charge and energy. A dark ring marks its reach during the wind-up, and a
+    // splash of blood bursts across the ground when it lands (BloodSplatter), so everyone can see it was used.
     public class ChaliceOffering : Ability
     {
         [SerializeField] float radius = 4f;
         [SerializeField] float cost = 15f;
-        [SerializeField] float heal = 20f;
+        [SerializeField] float heal = 25f;
         [SerializeField] float bonusPerEnemy = 0.5f;
         [SerializeField] int maxBonusEnemies = 2;
 
         [Header("EX Chalice of Wrath")]
         [SerializeField] float exEnergyCost = 35f;
         [SerializeField] float exRadius = 4f;
-        [SerializeField] float exDamage = 18f;
+        [SerializeField] float exDamage = 18f;       // with a full chalice
+        [SerializeField] float exMinDamage = 6f;     // with an empty one; scales linearly with Vitae in between
         [SerializeField] float exLifesteal = 0.8f;   // share of each landed hit that heals him
 
         [Header("Charges")]
         [SerializeField] float rechargeTime = 12f;   // each spent charge comes back on its own after this long
 
-        const int MaxCharges = 2;
-        readonly float[] chargeReady = new float[MaxCharges];
+        // Sanguinary Rite adds a third charge (the array always has room for it).
+        int MaxCharges => GuardUpgrade.Has(gameObject, GuardUpgrade.SanguinaryRite) ? GuardUpgrade.RiteCharges : 2;
+        readonly float[] chargeReady = new float[GuardUpgrade.RiteCharges];
 
         Energy energy;
+        Vitae vitae;
+        GameObject template;   // Chalice of Wrath's ground ring during the wind-up
 
         protected override float WindupDuration => 0.3f;
         protected override Color WindupColor => SanguinaryKit.Gold;
@@ -55,7 +61,7 @@ namespace Anathema.Abilities.SanguinaryGuard
             get
             {
                 int n = 0;
-                foreach (float t in chargeReady) if (Time.time >= t) n++;
+                for (int i = 0; i < MaxCharges; i++) if (Time.time >= chargeReady[i]) n++;
                 return n;
             }
         }
@@ -65,7 +71,7 @@ namespace Anathema.Abilities.SanguinaryGuard
             get
             {
                 float next = float.PositiveInfinity;
-                foreach (float t in chargeReady) if (t > Time.time && t < next) next = t;
+                for (int i = 0; i < MaxCharges; i++) if (chargeReady[i] > Time.time && chargeReady[i] < next) next = chargeReady[i];
                 return next;
             }
         }
@@ -116,23 +122,32 @@ namespace Anathema.Abilities.SanguinaryGuard
         {
             base.Awake();
             energy = GetComponent<Energy>();
+            vitae = GetComponent<Vitae>();
         }
 
         protected override bool IsTriggered()
         {
             if (!Input.GetKeyDown(KeyCode.E) || ReadyCharges == 0) return false;
-            if (ExHeld) return SanguinaryKit.EnemiesNear(Health, transform.position, exRadius) > 0;
+            // Chalice of Wrath needs only the energy and a charge: cast at nobody, it is simply wasted.
+            if (ExHeld && energy != null && energy.Current >= exEnergyCost) return true;
             return SanguinaryKit.CanPay(Health, cost) && SanguinaryKit.AlliesNear(Health, transform.position, radius, includeSelf: false).Count > 0;
         }
 
         protected override void OnWindupStart()
         {
             if (!IsReplica) ExActivation = TrySpendEx(energy, exEnergyCost);
+            // Chalice of Wrath marks its reach on the ground while he raises the cup, so everyone sees it coming.
+            if (ExActivation)
+            {
+                template = Bullgryn.BullgrynKit.GroundCircle(transform.position, exRadius, WindupDuration, SanguinaryKit.DarkBlood);
+                template.transform.SetParent(transform, true);
+            }
         }
 
         protected override void OnWindupCancel()
         {
             if (!IsReplica && ExActivation && energy != null) energy.Gain(exEnergyCost);
+            if (template != null) Destroy(template);
         }
 
         protected override void Activate()
@@ -146,23 +161,23 @@ namespace Anathema.Abilities.SanguinaryGuard
                 Hospitaller.HospitallerFx.Burst(here, exRadius, SanguinaryKit.Blood, 0.5f, 0.9f);
                 Psyker.PsykerFx.Ring(here + Vector3.up * 0.1f, 0.3f, exRadius, 0.3f, SanguinaryKit.DarkBlood, 0.22f);
                 SanguinaryKit.Mist(here, exRadius * 0.7f, 0.5f);
+                if (template != null) Destroy(template);
+                BloodSplatter.Spawn(here, exRadius);
                 Sfx.Play(Sfx.HammerSmash, 0.3f, 0.6f, 0.7f, 0.5f);
                 foreach (Health victim in victims) SanguinaryKit.BloodStream(victim.transform.position, transform);
                 if (IsReplica) return;
-                if (victims.Length == 0)
-                {
-                    if (energy != null) energy.Gain(exEnergyCost);
-                    return;
-                }
-
                 SpendCharge();
+                // The fuller the chalice, the deeper the draught (read now; drinking spends no Vitae).
+                float dealt = Mathf.Lerp(exMinDamage, exDamage, vitae != null ? vitae.Normalized : 1f);
                 bool marked = false;
                 foreach (Health victim in victims)
                 {
-                    victim.Strike(Hit.Direct(exDamage).AsAoe(), gameObject, landed =>
+                    Hit drain = Hit.Direct(dealt).AsAoe();
+                    if (GuardUpgrade.Has(gameObject, GuardUpgrade.DeathMask)) drain = drain.WithPanic(GuardUpgrade.DeathMaskPanic);
+                    victim.Strike(drain, gameObject, landed =>
                     {
                         if (!landed) return;
-                        SanguinaryKit.Heal(gameObject, Health, exDamage * exLifesteal, feedsVitae: false);
+                        SanguinaryKit.Heal(gameObject, Health, dealt * exLifesteal, feedsVitae: false);
                         if (marked) return;
                         marked = true;
                         HitMarkerSound.Play();

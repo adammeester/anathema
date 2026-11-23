@@ -34,7 +34,7 @@ namespace Anathema.Abilities.KhorneBerserker
         public const int RendingGouges = 19;       // Heavy Chainaxe
         public const int Earthshaker = 20;         // Heavy Chainaxe
         public const int ChainFrenzy = 21;         // dual chainaxes
-        public const int RevertToDual = 22;        // final-pick card: give the weapon back and return to the dual chainaxes
+        public const int RevertToDual = 22;        // retired: weapons are now for good (kept so the bit is never reused)
 
         public const int FeelNoPain = 12;
         public const int Unstoppable = 13;
@@ -83,6 +83,11 @@ namespace Anathema.Abilities.KhorneBerserker
         static bool Wields(int mask, int weapon) => (mask & (1 << weapon)) != 0;
         static bool NoWeapon(int mask) => (mask & ((1 << HeavyChainaxe) | (1 << Eviscerator))) == 0;
 
+        // Upgrades that only work with the dual chainaxes. Owning any of them commits the Berserker to the chainaxes: no
+        // transformed weapon is offered afterwards, so nothing he has spent a pick on is ever thrown away.
+        static bool CommittedToDual(int mask) =>
+            (mask & ((1 << TwinAxes) | (1 << ChainFrenzy) | (1 << CrimsonMomentum) | (1 << RelentlessPursuit))) != 0;
+
         // The fixed offers: Sets[pick][slot] is a list of alternatives for one card; the first one that is still available is
         // shown. Pick 0 is offered after round 1, pick 1 after round 2, and so on. Everyone sees the same sets, so the pick
         // has no luck in it. Every set is Armament / Endurance / Ferocity.
@@ -92,21 +97,23 @@ namespace Anathema.Abilities.KhorneBerserker
         //     (after round 1 the Eviscerator, after round 2 the Heavy Chainaxe);
         //   - once you hold one, it offers upgrades unique to that weapon instead (they only exist for that weapon);
         //   - a Berserker who never takes a weapon is offered the dual chainaxes' own upgrades later on.
+        //   - a weapon is for good: there is no swapping to another weapon or back to the chainaxes, and once he owns a
+        //     chainaxes-only upgrade no weapon is offered at all (a pick spent on one weapon is never wasted).
         // The other two cards are never weapons, so a Berserker can also skip every weapon and build from them.
         //
         //   after round 1   Armament: Eviscerator or Keep the Dual Chainaxes (two cards)   Endurance: Feel No Pain   Ferocity: Berserker's Fury
         //   after round 2   Armament: Heavy Chainaxe, or Headsman's Mark (Evisc.)   Endurance: Blood-Fuelled Regen  Ferocity: Relentless Pursuit
         //   after round 3   Armament: Whetted Edge / Rending Gouges / Chain Frenzy  Endurance: Unstoppable          Ferocity: Skulltaker
-        //   after round 4   Armament (two cards): swap weapon - the two weapons you do not hold, the dual chainaxes counting as one   Endurance: Defiant Roar   Ferocity: Crimson Momentum
+        //   after round 4   Armament: a weapon upgrade not yet taken (Earthshaker for the Heavy Chainaxe), Chain Frenzy, or Hamstring   Endurance: Defiant Roar   Ferocity: Crimson Momentum
         //
         // Upgrades in no set (Hamstring, Skullthrone's Favour, Vengeful Blood, Gorehound's Vigour) stay in the catalog for the
         // F1 test panel and for future sets.
         public static readonly int[][][] Sets =
         {
             new[] { new[] { Eviscerator }, new[] { TwinAxes }, new[] { FeelNoPain }, new[] { BerserkersFury } },
-            new[] { new[] { HeadsmansMark, HeavyChainaxe, RendingGouges },   new[] { CrimsonCommunion }, new[] { RelentlessPursuit, Hamstring } },
+            new[] { new[] { HeadsmansMark, HeavyChainaxe, RendingGouges, ChainFrenzy },  new[] { CrimsonCommunion }, new[] { RelentlessPursuit, Hamstring } },
             new[] { new[] { WhettedEdge, RendingGouges, ChainFrenzy },       new[] { Unstoppable },      new[] { Skulltaker } },
-            new[] { new[] { Eviscerator, HeavyChainaxe }, new[] { HeavyChainaxe, RevertToDual }, new[] { DefiantRoar }, new[] { CrimsonMomentum, VengefulBlood } },
+            new[] { new[] { Earthshaker, WhettedEdge, HeadsmansMark, RendingGouges, ChainFrenzy, Hamstring }, new[] { DefiantRoar }, new[] { CrimsonMomentum, VengefulBlood } },
         };
 
         public static readonly UpgradeDef[] All =
@@ -133,10 +140,10 @@ namespace Anathema.Abilities.KhorneBerserker
 
             new UpgradeDef(HeavyChainaxe, UpgradeCategory.Armament, "Heavy Chainaxe - The Reaver",
                 "Slow, brutal area damage. Chop becomes a wide heavy sweep with greater reach; Axe Toss becomes Gorecleave, a frontal sweep that knocks back and bleeds. Heavy hits inflict Bleed.")
-                .InGroup(WeaponGroup),
+                .InGroup(WeaponGroup).Requires(m => !CommittedToDual(m)),
             new UpgradeDef(Eviscerator, UpgradeCategory.Armament, "Eviscerator - The Executioner",
                 "High-risk burst. Chop becomes a slow strike with a pronounced wind-up; Axe Toss becomes Executioner's Descent, an overhead blow that deals bonus damage to the wounded. Attacks partly ignore armour and deal 1.5x damage to shields.")
-                .InGroup(WeaponGroup),
+                .InGroup(WeaponGroup).Requires(m => !CommittedToDual(m)),
 
             new UpgradeDef(AblativePlating, UpgradeCategory.Endurance, "Ablative Plating",
                 "Take 15% less damage from every source.").Armour(AblativeArmour),

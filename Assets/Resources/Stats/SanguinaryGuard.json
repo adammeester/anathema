@@ -21,7 +21,6 @@
       "arcHealRadius": 6,
       "arcEnergyPerHit": 10,
       "ascendedCooldown": 0.9,
-      "arcChaliceRefund": 0.5,
       "ascendedChaliceRefund": 0.25
     },
     "BloodTransfusion": {
@@ -50,12 +49,13 @@
       "rechargeTime": 12,
       "radius": 4,
       "cost": 15,
-      "heal": 20,
+      "heal": 25,
       "bonusPerEnemy": 0.5,
       "maxBonusEnemies": 2,
       "exEnergyCost": 35,
       "exRadius": 4,
       "exDamage": 18,
+      "exMinDamage": 6,
       "exLifesteal": 0.8
     },
     "SanguineParry": {
@@ -63,7 +63,8 @@
       "riposteDamage": 8,
       "heal": 15,
       "healRange": 8,
-      "energyGain": 10
+      "energyGain": 10,
+      "chaliceRefund": 0.5
     },
     "CrimsonRush": {
       "cooldown": 13,
@@ -72,7 +73,15 @@
       "duration": 0.22,
       "damage": 14,
       "stun": 1.2,
-      "energyPerHit": 10
+      "energyPerHit": 10,
+      "exEnergyCost": 50,
+      "exWindup": 0.25,
+      "exRange": 10,
+      "exSpeed": 24,
+      "exRadius": 0.5,
+      "exDamage": 10,
+      "exStun": 1.5,
+      "exReturnTime": 0.6
     },
     "WingsOfTheAngel": {
       "energyCost": 100,

@@ -165,8 +165,8 @@ ${powerSword("translate(-24 26) rotate(-42) scale(1.1)")}
 <path d="M10,-10 Q30,-4 30,20 Q28,34 14,38" fill="none" stroke="#a81010" stroke-width="2.5" stroke-dasharray="1 4" stroke-linecap="round"/>
 ${drops([[14, 40, 1.2], [30, 8, 0.8]], "#c4161c")}`,
 
-  // Sanguine Lunge: dash forward and run them through.
-  SanguineLunge: `${glow(10, 0, 44)}
+  // Crimson Rush: dash forward and run them through.
+  CrimsonRush: `${glow(10, 0, 44)}
 <g stroke="#d8c0b0" stroke-width="2.4" stroke-linecap="round" opacity="0.45"><line x1="-50" y1="-10" x2="-26" y2="-10"/><line x1="-54" y1="4" x2="-24" y2="4"/><line x1="-50" y1="18" x2="-28" y2="18"/></g>
 ${powerSword("translate(-18 4) rotate(-8) scale(1.15)")}
 ${star(38, -2, 12, 4, 8, R, 'opacity="0.85"')}${star(38, -2, 6, 2, 8, "#ffd0c8")}
@@ -189,13 +189,24 @@ ${chalice(0, 0, 1)}
 <path d="M-23,-15 Q-25,-4 -21,2 Q-17,-4 -19,-15 Z" fill="#8a0c0c"/>
 <path d="M0,-44 Q8,-32 0,-27 Q-8,-32 0,-44 Z" fill="#b01212"/>`,
 
-  // Red Thirst: the chalice poured out for one.
-  ChaliceOffering_EX: `${glow(10, 10, 44)}
-${chalice(-14, -6, 0.85, -60)}
-<path d="M-4,-20 Q14,-14 16,6 Q18,20 14,30" fill="none" stroke="#a81010" stroke-width="5" stroke-linecap="round"/>
-<path d="M-4,-20 Q14,-14 16,6" fill="none" stroke="#ff6a5a" stroke-width="1.2" opacity="0.7"/>
-${drops([[14, 38, 2.2]], "#c4161c")}
-<circle cx="12" cy="34" r="2" fill="#ffb0a8"/>`,
+  // Chalice of Wrath: he drinks, and the blood bursts out across the ground around him.
+  ChaliceOffering_EX: `${glow(0, 6, 46)}
+<ellipse cx="0" cy="30" rx="42" ry="11" fill="#5a0606" opacity="0.75"/>
+<ellipse cx="0" cy="30" rx="42" ry="11" fill="none" stroke="${R}" stroke-width="2.5"/>
+<g fill="#a81010"><ellipse cx="-34" cy="24" rx="6" ry="2.4"/><ellipse cx="36" cy="34" rx="7" ry="2.6"/><ellipse cx="22" cy="22" rx="4" ry="1.8"/><ellipse cx="-20" cy="38" rx="5" ry="2"/></g>
+${rays(0, -2, 30, 46, 10, "#c4161c", 2.6, 0.7, 0.3)}
+${chalice(0, -8, 0.8)}
+${drops([[-30, -12, 1.4], [32, -16, 1.2], [-20, -36, 1], [24, -38, 0.9]], "#c4161c")}
+<path d="M0,-46 Q8,-34 0,-29 Q-8,-34 0,-46 Z" fill="#b01212"/>`,
+
+  // Blade Hurl: the sword flung spinning end over end; whoever it strikes is stunned.
+  CrimsonRush_EX: `${glow(8, 0, 44)}
+<g fill="none" stroke="${R}" stroke-linecap="round"><path d="M-30,30 A30,30 0 0 1 -34,-16" stroke-width="2.6" opacity="0.6"/><path d="M-18,38 A40,40 0 0 1 -44,4" stroke-width="2" opacity="0.35"/></g>
+${powerSword("translate(-22 14) rotate(-24) scale(0.95)")}
+<g stroke="#ffb0a0" stroke-width="1.6" stroke-linecap="round" opacity="0.6"><line x1="-50" y1="-2" x2="-32" y2="-2"/><line x1="-48" y1="10" x2="-34" y2="10"/></g>
+${star(36, -2, 12, 4, 8, R, 'opacity="0.85"')}${star(36, -2, 6, 2, 8, "#ffd0c8")}
+${stunStars(30, -28, 10)}
+${drops([[28, 22, 1.1], [42, 18, 0.8]], "#c4161c")}`,
 
   // Sanguine Parry: the blow turned aside, the wounded mended.
   SanguineParry: `${glow(0, 0, 46)}

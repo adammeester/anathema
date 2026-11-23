@@ -24,7 +24,7 @@ its base. The Blood Chalice hangs at his hip and a narthecium sits on his left f
   - A **360 degree** spin slash, 3.3 m radius, 28 damage, 30% slow for 1s.
   - Lifesteal: each landed hit heals him for 80% of its damage (22 per enemy). This is his only self-heal.
   - Every other ally within 6 m heals for 40% of each hit.
-  - A landed Arc brings his next Chalice charge forward by 50% of its recharge (25% per Arc during Wings of the Angel).
+  - Only during Wings of the Angel: each landed Arc brings his next Chalice charge forward by 25% of its recharge.
   - Nothing from the Arc refills Vitae.
 - **Risk:** while the chalice is full his blade glows for enemies and he takes 10% more damage.
 - Pips above the action bar via `IPassiveStacks` (like Faith and Grit).
@@ -38,7 +38,7 @@ its base. The Blood Chalice hangs at his hip and a narthecium sits on his left f
   - Lifesteal is unchanged.
   - Damage from Power Sword cuts and Crimson Rush fills Vitae, 1 per point (not the Arc, the slam, the riposte or Chalice of Wrath). The one exception to "never damage", so a guard bled dry can fight his way back to an Arc.
 - It lifts as soon as he is back above 20%. His health costs can push him into it (never below the 15% floor).
-- Look: eye lenses flare blood red and streak as he moves, a red heartbeat light on his chest, dark red vapour rising.
+- Look: eye lenses, the blade (middle and point, whatever weapon) and both wing tips flare blood red and streak as he moves, a red heartbeat light on his chest, dark red vapour rising.
 - Derived from replicated health, so every machine agrees with no extra network traffic.
 
 ## Kit
@@ -48,9 +48,9 @@ its base. The Blood Chalice hangs at his hip and a narthecium sits on his left f
 | LMB | Power Sword | 2-hit chain, 100 degrees, 2.6 m, 9 damage, 0.7s cadence. No lifesteal: his blood comes back on the Arc. |
 | RMB | Blood Transfusion | Skillshot: a blood bolt along his aim (12 m, 20 m/s). He pays 12 health as he throws it; the first teammate it touches (never himself) heals 22. Enemies in the way soak it up for no damage; a miss is wasted blood. What he pays fills Vitae and stays healable, so the Arc's lifesteal wins it back. Not castable below 15% health. 4s cooldown. |
 | Q | Jump Pack Descent | Rooted 0.55s spool-up (twin engines light with blue flame and smoke; cancellable), then launch high toward the cursor (up to 12 m, over walls), then slam down: 12 damage and a 40% slow for 1.5s in 2.8 m, with ground cracks that fade over 3s. Pure offence: nothing for allies. 10s cooldown, his only mobility. |
-| E | Chalice Offering | He pays 15 health; teammates within 4 m (not himself) heal 20, +50% per enemy within 4 m of him (max +100%). 2 charges, each recharging over 12s. **EX Chalice of Wrath** (35 energy, uses a charge, no health): every enemy within 4 m takes 18 and each landed hit heals him 80% of it (no Vitae). Needs an enemy in reach. |
-| Space | Sanguine Parry | Counter (1.2s guard): the hit is negated, +10 energy, an attacker within 3.5 m takes 8, and the most injured teammate within 8 m (himself included) heals 15. 4s cooldown. |
-| R | Crimson Rush | 0.2s wind-up with a lane telegraph, then a 6 m jump-pack dash; the first enemy reached stops it and takes 14 and a 1.2s stun. Only that enemy is hit. 13s cooldown. Set-up for the Arc: the stun outlasts its wind-up. |
+| E | Chalice Offering | He pays 15 health; teammates within 4 m (not himself) heal 25, +50% per enemy within 4 m of him (max +100%). 2 charges, each recharging over 12s. **EX Chalice of Wrath** (35 energy, uses a charge, no health): every enemy within 4 m takes 6 (empty chalice) to 18 (full), scaling with Vitae without spending it; each landed hit heals him 80% of it (no Vitae). Castable with nobody in reach; a whiff still spends the charge and energy. A ground ring marks its reach during the wind-up and a blood splash bursts across the ground on landing. |
+| Space | Sanguine Parry | Counter (1.2s guard): the hit is negated, +10 energy, an attacker within 3.5 m takes 8, and the most injured teammate within 8 m (himself included) heals 15. His next Chalice charge comes 50% of its recharge sooner. 4s cooldown. |
+| R | Crimson Rush | 0.2s wind-up with a lane telegraph, then a 6 m jump-pack dash; the first enemy reached stops it and takes 14 and a 1.2s stun. Only that enemy is hit. 13s cooldown. Set-up for the Arc: the stun outlasts its wind-up. **EX Blade Hurl** (50 energy, shares the cooldown): 0.25s wind-up, then he hurls his sword (skillshot, 10 m at 24 m/s): the first enemy hit takes 10 and a 1.5s stun. It flies back to his hand over 0.6s; until then he is disarmed (no Power Sword, Arc or riposte; heals, Jump Pack, Chalice and the counter still work). A ranged peel and a set-up for Jump Pack (spool-up plus flight is 1.25s). |
 | F | Wings of the Angel | Full energy bar: 0.6s gather while his own wings spread and blaze gold (they stay lit, beating slowly, while he is ascended), leap-slam at the cursor; 6 m ring heals allies 30 and deals 20 to enemies. For 5s every LMB is an Exsanguinating Arc, on a 0.9s cadence. |
 
 ## Visuals
@@ -68,11 +68,37 @@ with the blade at arm's length. Thick red crescent trail (`SlashEffect`, blood p
 ring flashes outward, a blood-mist burst, red streams snaking to each healed ally, a short camera shake for his own player,
 and a power-field crackle and blade cut plus a choir sting. The glow fades over 0.5s afterwards.
 
-## Upgrade sketch (Armament / Endurance / Ferocity)
+## Upgrades (`GuardUpgrade`, built)
 
-- **Armament:** Power Axe (the Arc becomes a 4.5 m overhead line instead of a spin), then an Encarmine Sword (Arc radius 3.8 m).
-- **Endurance:** Sanctified Blood (Vitae no longer drains).
-- **Ferocity:** Brimming (cap 130, Arc damage up); Overflowing Chalice (overheal counts at half).
+Weapons keep Vitae and Red Thirst; they replace the cuts, the Arc and Blood Transfusion. A weapon is for good: no swapping back.
+
+**Armament**
+- **Encarmine Axe (the Butcher):** chops 15 damage, every 1.0s, 2.8 m, 110 degrees. Arc → **Executioner's Cleave**: 4.5 m x 1.6 m line in front, 40 damage (×1.2 with Brimming), same lifesteal and ally share, overhead pose, lane telegraph. RMB → **Sanguine Font**: pay 12 health, a 2.5 m blood pool up to 8 m away heals allies in it (not him) 7/s for 3s; 7s cooldown.
+  - Headsman's Due: Cleave slows 50% instead of 30%.
+  - Wellspring: Font lasts 5s and allies who leave keep healing 2s.
+- **Glaive Encarmine (the Duellist):** thrusts 10 damage, 3.4 m, 70 degrees. Arc → **Twin Crescent**: two spins 0.2s apart at 70% each (lifesteal and slow twice; the Wings refund counts once). Transfusion heals 18, then bounces to the nearest other ally within 6 m for 10.
+  - Dancing Blade: hitting the same enemy with both spins gives 20 energy.
+  - Blood Ricochet: the bounce heals the full 18.
+
+**Endurance**
+- Sanctified Blood: Vitae never drains.
+- Deep Veins: +25 max health; the health-cost floor is 10% instead of 15%.
+- Iron Halo: once per round, at 20% health or less, a 40 shield for 3s.
+- Blood Ward: paying health gives a shield of half the amount for 2s.
+
+**Ferocity**
+- Brimming Chalice: Vitae cap 130; Arc damage +20%.
+- Overflowing Chalice: overhealing fills Vitae at half rate.
+- Unquenched: Red Thirst from 30% health.
+- Wrath of Baal: Blade Hurl's weapon returns in 0.3s.
+- Death from Above: the Jump Pack slam stuns 0.5s.
+- Crimson Momentum: Crimson Rush / Blade Hurl cooldown ×0.7 (9s).
+- Sanguinary Rite: Chalice Offering has 3 charges.
+- Death Mask: Chalice of Wrath panics for 0.8s.
+- Seraphic Ascension: Wings of the Angel ascension 7s.
+- Blade of Sanguinius: Blade Hurl ricochets to the nearest other enemy within 6 m, up to 2 bounces, half damage and half stun each; it flies home from its last hit. Every machine works the bounces out from where the blade stopped.
+
+Offers (`GuardUpgrade.Sets`, each slot shows a random still-available alternative): pick 1 offers both weapons plus Blood Ward / Deep Veins and Crimson Momentum / Unquenched / Overflowing Chalice; later picks offer the held weapon's upgrades (or Death from Above / Seraphic Ascension to a sword guard), the rest of Endurance, and Wrath of Baal / Blade of Sanguinius on one card.
 
 ## Built in pass 1 (differences from the draft above)
 
@@ -85,7 +111,6 @@ and a power-field crackle and blade cut plus a choir sting. The glow fades over 
 - **Jump Pack** is pure offence: the ally heal and protection were removed.
 - The +10% damage taken while full also applies during Wings of the Angel's 5s (both publish the same "empowered" flag).
 - Other players see only the full-chalice glow stage; the 33% and 66% stages show on his own screen.
-- No upgrade tree yet.
 
 ## Open questions
 

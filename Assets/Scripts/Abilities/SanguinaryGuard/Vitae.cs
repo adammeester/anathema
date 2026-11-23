@@ -35,9 +35,10 @@ namespace Anathema.Abilities.SanguinaryGuard
         public int Suppressed { get; set; }
 
         public float Current { get; private set; }
-        public float Max => maxVitae;
-        public float Normalized => maxVitae > 0f ? Current / maxVitae : 0f;
-        public bool Full => health != null && health.IsReplica ? replicaFull : Current >= maxVitae - 0.01f;
+        // Brimming Chalice raises the cap.
+        public float Max => GuardUpgrade.Has(gameObject, GuardUpgrade.BrimmingChalice) ? GuardUpgrade.BrimmingCap : maxVitae;
+        public float Normalized => Max > 0f ? Current / Max : 0f;
+        public bool Full => health != null && health.IsReplica ? replicaFull : Current >= Max - 0.01f;
 
         // 0..3 for the blade glow: faint at a third, glowing at two thirds, blazing when full (or while Wings of the
         // Angel turns every swing into an Arc).
@@ -73,6 +74,9 @@ namespace Anathema.Abilities.SanguinaryGuard
             if (healer != gameObject || health == null || health.IsReplica || health.IsDead || Suppressed > 0) return;
             if (target == null || target.IsDead || target.Team != health.Team) return;
             float landed = Mathf.Min(amount, target.Recoverable);
+            // Overflowing Chalice: overhealing counts too, at a reduced rate.
+            if (GuardUpgrade.Has(gameObject, GuardUpgrade.OverflowingChalice))
+                landed += Mathf.Max(0f, amount - landed) * GuardUpgrade.OverflowShare;
             if (landed <= 0f) return;
             bool frontline = SanguinaryKit.EnemiesNear(health, transform.position, frontlineRadius) > 0;
             Add(landed * (frontline ? frontlineBonus : 1f));
@@ -82,7 +86,7 @@ namespace Anathema.Abilities.SanguinaryGuard
         {
             if (amount <= 0f) return;
             lastGain = Time.time;
-            Current = Mathf.Min(maxVitae, Current + amount);
+            Current = Mathf.Min(Max, Current + amount);
         }
 
         // Owner: he paid `paid` of his own health for an ability (SanguinaryKit.Pay).
@@ -109,7 +113,9 @@ namespace Anathema.Abilities.SanguinaryGuard
                 return;
             }
 
-            if (!health.IsReplica && Current > 0f && Current < maxVitae - 0.01f && Time.time - lastGain >= drainDelay)
+            // Sanctified Blood: it never drains.
+            if (!health.IsReplica && Current > 0f && Current < Max - 0.01f && Time.time - lastGain >= drainDelay
+                && !GuardUpgrade.Has(gameObject, GuardUpgrade.SanctifiedBlood))
                 Current = Mathf.Max(0f, Current - drainPerSecond * Time.deltaTime);
 
             // A full chalice makes him a target: extra damage, resolved where damage is.

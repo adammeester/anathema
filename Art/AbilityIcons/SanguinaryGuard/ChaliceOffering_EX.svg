@@ -88,17 +88,19 @@
 <g clip-path="url(#disc)">
 <circle r="55" fill="url(#bg)"/>
 <g fill="#000" opacity="0.3"><circle cx="-30" cy="-34" r="9"/><circle cx="34" cy="30" r="12"/><circle cx="-36" cy="22" r="7"/></g>
-<circle cx="10" cy="10" r="44" fill="url(#glow)" opacity="1"/>
-<g transform="translate(-14 -6) rotate(-60) scale(0.85)">
+<circle cx="0" cy="6" r="46" fill="url(#glow)" opacity="1"/>
+<ellipse cx="0" cy="30" rx="42" ry="11" fill="#5a0606" opacity="0.75"/>
+<ellipse cx="0" cy="30" rx="42" ry="11" fill="none" stroke="#e61f1f" stroke-width="2.5"/>
+<g fill="#a81010"><ellipse cx="-34" cy="24" rx="6" ry="2.4"/><ellipse cx="36" cy="34" rx="7" ry="2.6"/><ellipse cx="22" cy="22" rx="4" ry="1.8"/><ellipse cx="-20" cy="38" rx="5" ry="2"/></g>
+<g stroke="#c4161c" stroke-width="2.6" stroke-linecap="round" opacity="0.7"><line x1="28.66" y1="6.87" x2="43.95" y2="11.59"/><line x1="17.98" y1="22.02" x2="27.56" y2="34.83"/><line x1="0.42" y1="28" x2="0.65" y2="44"/><line x1="-17.29" y1="22.52" x2="-26.51" y2="35.59"/><line x1="-28.4" y1="7.67" x2="-43.54" y2="12.83"/><line x1="-28.66" y1="-10.87" x2="-43.95" y2="-15.59"/><line x1="-17.98" y1="-26.02" x2="-27.56" y2="-38.83"/><line x1="-0.42" y1="-32" x2="-0.65" y2="-48"/><line x1="17.29" y1="-26.52" x2="26.51" y2="-39.59"/><line x1="28.4" y1="-11.67" x2="43.54" y2="-16.83"/></g>
+<g transform="translate(0 -8) rotate(0) scale(0.8)">
 <path d="M-26,-16 L26,-16 Q24,12 0,18 Q-24,12 -26,-16 Z" fill="url(#gold)" stroke="#2a1a08" stroke-width="2"/>
 <path d="M-20,-12 Q-18,6 -4,12" fill="none" stroke="#f2d48a" stroke-width="1.2" opacity="0.6"/>
 <ellipse cy="-16" rx="26" ry="5" fill="#5a0606" stroke="#2a1a08" stroke-width="1.5"/><ellipse cy="-16.5" rx="20" ry="3" fill="#a81010"/>
 <circle cy="2" r="4.5" fill="#6a0808" stroke="#e3b862" stroke-width="1.5"/>
 <rect x="-4" y="18" width="8" height="16" fill="url(#gold)" stroke="#2a1a08" stroke-width="1.5"/>
 <path d="M-18,44 L18,44 L11,34 L-11,34 Z" fill="url(#gold)" stroke="#2a1a08" stroke-width="1.5"/></g>
-<path d="M-4,-20 Q14,-14 16,6 Q18,20 14,30" fill="none" stroke="#a81010" stroke-width="5" stroke-linecap="round"/>
-<path d="M-4,-20 Q14,-14 16,6" fill="none" stroke="#ff6a5a" stroke-width="1.2" opacity="0.7"/>
-<g fill="#c4161c"><path d="M14,27 Q21.700000000000003,38 14,42.4 Q6.299999999999999,38 14,27 Z"/></g>
-<circle cx="12" cy="34" r="2" fill="#ffb0a8"/>
+<g fill="#c4161c"><path d="M-30,-19 Q-25.1,-12 -30,-9.2 Q-34.9,-12 -30,-19 Z"/><path d="M32,-22 Q36.2,-16 32,-13.6 Q27.8,-16 32,-22 Z"/><path d="M-20,-41 Q-16.5,-36 -20,-34 Q-23.5,-36 -20,-41 Z"/><path d="M24,-42.5 Q27.15,-38 24,-36.2 Q20.85,-38 24,-42.5 Z"/></g>
+<path d="M0,-46 Q8,-34 0,-29 Q-8,-34 0,-46 Z" fill="#b01212"/>
 </g>
 </svg>

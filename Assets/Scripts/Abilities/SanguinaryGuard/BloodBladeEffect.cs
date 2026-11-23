@@ -45,6 +45,18 @@ namespace Anathema.Abilities.SanguinaryGuard
         float nextMist;
         int level = -1;
 
+        // Set while the sword is out of his hand (Crimson Rush's EX Blade Hurl): no glow on a blade that isn't there.
+        public bool Sheathed { get; set; }
+
+        // Follow a different blade (the Sanguinary Guard's axe or glaive, GuardWeaponVisual): the glow runs from `from`
+        // towards `to` (the first TipStart of the way is left bare, as on the sword).
+        public void Retarget(Transform from, Transform to)
+        {
+            if (from == null) return;
+            weapon = from;
+            tip = to;
+        }
+
         public static BloodBladeEffect Create(Transform model, Vitae vitae)
         {
             if (model == null || vitae == null) return null;
@@ -167,7 +179,7 @@ namespace Anathema.Abilities.SanguinaryGuard
             }
 
             Health health = vitae.GetComponent<Health>();
-            Apply(health != null && health.IsDead ? 0 : vitae.GlowLevel);
+            Apply((health != null && health.IsDead) || Sheathed ? 0 : vitae.GlowLevel);
             if (level <= 0) return;
 
             float scale = Mathf.Max(0.01f, weapon.lossyScale.y);

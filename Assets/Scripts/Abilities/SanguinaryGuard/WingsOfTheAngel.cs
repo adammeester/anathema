@@ -422,7 +422,7 @@ namespace Anathema.Abilities.SanguinaryGuard
             if (telegraph != null) Destroy(telegraph);
             if (Health.IsDead) return;
 
-            ascendEnd = Time.time + ascendDuration;
+            ascendEnd = Time.time + (GuardUpgrade.Has(gameObject, GuardUpgrade.SeraphicAscension) ? GuardUpgrade.SeraphicSeconds : ascendDuration);
             flareAt = Time.time;
             Vector3 here = transform.position;
             Psyker.PsykerFx.Ring(here + Vector3.up * 0.1f, 0.5f, radius, 0.45f, SanguinaryKit.Gold, 0.3f);

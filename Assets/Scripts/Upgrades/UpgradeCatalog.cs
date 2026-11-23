@@ -30,13 +30,12 @@ namespace Anathema.Upgrades
             { "Hospitaller", HospitallerUpgrade.All },
             { "Bullgryn", BullgrynUpgrade.All },
             { "Sorcerer", SorcererUpgrade.All },
+            { "SanguinaryGuard", Anathema.Abilities.SanguinaryGuard.GuardUpgrade.All },
         };
 
         // The pick on which a character may trade its weapon for another (weapon-group exclusivity is lifted for that pick).
-        static readonly Dictionary<string, int> SwapRounds = new Dictionary<string, int>
-        {
-            { "KhorneBerserker", 4 },
-        };
+        // Empty: a weapon is for good, so upgrades already spent on it are never thrown away.
+        static readonly Dictionary<string, int> SwapRounds = new Dictionary<string, int>();
 
         // Predefined offers per character: Sets[pick][slot] lists alternative upgrade bits for one card (pick 0 = after round 1).
         static readonly Dictionary<string, int[][][]> SetsByCharacter = new Dictionary<string, int[][][]>
@@ -50,11 +49,12 @@ namespace Anathema.Upgrades
             { "Hospitaller", HospitallerUpgrade.Sets },
             { "Bullgryn", BullgrynUpgrade.Sets },
             { "Sorcerer", SorcererUpgrade.Sets },
+            { "SanguinaryGuard", Anathema.Abilities.SanguinaryGuard.GuardUpgrade.Sets },
         };
 
         // Characters whose set slots draw one of their alternatives at random (seeded) instead of taking the first one
         // still available. Either way an owned or blocked alternative is skipped in favour of the next.
-        static readonly HashSet<string> ShuffledSlots = new HashSet<string> { "PlagueSurgeon", "Hospitaller" };
+        static readonly HashSet<string> ShuffledSlots = new HashSet<string> { "PlagueSurgeon", "Hospitaller", "SanguinaryGuard" };
 
         // The offers for the pick after round `round` (1-based). Characters with fixed sets get exactly those (minus
         // anything already owned or blocked); past the last set, or for a character without sets, it falls back to a random draw.
