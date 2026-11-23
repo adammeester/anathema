@@ -13,7 +13,7 @@ namespace Anathema.Abilities.Bullgryn
     public class BullCharge : Ability, IUnstoppable
     {
         [SerializeField] float windup = 0.25f;
-        [SerializeField] float distance = 7f;
+        [SerializeField] float distance = 8f;
         [SerializeField] float duration = 0.35f;
         [SerializeField] float damage = 12f;
         [SerializeField] float catchRadius = 1f;

@@ -19,11 +19,11 @@
     },
     "SanctusPulse": {
       "cooldown": 0.3,
-      "rechargeTime": 6,
+      "rechargeTime": 9,
       "range": 10,
       "radius": 2.2,
       "delay": 0.5,
-      "totalHeal": 26,
+      "totalHeal": 36,
       "energyPerHeal": 5
     },
     "BlindingRadiance": {
@@ -50,7 +50,7 @@
     },
     "MartyrsGrace": {
       "cooldown": 4,
-      "heal": 15,
+      "heal": 22,
       "healRadius": 6,
       "smiteDamage": 6,
       "silenceSeconds": 1.2

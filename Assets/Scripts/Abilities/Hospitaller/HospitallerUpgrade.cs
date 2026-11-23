@@ -70,8 +70,8 @@ namespace Anathema.Abilities.Hospitaller
         public const float LingeringScale = 0.5f;
         public const float HallowedSeconds = 3f;
         public const float HallowedBonus = 10f;              // extra healable health for allies on the blessed ground
-        public const float SwiftPrayersScale = 0.75f;        // Sanctus recharge 6s -> 4.5s
-        public const float RaptureHeal = 26f;
+        public const float SwiftPrayersScale = 0.75f;        // Sanctus recharge 9s -> 6.75s
+        public const float RaptureHeal = 36f;
 
         public static bool Has(GameObject hospitaller, int bit) => UpgradeState.Has(hospitaller, bit);
 
@@ -126,9 +126,9 @@ namespace Anathema.Abilities.Hospitaller
             new UpgradeDef(HallowedGround, UpgradeCategory.Remedy, "Hallowed Ground",
                 "Sanctus Pulse leaves blessed ground for 3s: allies standing on it can recover 10 more health than usual."),
             new UpgradeDef(SwiftPrayers, UpgradeCategory.Remedy, "Swift Prayers",
-                "Sanctus Pulse charges recharge in 4.5s instead of 6s."),
+                "Sanctus Pulse charges recharge in 6.75s instead of 9s."),
             new UpgradeDef(Rapture, UpgradeCategory.Remedy, "Rapture",
-                "When Martyrdom ends, all your Sanctus Pulse charges return and every ally it bound is healed for 26."),
+                "When Martyrdom ends, all your Sanctus Pulse charges return and every ally it bound is healed for 36."),
         };
     }
 }

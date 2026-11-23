@@ -22,15 +22,15 @@ namespace Anathema.Abilities.GreyKnightInterceptor
     public class GreyKnightArmament : MonoBehaviour, IPrimaryAttackOverride
     {
         // ---- Daemonhammer: LMB sweep ---------------------------------------------------------------------------------
-        float SweepDamage = 30f;
-        float SweepRange = 3.4f;
+        float SweepDamage = 20f;
+        float SweepRange = 3.0f;
         float SweepArc = 130f;
         float SweepWindup = 0.42f, SweepStrike = 0.16f, SweepRecover = 0.26f;
-        float SweepCooldown = 0.95f;
+        float SweepCooldown = 1.05f;
         float SweepEnergy = 8f;
 
         // ---- Daemonhammer: Q slam ------------------------------------------------------------------------------------
-        float SlamDamage = 42f;
+        float SlamDamage = 14f;
         float SlamRadius = 2.7f;
         float SlamReach = 2.3f;
         float SlamWindup = 0.6f, SlamStrike = 0.14f, SlamRecover = 0.4f;

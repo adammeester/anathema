@@ -8,7 +8,7 @@ namespace Anathema.Abilities.Hospitaller
     [DefaultExecutionOrder(100)] // keep in step with Counter
     public class MartyrsGrace : Counter
     {
-        [SerializeField] float heal = 15f;
+        [SerializeField] float heal = 22f;
         [SerializeField] float healRadius = 6f;
         [SerializeField] float smiteDamage = 6f;
         [SerializeField] float silenceSeconds = 1.2f;

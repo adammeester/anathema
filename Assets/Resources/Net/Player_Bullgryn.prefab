@@ -252,7 +252,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.Bullgryn.BullCharge
   cooldown: 9
   windup: 0.25
-  distance: 7
+  distance: 8
   duration: 0.35
   damage: 12
   catchRadius: 1

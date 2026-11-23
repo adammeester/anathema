@@ -31,6 +31,12 @@ namespace Anathema.Abilities
         public virtual string ExDescription => "";
         public virtual string ExName => DisplayName;
 
+        // An EX that lives in a separate component on the same key (e.g. the Berserker's Whirling Carnage on Shift+Q):
+        // the base ability names it here and the HUD draws it in this slot while Shift is held. The EX component itself
+        // hides from the bar (ShownOnBar), so the key is not shown twice.
+        public virtual Ability ExSibling => null;
+        public virtual bool ShownOnBar => true;
+
         // EX versions with charges of their own (e.g. the Bullgryn's Ration Break): pips drawn on the slot while Shift is
         // held, and the EX can't be used while none is ready (ExReady).
         public virtual int ExChargeCapacity => 0;

@@ -54,6 +54,10 @@ namespace Anathema.Abilities.KhorneBerserker
         public override string DisplayName => "Rush";
         public override string KeyLabel => "Q";
 
+        // Whirling Carnage (Shift+Q) is this slot's EX on the HUD.
+        WhirlingCarnage whirl;
+        public override Ability ExSibling => whirl != null ? whirl : (whirl = GetComponent<WhirlingCarnage>());
+
         // Applied only when added in the editor.
         void Reset()
         {

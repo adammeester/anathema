@@ -16,9 +16,9 @@ namespace Anathema.Abilities.Hospitaller
         [SerializeField] float range = 10f;
         [SerializeField] float radius = 2.2f;
         [SerializeField] float delay = 0.5f;
-        [SerializeField] float totalHeal = 26f;
+        [SerializeField] float totalHeal = 36f;
         [SerializeField] float energyPerHeal = 5f;
-        [SerializeField] float rechargeTime = 6f;
+        [SerializeField] float rechargeTime = 9f;
 
         Energy energy;
         readonly float[] chargeReady = new float[MaxCharges];

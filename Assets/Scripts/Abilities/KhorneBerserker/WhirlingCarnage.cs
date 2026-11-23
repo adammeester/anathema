@@ -43,6 +43,7 @@ namespace Anathema.Abilities.KhorneBerserker
         public override float ExCost => exEnergyCost;
         public override string ExDescription => "Whirling carnage";
         public override string ExName => "Whirling Carnage";
+        public override bool ShownOnBar => false; // drawn in Rush's Q slot while Shift is held (AxeRush.ExSibling)
 
         // Applied only when added in the editor.
         void Reset()

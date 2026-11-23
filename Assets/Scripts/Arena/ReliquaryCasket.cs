@@ -52,8 +52,16 @@ namespace Anathema.Arena
 
         public void Configure(Transform visual) => body = visual;
 
-        void Awake()
+        void Awake() => Init();
+
+        // CasketField can reset the caskets (GasZone.Restarted) before their own Awake has run, so every entry point
+        // makes sure the rest pose and colliders are known first.
+        bool initialised;
+
+        void Init()
         {
+            if (initialised) return;
+            initialised = true;
             restPosition = transform.position;
             restRotation = transform.rotation;
             solids = GetComponents<Collider>();
@@ -72,6 +80,7 @@ namespace Anathema.Arena
 
         public void Launch(Vector3 start, Vector3 direction, Vector3 end, float speed)
         {
+            Init();
             ClearTrail();
             Direction = Flat(direction).normalized;
             Speed = speed;
@@ -98,6 +107,7 @@ namespace Anathema.Arena
         // A new end point on the same line (a catch, a release after an escape).
         public void Retarget(Vector3 end)
         {
+            Init();
             if (Current != State.Sliding && Current != State.Stopped) return;
             End = new Vector3(end.x, restPosition.y, end.z);
             // Already past it (this machine ran ahead of the server): settle where the server says.
@@ -113,6 +123,7 @@ namespace Anathema.Arena
 
         public void Shatter()
         {
+            Init();
             if (Current == State.Gone || Current == State.Resting) return;
             Current = State.Gone;
             SetSolid(false);
@@ -136,6 +147,7 @@ namespace Anathema.Arena
         // `regrow`: the ice visibly re-forms on the plinth (a respawn mid-round) instead of just being there (round start).
         public void Restore(bool regrow = false)
         {
+            Init();
             ClearTrail();
             Current = State.Resting;
             transform.SetPositionAndRotation(restPosition, restRotation);
@@ -172,7 +184,14 @@ namespace Anathema.Arena
             growStart = -1f;
         }
 
-        public Vector3 RestPosition => restPosition;
+        public Vector3 RestPosition
+        {
+            get
+            {
+                Init();
+                return restPosition;
+            }
+        }
 
         // ---- Motion ------------------------------------------------------------------------------------------------
 

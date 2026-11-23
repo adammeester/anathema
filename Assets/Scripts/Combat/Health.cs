@@ -11,7 +11,7 @@ namespace Anathema.Combat
 
         // Battlerite-style health: damage first becomes "recoverable" (shown as black in the bar). Healing abilities
         // (Heal) can restore it. If it isn't healed for a while it decays into permanent loss (an empty, see-through
-        // part of the bar), which only healing orbs (HealPermanent) can restore. At most maxRecoverableFraction of max
+        // part of the bar), which only healing orbs (HealPermanent) can restore. At most MaxRecoverableFraction of max
         // health can be recoverable at once; damage beyond that is permanent immediately.
         [SerializeField] float recoverableDecayDelay = 4f;   // seconds after the last hit before white starts decaying
         [SerializeField] float recoverableDecayRate = 6f;    // white health lost to permanent loss per second
@@ -19,9 +19,11 @@ namespace Anathema.Combat
         // Health bars are split into chunks of this much health (display only).
         public const float ChunkSize = 10f;
         // Share of max health (bonus max health included) that can be healable at once, so tanky characters get a
-        // proportionally larger pool: 145 hp -> 29, 215 hp -> 43.
-        [SerializeField] float maxRecoverableFraction = 0.2f;
-        public float MaxRecoverable => maxHealth * maxRecoverableFraction + (Time.time < recoverableBonusEnd ? recoverableBonus : 0f);
+        // proportionally larger pool: 145 hp -> 43, 215 hp -> 64. Large enough that a healer's burst can undo a few
+        // seconds of one attacker's damage; anything beyond it is still lost for good. One value for every character
+        // (a constant, not a serialized field, so no prefab or scene holds a stale copy).
+        public const float MaxRecoverableFraction = 0.3f;
+        public float MaxRecoverable => maxHealth * MaxRecoverableFraction + (Time.time < recoverableBonusEnd ? recoverableBonus : 0f);
 
         // Healable health on this character fades this many times later and slower (Bearer of Burdens). Set from the
         // upgrade mask on every copy; only the authority's decay matters.

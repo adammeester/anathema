@@ -39,7 +39,7 @@ namespace Anathema.Player
         {
             health = GetComponent<Health>();
             energy = GetComponent<Energy>();
-            abilities = GetComponents<Ability>();
+            abilities = System.Array.FindAll(GetComponents<Ability>(), a => a.ShownOnBar);
 
             pixel = new Texture2D(1, 1);
             pixel.SetPixel(0, 0, Color.white);
@@ -348,6 +348,8 @@ namespace Anathema.Player
 
         void DrawSlot(Rect r, Ability ability)
         {
+            // An EX kept in its own component takes over its base ability's slot while Shift is held.
+            if (Input.GetKey(KeyCode.LeftShift) && ability.ExSibling != null) ability = ability.ExSibling;
             float f = Frame * scale;
             float cd = ability.CooldownNormalized;
             bool ready = cd <= 0f && !ability.IsCasting && ability.Available; // mid wind-up: dim, but no cooldown curtain yet

@@ -66,7 +66,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         public static readonly UpgradeDef[] All =
         {
             new UpgradeDef(Daemonhammer, UpgradeCategory.Armament, "Daemonhammer - The Purge",
-                "Two-handed melee. Attack becomes a heavy hammer sweep and Sweep (Q) becomes a ground-shattering slam that stuns. Smite is kept. Replaces the halberd and storm bolter.")
+                "Two-handed melee control. Attack becomes a slower, wider hammer sweep with more reach; Sweep (Q) becomes a light ground slam that stuns everything it catches. Less damage than the halberd and no ranged attack, in exchange for the stun. Smite is kept. Replaces the halberd and storm bolter.")
                 .InGroup(WeaponGroup),
             new UpgradeDef(Psycannon, UpgradeCategory.Armament, "Psycannon - The Cleanser",
                 "Two-handed heavy weapon. Attack fires a ball of psychic energy that explodes on contact or at the end of its range, damaging everything around it; Sweep (Q) becomes the Overcharged Round, a slow-charging shell with a huge blast that panics everything it hits. Smite is kept. Replaces the halberd and storm bolter.")
