@@ -55,8 +55,16 @@ namespace Anathema.Combat
             if (hidden && !health.IsDead) SetAlive(true);
         }
 
+        Corpse corpse;
+
         void OnDied(Health _, GameObject killer)
         {
+            // Leave a body where they fell (built from the still-visible model, so before hiding it).
+            if (!hidden && !NetGame.IsDedicated)
+            {
+                if (corpse != null) Destroy(corpse.gameObject);
+                corpse = Corpse.Spawn(gameObject, killer);
+            }
             SetAlive(false);
             // Online, a death stays a death until the round resets (the round only ends once a whole team is down).
             if (!health.IsReplica && !NetGame.Online) Invoke(nameof(Respawn), delay);
@@ -95,6 +103,9 @@ namespace Anathema.Combat
             }
             else
             {
+                // Back for a new round: the body they left goes.
+                if (corpse != null) Destroy(corpse.gameObject);
+                corpse = null;
                 // Only restore what we turned off, so the owner/replica collider setup survives a respawn.
                 foreach (Collider c in disabledColliders)
                     if (c != null) c.enabled = true;

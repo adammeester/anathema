@@ -51,6 +51,10 @@ namespace Anathema.Abilities
         // reports it here, NetPlayer publishes it, and other machines are told through ShowReplicaEmpowered.
         public virtual bool ShowsEmpowered => false;
         public virtual void ShowReplicaEmpowered(bool on) { }
+        // A second, independent charge published the same way, for kits with two at once (e.g. the Bullgryn's Grit
+        // Slab Slam and his Haymaker).
+        public virtual bool ShowsPrimed => false;
+        public virtual void ShowReplicaPrimed(bool on) { }
 
         // Abilities that move their own caster (dash, leap, teleport): how far one use can carry them, and for how long
         // after the cast the movement may still be happening. The server lets the owner report that movement up to this
@@ -267,7 +271,8 @@ namespace Anathema.Abilities
 
             TickWindup();
 
-            bool triggered = IsTriggered();
+            // The in-game menu (or a click on the surrender vote) owns the mouse and keys: nothing fires underneath it.
+            bool triggered = !Anathema.Net.NetGame.BlocksInput && IsTriggered();
             // After a refunded cancel, a held key must be released before it can fire again, otherwise
             // cancelling a hold-to-use ability would instantly restart it.
             if (awaitRelease)

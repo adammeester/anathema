@@ -22,7 +22,8 @@ namespace Anathema.Combat
 
         // point: where the blade struck (about chest height); direction: the way the blow travels.
         // squelchy: a wetter, gurgling sound for heavy embedding hits (the thrown axe).
-        public static void Play(Vector3 point, Vector3 direction, float intensity = 1f, bool squelchy = false)
+        // silent: the spray only, no sound (a death has its own knell).
+        public static void Play(Vector3 point, Vector3 direction, float intensity = 1f, bool squelchy = false, bool silent = false)
         {
             direction.y = 0f;
             direction = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.forward;
@@ -32,7 +33,7 @@ namespace Anathema.Combat
             var impact = go.AddComponent<BloodImpact>();
             impact.Init(direction, intensity);
 
-            PlaySound(intensity, squelchy);
+            if (!silent) PlaySound(intensity, squelchy);
         }
 
         void Init(Vector3 direction, float intensity)

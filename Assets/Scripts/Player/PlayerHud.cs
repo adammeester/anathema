@@ -13,12 +13,13 @@ namespace Anathema.Player
     {
         // Layout, in 1080p pixels.
         const float SlotSize = 92f;
-        const float SlotGap = 10f;
+        const float SlotGap = 28f;   // room for the round frames' brass rims
         const float BarWidth = 380f;
         const float BarHeight = 50f;
-        const float BarGap = 28f;
+        const float BarGap = 44f;    // room for the bar frame and the slot rim beside it
         const float BottomMargin = 30f;
         const float Frame = 4f;
+        const float TooltipScale = 1.2f; // the Alt-hover ability tooltip, relative to the rest of the HUD
         const float HealthSegmentSize = Health.ChunkSize; // health per chunk on the health bar
 
         static readonly Color Gold = new Color(0.86f, 0.70f, 0.30f);
@@ -34,6 +35,14 @@ namespace Anathema.Player
         Texture2D pixel;
         Texture2D sheen;        // white, alpha fading top (bright) to bottom (clear)
         float scale = 1f;
+
+        // Painted frames (round ability slots, rounded health/energy bars, faction emblem), rebuilt when the scale changes.
+        HudArt art;
+        float artScale;
+        bool characterLooked;
+        string characterKey;    // e.g. "KhorneBerserker"; picks the emblem and the ability icon folder
+        HudArt.Emblem emblem;
+        Color accent = Gold;    // the character's roster colour, on the slots' inner rings
 
         void Awake()
         {
@@ -58,6 +67,7 @@ namespace Anathema.Player
         void OnGUI()
         {
             scale = Screen.height / 1080f;
+            EnsureArt();
 
             int count = abilities.Length;
             float slot = SlotSize * scale, gap = SlotGap * scale;
@@ -81,15 +91,112 @@ namespace Anathema.Player
 
             float x = centerX - abilityWidth * 0.5f;
             float slotY = bottom - slot - Frame * scale;
+            Ability hovered = null;
+            Rect hoveredSlot = default;
+            bool canHover = MouseAim.AltHeld && Cursor.visible;
             foreach (Ability ability in abilities)
             {
-                DrawSlot(new Rect(x, slotY, slot, slot), ability);
+                var r = new Rect(x, slotY, slot, slot);
+                DrawSlot(r, ability);
+                if (canHover && r.Contains(Event.current.mousePosition)) { hovered = ability; hoveredSlot = r; }
                 x += slot + gap;
             }
 
             DrawPassives(centerX, slotY, abilityWidth);
             DrawPassiveStacks(centerX, slotY);
             DrawAllies();
+            if (hovered != null) DrawAbilityTooltip(hovered, hoveredSlot);
+        }
+
+        // ---------- Ability tooltip (hold Alt and hover a slot) ----------
+
+        Net.CharacterSelectView.CharacterInfo rosterEntry;
+        bool rosterLooked;
+
+        // Same text as the champion-select tooltip, found in the roster by the slot's name (or key, if an upgrade renamed it).
+        void DrawAbilityTooltip(Ability ability, Rect slotRect)
+        {
+            bool ex = Input.GetKey(KeyCode.LeftShift) && (ability.ExSibling != null || ability.ExCost > 0f);
+            Ability shown = ex && ability.ExSibling != null ? ability.ExSibling : ability;
+            string name = ex ? shown.ExName : shown.DisplayName;
+            string key = ex ? "Shift+" + shown.KeyLabel : shown.KeyLabel;
+            Net.CharacterSelectView.AbilityInfo info = FindAbilityInfo(name, key, ex);
+
+            Color accent = ex ? new Color(0.8f, 0.6f, 1f) : (rosterEntry != null ? rosterEntry.accent : Gold);
+            string tag = ex ? "EX ABILITY" : info != null && info.ultimate ? "ULTIMATE" : "ABILITY";
+            string description = info != null ? info.description : "";
+            string stats = info != null ? info.stats : "";
+
+            float ts = scale * TooltipScale;
+            float tipW = 460f * ts, pad = 14f * ts, textW = tipW - pad * 2f;
+            var nameStyle = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(24f * ts), fontStyle = FontStyle.Bold, wordWrap = false };
+            nameStyle.normal.textColor = accent;
+            var tagStyle = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(15f * ts), fontStyle = FontStyle.Bold, wordWrap = false };
+            tagStyle.normal.textColor = new Color(0.6f, 0.58f, 0.55f);
+            var descStyle = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(19f * ts), wordWrap = true };
+            descStyle.normal.textColor = new Color(0.9f, 0.88f, 0.85f);
+            var statStyle = new GUIStyle(GUI.skin.label) { fontSize = Mathf.RoundToInt(17f * ts), wordWrap = true };
+            statStyle.normal.textColor = Gold;
+
+            float descH = string.IsNullOrEmpty(description) ? 0f : descStyle.CalcHeight(new GUIContent(description), textW);
+            float statH = string.IsNullOrEmpty(stats) ? 0f : statStyle.CalcHeight(new GUIContent(stats), textW);
+            float tipH = 66f * ts + descH + (statH > 0f ? 14f * ts + statH : 0f) + 12f * ts;
+
+            // Above the slot, centred on it, kept on screen.
+            var tip = new Rect(slotRect.center.x - tipW * 0.5f, slotRect.y - tipH - 36f * ts, tipW, tipH); // clears the frame's top spike
+            tip.x = Mathf.Clamp(tip.x, 10f * ts, Screen.width - tipW - 10f * ts);
+            tip.y = Mathf.Max(10f * ts, tip.y);
+
+            DrawRect(new Rect(tip.x - 2f * ts, tip.y - 2f * ts, tip.width + 4f * ts, tip.height + 4f * ts), accent);
+            DrawRect(tip, new Color(0.04f, 0.05f, 0.08f, 0.98f));
+            string title = string.IsNullOrEmpty(key) ? name : $"{name}  [{key}]";
+
+            // The ability's icon beside the name, in a ring of the tooltip's colour.
+            Texture2D icon = IconFor(shown, ex);
+            float iconW = 0f;
+            if (icon != null)
+            {
+                float d = 52f * ts;
+                var iconRect = new Rect(tip.x + pad, tip.y + 7f * ts, d, d);
+                GUI.DrawTexture(iconRect, icon);
+                float k = d * 0.5f / HudArt.SlotRadius;
+                Color previous = GUI.color;
+                GUI.color = accent;
+                GUI.DrawTexture(ArtRect(art.SlotRing, iconRect.center, k), art.SlotRing.Tex);
+                GUI.color = previous;
+                iconW = d + 12f * ts;
+            }
+            GUI.Label(new Rect(tip.x + pad + iconW, tip.y + 8f * ts, textW - iconW, 32f * ts), title, nameStyle);
+            GUI.Label(new Rect(tip.x + pad + iconW, tip.y + 38f * ts, textW - iconW, 24f * ts), tag, tagStyle);
+            float y = tip.y + 66f * ts;
+            if (descH > 0f) GUI.Label(new Rect(tip.x + pad, y, textW, descH), description, descStyle);
+            if (statH > 0f)
+            {
+                y += descH + 4f * ts;
+                DrawRect(new Rect(tip.x + pad, y, textW, Mathf.Max(1f, ts)), DarkGold);
+                GUI.Label(new Rect(tip.x + pad, y + 6f * ts, textW, statH), stats, statStyle);
+            }
+        }
+
+        Net.CharacterSelectView.AbilityInfo FindAbilityInfo(string name, string key, bool ex)
+        {
+            if (!rosterLooked)
+            {
+                rosterLooked = true;
+                if (upgrades == null) upgrades = GetComponent<UpgradeState>();
+                string character = upgrades != null ? upgrades.Character : null;
+                if (!string.IsNullOrEmpty(character))
+                    foreach (var c in Net.CharacterSelectView.Roster)
+                        if (c.prefabPath.EndsWith("Player_" + character, System.StringComparison.Ordinal)) { rosterEntry = c; break; }
+            }
+            if (rosterEntry == null || rosterEntry.abilities == null) return null;
+
+            foreach (var a in rosterEntry.abilities)
+                if (a.ex == ex && string.Equals(a.name, name, System.StringComparison.OrdinalIgnoreCase)) return a;
+            if (!string.IsNullOrEmpty(key))
+                foreach (var a in rosterEntry.abilities)
+                    if (a.ex == ex && string.Equals(a.key, key, System.StringComparison.OrdinalIgnoreCase)) return a;
+            return null;
         }
 
         // ---------- Passive stacks (e.g. the Hospitaller's Faith) ----------
@@ -108,7 +215,7 @@ namespace Anathema.Player
             Color color = passiveStacks.StackColor;
             float pip = 20f * scale, gap = 9f * scale;
             float rowW = max * pip + (max - 1) * gap;
-            float y = slotY - 22f * scale - pip;
+            float y = slotY - 44f * scale - pip; // above the slot frames' top spikes
             float x = centerX - rowW * 0.5f;
             bool full = stacks >= max;
             float pulse = full ? 0.75f + 0.25f * Mathf.Sin(Time.time * 6f) : 1f;
@@ -138,22 +245,31 @@ namespace Anathema.Player
 
         // ---------- Allies ----------
 
-        // Health frames for teammates down the left edge: name, health bar, and a pip per upgrade they have taken.
+        // Nameplates: teammates down the left edge (portrait, health, energy, upgrades), enemies down the right edge
+        // (portrait, health, upgrades; their energy stays hidden). Eliminated fighters are greyed and crossed out.
         void DrawAllies()
         {
             float y = 180f * scale;
+            float enemyY = 180f * scale;
 
             foreach (Net.NetPlayer p in Net.NetPlayer.All)
             {
-                if (p == null || p.Health == null || p.Health == health || p.Health.Team != health.Team) continue;
+                if (p == null || p.Health == null || p.Health == health) continue;
+                bool ally = p.Health.Team == health.Team;
 
                 UpgradeState up = p.GetComponent<UpgradeState>();
                 var owned = new List<UpgradeDef>();
                 UpgradeDef[] all = up != null ? UpgradeCatalog.For(up.Character) : null;
                 if (all != null) foreach (UpgradeDef d in all) if (up.Has(d.Bit)) owned.Add(d);
 
-                string name = up != null && !string.IsNullOrEmpty(up.Character) ? up.Character : p.name;
-                DrawAllyFrame(ref y, name, up != null ? up.Character : null, p.Health.Current, p.Health.Max, p.EnergyCurrent, p.EnergyMax, owned);
+                string name = Net.NetGame.Online ? Net.NetGame.NameOf(p.OwnerClientId)
+                    : up != null && !string.IsNullOrEmpty(up.Character) ? up.Character : p.name;
+                string key = up != null ? up.Character : null;
+                bool dead = p.Health.IsDead || p.Health.Current <= 0f;
+                if (ally)
+                    DrawAllyFrame(ref y, name, key, p.Health.Current, p.Health.Max, p.EnergyCurrent, p.EnergyMax, owned, dead, false);
+                else
+                    DrawAllyFrame(ref enemyY, name, key, p.Health.Current, p.Health.Max, 0f, 0f, owned, dead, true);
             }
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
@@ -174,8 +290,10 @@ namespace Anathema.Player
                         }
                     DrawDemoRoundBanner();
                     string key = upgrades != null ? upgrades.Character : null;
-                    DrawAllyFrame(ref y, "Demo Ally A", key, 140f, 200f, 65f, 100f, few);
-                    DrawAllyFrame(ref y, "Demo Ally B", key, 0f, 250f, 0f, 100f, many);
+                    DrawAllyFrame(ref y, "Demo Ally A", key, 140f, 200f, 65f, 100f, few, false, false);
+                    DrawAllyFrame(ref y, "Demo Ally B", key, 0f, 250f, 0f, 100f, many, true, false);
+                    DrawAllyFrame(ref enemyY, "Demo Enemy A", key, 180f, 250f, 0f, 0f, many, false, true);
+                    DrawAllyFrame(ref enemyY, "Demo Enemy B", key, 0f, 200f, 0f, 0f, few, true, true);
                 }
             }
 #endif
@@ -199,78 +317,133 @@ namespace Anathema.Player
         }
 #endif
 
-        // Battlerite-style frame: a head-shot portrait with the health bar under it, and the ally's upgrades in a grid
-        // beside the portrait (hover one for its name).
-        void DrawAllyFrame(ref float y, string name, string key, float current, float max, float energyNow, float energyMax, List<UpgradeDef> owned)
+        static readonly Color EnemyHealthColor = new Color(0.62f, 0.10f, 0.12f);
+        static readonly Color AllyHealthColor = new Color(0.22f, 0.72f, 0.30f);
+        static readonly Color DeadGrey = new Color(0.32f, 0.32f, 0.34f);
+
+        // Battlerite-style frame: a head-shot portrait with the health bar (and, for allies, energy) under it, and the
+        // fighter's upgrades in a grid beside the portrait (hover one for its name). Enemy frames are mirrored on the
+        // right edge. An eliminated fighter's frame is greyed out with a big cross over it.
+        void DrawAllyFrame(ref float y, string name, string key, float current, float max, float energyNow, float energyMax,
+            List<UpgradeDef> owned, bool dead, bool enemy)
         {
             const int PerRow = 5;
             float portrait = 84f * scale, barH = 18f * scale, gap = 8f * scale;
             float pip = 24f * scale, pipGap = 4f * scale, nameH = 20f * scale;
-            float x = 26f * scale;
-            bool dead = current <= 0f;
+            float edge = 26f * scale;
+            float x = enemy ? Screen.width - edge - portrait : edge;
+            bool showEnergy = !enemy;
 
             // Portrait.
             var pr = new Rect(x, y, portrait, portrait);
             DrawRect(new Rect(pr.x - 3f * scale, pr.y - 3f * scale, pr.width + 6f * scale, pr.height + 6f * scale), Panel);
             DrawRect(pr, new Color(0.10f, 0.12f, 0.18f, 1f));
             Texture tex = Net.AllyPortraits.Get(key);
-            if (tex != null) GUI.DrawTexture(pr, tex, ScaleMode.ScaleAndCrop, false);
-            if (dead) DrawRect(pr, new Color(0f, 0f, 0f, 0.65f));
+            if (tex != null)
+            {
+                Color prev = GUI.color;
+                if (dead) GUI.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+                GUI.DrawTexture(pr, tex, ScaleMode.ScaleAndCrop, false);
+                GUI.color = prev;
+            }
+            if (dead) DrawRect(pr, new Color(0.18f, 0.18f, 0.2f, 0.7f)); // washes the portrait out to grey
             DrawBorder(pr, 3f * scale);
 
             // Health bar under the portrait, same width.
             var bar = new Rect(pr.x, pr.yMax + 7f * scale, portrait, barH);
             DrawBorder(bar, 2f * scale);
-            DrawRect(bar, Color.black);
-            Rect fill = DrawFill(bar, max > 0f ? Mathf.Clamp01(current / max) : 0f, HealthColor, true);
+            DrawRect(bar, dead ? DeadGrey * 0.5f : Color.black);
+            Color hpColor = enemy ? EnemyHealthColor : AllyHealthColor;
+            Rect fill = DrawFill(bar, dead || max <= 0f ? 0f : Mathf.Clamp01(current / max), hpColor, !enemy);
             if (fill.width > 0f) GUI.DrawTexture(new Rect(fill.x, fill.y, fill.width, fill.height * 0.55f), sheen);
-            DrawText(bar, dead ? "DOWN" : Mathf.CeilToInt(current).ToString(), Mathf.RoundToInt(13f * scale), FontStyle.Bold, Color.white);
+            DrawText(bar, dead ? "DOWN" : Mathf.CeilToInt(current).ToString(), Mathf.RoundToInt(13f * scale), FontStyle.Bold,
+                dead ? new Color(0.7f, 0.7f, 0.7f) : Color.white);
 
-            // Energy: a slimmer blue bar directly under the health bar.
+            // Energy (allies only): a slimmer blue bar directly under the health bar.
             float energyH = 10f * scale;
-            var ebar = new Rect(bar.x, bar.yMax + 5f * scale, portrait, energyH);
-            DrawBorder(ebar, 2f * scale);
-            DrawRect(ebar, Color.black);
-            Rect efill = DrawFill(ebar, energyMax > 0f ? Mathf.Clamp01(energyNow / energyMax) : 0f, EnergyColor, true);
-            if (efill.width > 0f) GUI.DrawTexture(new Rect(efill.x, efill.y, efill.width, efill.height * 0.55f), sheen);
+            float barsBottom = bar.yMax;
+            if (showEnergy)
+            {
+                var ebar = new Rect(bar.x, bar.yMax + 5f * scale, portrait, energyH);
+                DrawBorder(ebar, 2f * scale);
+                DrawRect(ebar, dead ? DeadGrey * 0.5f : Color.black);
+                Rect efill = DrawFill(ebar, dead || energyMax <= 0f ? 0f : Mathf.Clamp01(energyNow / energyMax), EnergyColor, true);
+                if (efill.width > 0f) GUI.DrawTexture(new Rect(efill.x, efill.y, efill.width, efill.height * 0.55f), sheen);
+                barsBottom = ebar.yMax;
+            }
 
-            // Name and upgrades to the right of the portrait.
-            float gx = pr.xMax + gap + 3f * scale;
-            var nameRect = new Rect(gx, pr.y, 190f * scale, nameH);
-            var nameStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleLeft, fontSize = Mathf.Max(8, Mathf.RoundToInt(15f * scale)), fontStyle = FontStyle.Bold };
+            // Name and upgrades beside the portrait (right of it for allies, left of it for enemies).
+            float gridW = PerRow * (pip + pipGap) - pipGap;
+            float gx = enemy ? pr.x - gap - 3f * scale - gridW : pr.xMax + gap + 3f * scale;
+            float nameW = 190f * scale;
+            var nameRect = new Rect(enemy ? pr.x - gap - 3f * scale - nameW : gx, pr.y, nameW, nameH);
+            var nameStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = enemy ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft,
+                fontSize = Mathf.Max(8, Mathf.RoundToInt(15f * scale)), fontStyle = FontStyle.Bold, wordWrap = false, clipping = TextClipping.Clip
+            };
             nameStyle.normal.textColor = new Color(0f, 0f, 0f, 0.85f);
             GUI.Label(new Rect(nameRect.x + 1.5f * scale, nameRect.y + 1.5f * scale, nameRect.width, nameRect.height), name, nameStyle);
-            nameStyle.normal.textColor = dead ? new Color(0.6f, 0.6f, 0.6f) : Gold;
+            nameStyle.normal.textColor = dead ? new Color(0.5f, 0.5f, 0.5f) : enemy ? new Color(1f, 0.45f, 0.4f) : Gold;
             GUI.Label(nameRect, name, nameStyle);
 
             Vector2 mouse = Event.current.mousePosition;
             for (int n = 0; n < owned.Count; n++)
             {
-                var r = new Rect(gx + n % PerRow * (pip + pipGap), pr.y + nameH + 6f * scale + n / PerRow * (pip + pipGap), pip, pip);
-                Color c = owned[n].Accent;
+                int col = n % PerRow;
+                float px = enemy ? gx + gridW - pip - col * (pip + pipGap) : gx + col * (pip + pipGap);
+                var r = new Rect(px, pr.y + nameH + 6f * scale + n / PerRow * (pip + pipGap), pip, pip);
+                Color c = dead ? DeadGrey : owned[n].Accent;
                 DrawRect(new Rect(r.x - 1.5f * scale, r.y - 1.5f * scale, r.width + 3f * scale, r.height + 3f * scale), Panel);
                 DrawRect(r, new Color(c.r * 0.55f, c.g * 0.55f, c.b * 0.55f));
                 GUI.DrawTexture(new Rect(r.x, r.y, r.width, r.height * 0.5f), sheen);
                 string nm = owned[n].Name;
-                DrawText(r, string.IsNullOrEmpty(nm) ? "?" : nm.Substring(0, 1), Mathf.RoundToInt(14f * scale), FontStyle.Bold, Color.white);
-                if (r.Contains(mouse)) { hoverTip = nm; hoverRect = r; hoverColor = c; }
+                DrawText(r, string.IsNullOrEmpty(nm) ? "?" : nm.Substring(0, 1), Mathf.RoundToInt(14f * scale), FontStyle.Bold,
+                    dead ? new Color(0.65f, 0.65f, 0.65f) : Color.white);
+                if (r.Contains(mouse)) { hoverTip = nm; hoverRect = r; hoverColor = owned[n].Accent; hoverLeft = enemy; }
             }
 
             int pipRows = owned.Count > 0 ? Mathf.CeilToInt(owned.Count / (float)PerRow) : 0;
             float upgradesH = nameH + 6f * scale + pipRows * (pip + pipGap);
-            float frameH = Mathf.Max(portrait + 7f * scale + barH + 5f * scale + energyH, upgradesH);
+            float frameH = Mathf.Max(barsBottom - pr.y, upgradesH);
+
+            // Eliminated: a big red cross over the portrait and bars.
+            if (dead)
+            {
+                var cross = new Rect(pr.x - 4f * scale, pr.y - 4f * scale, portrait + 8f * scale, barsBottom - pr.y + 8f * scale);
+                DrawCross(cross, 9f * scale, new Color(0.85f, 0.12f, 0.12f, 0.92f));
+            }
+
             y += frameH + 22f * scale;
+        }
+
+        // Two thick diagonal strokes corner to corner (with a dark outline so it reads on any portrait).
+        void DrawCross(Rect r, float thickness, Color color)
+        {
+            float len = Mathf.Sqrt(r.width * r.width + r.height * r.height);
+            float angle = Mathf.Atan2(r.height, r.width) * Mathf.Rad2Deg;
+            Matrix4x4 saved = GUI.matrix;
+            foreach (float a in new[] { angle, -angle })
+            {
+                GUI.matrix = saved;
+                GUIUtility.RotateAroundPivot(a, r.center);
+                float o = 2.5f * scale;
+                DrawRect(new Rect(r.center.x - len * 0.5f - o, r.center.y - thickness * 0.5f - o, len + o * 2f, thickness + o * 2f), new Color(0f, 0f, 0f, 0.8f));
+                DrawRect(new Rect(r.center.x - len * 0.5f, r.center.y - thickness * 0.5f, len, thickness), color);
+            }
+            GUI.matrix = saved;
         }
 
         string hoverTip;
         Rect hoverRect;
         Color hoverColor;
+        bool hoverLeft; // enemy frames are on the right edge, so their tooltips open to the left
 
         void DrawHoverTip()
         {
             if (string.IsNullOrEmpty(hoverTip)) return;
             float w = Mathf.Max(120f, hoverTip.Length * 9.5f) * scale, h = 26f * scale;
-            var r = new Rect(hoverRect.xMax + 8f * scale, hoverRect.center.y - h * 0.5f, w, h);
+            var r = new Rect(hoverLeft ? hoverRect.x - 8f * scale - w : hoverRect.xMax + 8f * scale, hoverRect.center.y - h * 0.5f, w, h);
             DrawRect(new Rect(r.x - 2f * scale, r.y - 2f * scale, r.width + 4f * scale, r.height + 4f * scale), hoverColor);
             DrawRect(r, new Color(0.04f, 0.05f, 0.08f, 0.96f));
             DrawText(r, hoverTip, Mathf.RoundToInt(15f * scale), FontStyle.Bold, Color.white);
@@ -304,36 +477,61 @@ namespace Anathema.Player
         // fillFromLeft = false makes the bar drain towards the centre (mirrored), so the pair frames the ability bar.
         void DrawBar(Rect r, float value, Color color, string label, bool fillFromLeft, float maxValue, float segmentSize, float recoverable = 0f)
         {
-            float f = Frame * scale;
             bool isHealth = segmentSize > 0f;
             value = Mathf.Clamp01(value);
 
-            // Health: border only. Healable missing health is black, permanently lost health is left empty (see-through).
-            // Other bars (energy) keep the solid framed backing.
-            if (isHealth) DrawBorder(r, f);
-            else
-            {
-                DrawFrame(r, f);
-                DrawRect(r, Color.black);
-            }
+            // The bar is a capsule inside an iron-and-brass frame; every fill is clipped to the capsule through its mask.
+            float k = art.BarK;
+            var anchor = new Vector2(r.x, r.center.y);
+            Rect mask = art.BarMask.Place(anchor, k);
 
+            // Health: healable missing health is black, permanently lost health is left empty (see-through).
+            // Other bars (energy) have a solid black backing.
             float shown = isHealth ? Mathf.Clamp01(value + recoverable) : 1f; // how much of the bar is not empty
-            if (isHealth && shown > value) DrawFill(r, shown, Color.black, fillFromLeft);
-            Rect fill = DrawFill(r, value, color, fillFromLeft);
-            if (fill.width > 0f) GUI.DrawTexture(new Rect(fill.x, fill.y, fill.width, fill.height * 0.55f), sheen);
+            if (shown > value) DrawArtPart(art.BarMask.Tex, mask, FillRect(r, shown, fillFromLeft), Color.black);
+            Rect fill = FillRect(r, value, fillFromLeft);
+            DrawArtPart(art.BarMask.Tex, mask, fill, color);
+            DrawArtPart(art.BarSheen.Tex, mask, fill, Color.white);
 
             // Black dividers split the bar into chunks (one per `segmentSize` health, or 10 chunks for non-health bars).
-            // On the health bar they only show over the filled/black part, never over the empty part.
+            // On the health bar they only show over the filled/black part, never over the empty part. Near the rounded
+            // ends they are cut short to stay inside the capsule.
             int segments = isHealth ? Mathf.Max(1, Mathf.RoundToInt(maxValue / segmentSize)) : 10;
             for (int i = 1; i < segments; i++)
             {
                 float frac = (float)i / segments;
                 if (frac > shown + 0.0001f) break;
                 float tx = r.x + r.width * frac;
-                DrawRect(new Rect(tx - 1.5f * scale, r.y, 3f * scale, r.height), Color.black);
+                float half = CapsuleHalfHeight(r, tx);
+                DrawRect(new Rect(tx - 1.5f * scale, r.center.y - half, 3f * scale, half * 2f), Color.black);
+            }
+
+            // Frame on top; its end spike points away from the ability bar. The faction emblem sits on the health bar's
+            // outer end.
+            DrawArt(fillFromLeft ? art.BarFrameLeft : art.BarFrameRight, anchor, k, Color.white);
+            if (isHealth)
+            {
+                float ex = fillFromLeft ? r.x + HudArt.EmblemOffset * k : r.xMax - HudArt.EmblemOffset * k;
+                DrawArt(art.EmblemArt, new Vector2(ex, r.center.y), k, Color.white);
             }
 
             DrawText(r, label, Mathf.RoundToInt(22f * scale), FontStyle.Bold, Color.white);
+        }
+
+        static Rect FillRect(Rect r, float t, bool fromLeft)
+        {
+            float w = r.width * Mathf.Clamp01(t);
+            return new Rect(fromLeft ? r.x : r.xMax - w, r.y, w, r.height);
+        }
+
+        // Half the height of the capsule inscribed in r at screen x (the full half-height away from the rounded ends).
+        static float CapsuleHalfHeight(Rect r, float x)
+        {
+            float rad = r.height * 0.5f;
+            float d = Mathf.Min(x - r.x, r.xMax - x);
+            if (d >= rad) return rad;
+            float t = rad - d;
+            return Mathf.Sqrt(Mathf.Max(0f, rad * rad - t * t));
         }
 
         Rect DrawFill(Rect r, float t, Color color, bool fromLeft)
@@ -350,7 +548,6 @@ namespace Anathema.Player
         {
             // An EX kept in its own component takes over its base ability's slot while Shift is held.
             if (Input.GetKey(KeyCode.LeftShift) && ability.ExSibling != null) ability = ability.ExSibling;
-            float f = Frame * scale;
             float cd = ability.CooldownNormalized;
             bool ready = cd <= 0f && !ability.IsCasting && ability.Available; // mid wind-up: dim, but no cooldown curtain yet
 
@@ -362,60 +559,76 @@ namespace Anathema.Player
             bool exDim = exMode && !hasEx;
             bool exLocked = exShow && !exLit;              // EX ability visible but can't afford: greyed out
 
-            DrawFrame(r, f, exLit ? EnergyColor : (ready && !exDim ? Gold : DarkGold));
-            DrawRect(r, exLit ? new Color(0.10f, 0.22f, 0.36f, 1f) : new Color(0.12f, 0.14f, 0.20f, 1f));
-            GUI.DrawTexture(new Rect(r.x, r.y, r.width, r.height * 0.5f), sheen);
+            // The slot is round: a grimy disc inside an iron-and-brass frame. Curtains and tints are clipped to the disc
+            // through its mask, so they keep the round edge.
+            float k = art.SlotK;
+            Vector2 c = r.center;
+            Rect disc = art.SlotMask.Place(c, k);
+            DrawArt(art.SlotDisc, c, k, Color.white);
+            // The ability's painted icon (if it has one) fills the disc, dimmed while the ability can't be used.
+            Texture2D icon = IconFor(ability, exShow);
+            if (icon != null)
+            {
+                Color previous = GUI.color;
+                GUI.color = ready && !exLocked ? Color.white : new Color(0.55f, 0.55f, 0.55f, 1f);
+                GUI.DrawTexture(r, icon);
+                GUI.color = previous;
+            }
+            if (exLit) DrawArt(art.SlotMask, c, k, new Color(0.15f, 0.40f, 0.75f, icon != null ? 0.22f : 0.35f));
 
             // Partial recharge (e.g. one of two axes spent): a faint curtain with a thin leading edge, behind the name.
             float recharge = ability.ChargeRechargeNormalized;
             if (recharge > 0f && !exDim)
             {
                 float rh = r.height * recharge;
-                DrawRect(new Rect(r.x, r.y, r.width, rh), new Color(0f, 0f, 0f, 0.38f));
-                DrawRect(new Rect(r.x, r.y + rh - 2f * scale, r.width, 2f * scale), new Color(Gold.r, Gold.g, Gold.b, 0.45f));
+                DrawArtPart(art.SlotMask.Tex, disc, new Rect(r.x, r.y, r.width, rh), new Color(0f, 0f, 0f, 0.38f));
+                DrawArtPart(art.SlotMask.Tex, disc, new Rect(r.x, r.y + rh - 2f * scale, r.width, 2f * scale), new Color(Gold.r, Gold.g, Gold.b, 0.45f));
             }
 
-            // Ability name, wrapped inside the slot.
-            DrawText(new Rect(r.x, r.y + r.height * 0.18f, r.width, r.height * 0.64f), exShow ? ability.ExName : ability.DisplayName,
+            // Without an icon, the ability's name, wrapped inside the slot (inset a little, as the slot is round).
+            if (icon == null) DrawText(new Rect(r.x + r.width * 0.08f, r.y + r.height * 0.2f, r.width * 0.84f, r.height * 0.6f), exShow ? ability.ExName : ability.DisplayName,
                 Mathf.RoundToInt(19f * scale), FontStyle.Bold, ready && !exLocked ? Color.white : new Color(1f, 1f, 1f, 0.55f));
 
             if (!ready && cd <= 0f && !ability.IsCasting)
             {
                 // Not on cooldown, just unavailable (e.g. ultimate without enough energy): plain grey-out, no timer.
-                DrawRect(r, new Color(0f, 0f, 0f, 0.55f));
+                DrawArt(art.SlotMask, c, k, new Color(0f, 0f, 0f, 0.55f));
             }
             else if (!ready)
             {
                 // Dark curtain that drains upward as the cooldown runs out, with a bright leading edge.
                 float h = r.height * cd;
-                DrawRect(new Rect(r.x, r.y, r.width, h), new Color(0f, 0f, 0f, 0.72f));
-                DrawRect(new Rect(r.x, r.y + h - 2f * scale, r.width, 2f * scale), new Color(Gold.r, Gold.g, Gold.b, 0.9f));
+                DrawArtPart(art.SlotMask.Tex, disc, new Rect(r.x, r.y, r.width, h), new Color(0f, 0f, 0f, 0.72f));
+                DrawArtPart(art.SlotMask.Tex, disc, new Rect(r.x, r.y + h - 2f * scale, r.width, 2f * scale), new Color(Gold.r, Gold.g, Gold.b, 0.9f));
                 DrawText(r, ability.CooldownRemaining.ToString("0.0"), Mathf.RoundToInt(30f * scale), FontStyle.Bold, Color.white);
             }
 
-            // Charge pips along the top edge: filled gold for each ready charge, dark sockets for spent ones.
-            if (ability.ChargeCapacity > 1 && !exShow)
-                DrawChargePips(r, ability.ChargeCapacity, ability.ChargesReady, f);
-            else if (exShow && ability.ExChargeCapacity > 1)
-                DrawChargePips(r, ability.ExChargeCapacity, ability.ExChargesReady, f);
+            // The frame on top: its brass dulls while the ability isn't ready, and the inner ring carries the
+            // character's colour (blue for a lit EX).
+            bool bright = exLit || (ready && !exDim);
+            DrawArt(art.SlotFrame, c, k, bright ? Color.white : new Color(0.62f, 0.60f, 0.58f, 1f));
+            Color ring = exLit ? EnergyColor : accent;
+            DrawArt(art.SlotRing, c, k, new Color(ring.r, ring.g, ring.b, bright ? 0.9f : 0.4f));
 
-            // Key badge on the bottom edge.
-            if (!string.IsNullOrEmpty(ability.KeyLabel))
-            {
-                float bw = Mathf.Max(r.width * 0.5f, 46f * scale), bh = 24f * scale;
-                var badge = new Rect(r.center.x - bw * 0.5f, r.yMax - bh * 0.5f + f * 0.5f, bw, bh);
-                DrawRect(new Rect(badge.x - 2f * scale, badge.y - 2f * scale, badge.width + 4f * scale, badge.height + 4f * scale), ready ? Gold : DarkGold);
-                DrawRect(badge, new Color(0.04f, 0.05f, 0.08f, 1f));
-                DrawText(badge, ability.KeyLabel, Mathf.RoundToInt(15f * scale), FontStyle.Bold, ready ? Gold : new Color(0.7f, 0.7f, 0.7f));
-            }
+            // Charge gems set into the top of the brass band: gold for each ready charge, dark for spent ones.
+            if (ability.ChargeCapacity > 1 && !exShow)
+                DrawChargeGems(c, ability.ChargeCapacity, ability.ChargesReady);
+            else if (exShow && ability.ExChargeCapacity > 1)
+                DrawChargeGems(c, ability.ExChargeCapacity, ability.ExChargesReady);
 
             if (exDim)
             {
-                DrawRect(new Rect(r.x - f, r.y - f, r.width + 2f * f, r.height + 2f * f), new Color(0f, 0f, 0f, 0.65f));
+                DrawArt(art.SlotMask, c, k, new Color(0f, 0f, 0f, 0.65f));
+                DrawArt(art.SlotFrame, c, k, new Color(0f, 0f, 0f, 0.65f));
             }
-            else if (exShow)
+
+            // Key plate on the frame's lower right (the skull keeps the bottom).
+            if (!string.IsNullOrEmpty(ability.KeyLabel))
+                DrawKeyPlate(c + new Vector2(36f, 46f) * k, ability.KeyLabel, ready && !exDim);
+
+            if (exShow)
             {
-                if (exLocked) DrawRect(r, new Color(0f, 0f, 0f, 0.5f));
+                if (exLocked) DrawArt(art.SlotMask, c, k, new Color(0f, 0f, 0f, 0.5f));
                 // Energy cost at the top of the slot; dimmed when the surgeon can't afford it.
                 bool affordable = energy != null && energy.Current >= ability.ExCost;
                 DrawText(new Rect(r.x, r.y + 2f * scale, r.width, 22f * scale), $"EX {Mathf.CeilToInt(ability.ExCost)}",
@@ -423,30 +636,119 @@ namespace Anathema.Player
             }
         }
 
-        // A row of small squares centred on the slot's top edge, straddling the frame like the key badge does below.
-        void DrawChargePips(Rect r, int capacity, int ready, float f)
+        // Gems along the top of the slot's brass band, centred under the spike.
+        void DrawChargeGems(Vector2 c, int capacity, int ready)
         {
-            float size = 11f * scale, gap = 5f * scale, edge = 2f * scale;
-            float rowW = capacity * size + (capacity - 1) * gap;
-            float x = r.center.x - rowW * 0.5f;
-            float y = r.y - size * 0.5f - f * 0.5f;
+            float k = art.SlotK, step = 16f * Mathf.Deg2Rad;
             for (int i = 0; i < capacity; i++)
             {
-                var pip = new Rect(x + i * (size + gap), y, size, size);
-                bool lit = i < ready;
-                DrawRect(new Rect(pip.x - edge, pip.y - edge, pip.width + 2f * edge, pip.height + 2f * edge), Panel);
-                DrawRect(pip, lit ? Gold : new Color(0.04f, 0.05f, 0.08f, 1f));
-                if (lit) DrawRect(new Rect(pip.x, pip.y, pip.width, pip.height * 0.4f), new Color(1f, 0.95f, 0.7f, 0.55f));
-                else DrawBorderColored(pip, scale, DarkGold);
+                float a = -Mathf.PI * 0.5f + (i - (capacity - 1) * 0.5f) * step;
+                var p = c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * (HudArt.SlotRingRadius * k);
+                DrawArt(art.Gem, p, k, i < ready ? Gold : new Color(0.12f, 0.11f, 0.10f, 1f));
             }
         }
 
-        void DrawBorderColored(Rect r, float t, Color c)
+        // A dark pill with a brass rim, centred on `center`, sized to the label: the pill texture's rounded caps are drawn
+        // as they are and its straight middle is stretched.
+        void DrawKeyPlate(Vector2 center, string label, bool lit)
         {
-            DrawRect(new Rect(r.x, r.y, r.width, t), c);
-            DrawRect(new Rect(r.x, r.yMax - t, r.width, t), c);
-            DrawRect(new Rect(r.x, r.y, t, r.height), c);
-            DrawRect(new Rect(r.xMax - t, r.y, t, r.height), c);
+            Texture2D pill = art.Pill;
+            float h = pill.height, cap = h * 0.5f;
+            int fontSize = Mathf.RoundToInt(15f * scale);
+            var measure = new GUIStyle(GUI.skin.label) { fontSize = fontSize, fontStyle = FontStyle.Bold };
+            float w = Mathf.Max(h * 1.3f, measure.CalcSize(new GUIContent(label)).x + h * 0.7f);
+            var plate = new Rect(center.x - w * 0.5f, center.y - h * 0.5f, w, h);
+
+            Color previous = GUI.color;
+            GUI.color = lit ? Gold : DarkGold;
+            GUI.DrawTextureWithTexCoords(new Rect(plate.x, plate.y, cap, h), pill, new Rect(0f, 0f, 0.25f, 1f));
+            GUI.DrawTextureWithTexCoords(new Rect(plate.x + cap, plate.y, w - 2f * cap, h), pill, new Rect(0.25f, 0f, 0.5f, 1f));
+            GUI.DrawTextureWithTexCoords(new Rect(plate.xMax - cap, plate.y, cap, h), pill, new Rect(0.75f, 0f, 0.25f, 1f));
+            GUI.color = previous;
+            DrawText(plate, label, fontSize, FontStyle.Bold, lit ? Gold : new Color(0.7f, 0.7f, 0.7f));
+        }
+
+        // ---------- Painted art ----------
+
+        void EnsureArt()
+        {
+            if (!characterLooked)
+            {
+                characterLooked = true;
+                string character = CharacterStats.Identify(gameObject);
+                characterKey = character;
+                emblem = HudArt.EmblemFor(character);
+                if (!string.IsNullOrEmpty(character))
+                    foreach (var c in Net.CharacterSelectView.Roster)
+                        if (c.prefabPath.EndsWith("Player_" + character, System.StringComparison.Ordinal)) { accent = c.accent; break; }
+            }
+            if (art != null && Mathf.Approximately(artScale, scale)) return;
+
+            art?.Dispose();
+            artScale = scale;
+            art = HudArt.Build(
+                slotK: SlotSize * scale * 0.5f / HudArt.SlotRadius,
+                barK: BarHeight * scale * 0.5f / HudArt.BarHalfHeight,
+                barDesignWidth: BarWidth / BarHeight * 2f * HudArt.BarHalfHeight,
+                emblem: emblem,
+                pillHeight: 26f * scale);
+        }
+
+        void OnDestroy() => art?.Dispose();
+
+        // Ability icons, loaded from Resources/AbilityIcons/<Character>/<AbilityClass>.png (rendered from the SVGs in
+        // Art/AbilityIcons by Tools/IconRender). An EX version kept in the same component is <AbilityClass>_EX and falls
+        // back to the base icon. Abilities without an icon return null and keep their name in the slot.
+        readonly Dictionary<string, Texture2D> icons = new Dictionary<string, Texture2D>();
+
+        Texture2D IconFor(Ability ability, bool ex)
+        {
+            if (ability == null || string.IsNullOrEmpty(characterKey)) return null;
+            string type = ability.GetType().Name;
+            if (ex)
+            {
+                Texture2D exIcon = LoadIcon(type + "_EX");
+                if (exIcon != null) return exIcon;
+            }
+            return LoadIcon(type);
+        }
+
+        Texture2D LoadIcon(string name)
+        {
+            if (!icons.TryGetValue(name, out Texture2D tex))
+            {
+                tex = Resources.Load<Texture2D>($"AbilityIcons/{characterKey}/{name}");
+                icons[name] = tex; // remember misses too
+            }
+            return tex;
+        }
+
+        // Screen rect for art drawn at any size: design (0,0) at `center`, `k` pixels per design unit.
+        static Rect ArtRect(HudArt.Art a, Vector2 center, float k)
+            => new Rect(center.x + a.Box.xMin * k, center.y + a.Box.yMin * k, a.Box.width * k, a.Box.height * k);
+
+        // Draws art with its design origin at `anchor`, tinted.
+        void DrawArt(HudArt.Art a, Vector2 anchor, float k, Color tint)
+        {
+            Color previous = GUI.color;
+            GUI.color = tint;
+            GUI.DrawTexture(a.Place(anchor, k), a.Tex);
+            GUI.color = previous;
+        }
+
+        // Draws only the `part` (screen rect) of a texture placed at `placed`, by cropping its texture coordinates: a
+        // white mask drawn this way gives a tinted curtain that keeps the mask's round edge.
+        void DrawArtPart(Texture2D tex, Rect placed, Rect part, Color tint)
+        {
+            float x0 = Mathf.Max(part.xMin, placed.xMin), x1 = Mathf.Min(part.xMax, placed.xMax);
+            float y0 = Mathf.Max(part.yMin, placed.yMin), y1 = Mathf.Min(part.yMax, placed.yMax);
+            if (x1 <= x0 || y1 <= y0) return;
+            var uv = new Rect((x0 - placed.x) / placed.width, 1f - (y1 - placed.y) / placed.height,
+                (x1 - x0) / placed.width, (y1 - y0) / placed.height);
+            Color previous = GUI.color;
+            GUI.color = tint;
+            GUI.DrawTextureWithTexCoords(Rect.MinMaxRect(x0, y0, x1, y1), tex, uv);
+            GUI.color = previous;
         }
 
         // ---------- Primitives ----------

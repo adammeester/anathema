@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-55 -55 110 110">
+<defs>
+<radialGradient id="bg" cx="0" cy="-6" r="62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2a1e16"/><stop offset="1" stop-color="#060403"/></radialGradient>
+<radialGradient id="glow" cx="0" cy="0" r="1"><stop offset="0" stop-color="#ff5238" stop-opacity="0.5"/><stop offset="1" stop-color="#ff5238" stop-opacity="0"/></radialGradient>
+<linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c4c2ba"/><stop offset="1" stop-color="#34322e"/></linearGradient>
+<linearGradient id="brass" gradientUnits="userSpaceOnUse" x1="-20" y1="-30" x2="20" y2="14"><stop offset="0" stop-color="#e3b862"/><stop offset="1" stop-color="#5e4014"/></linearGradient>
+<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>
+<clipPath id="disc"><circle r="55"/></clipPath>
+<g id="axe">
+<rect x="-4.5" y="-38" width="9" height="76" rx="2" fill="#3a2614" stroke="#0c0806" stroke-width="1.5"/>
+<g stroke="#1a0e06" stroke-width="2"><line x1="-4.5" y1="14" x2="4.5" y2="10"/><line x1="-4.5" y1="21" x2="4.5" y2="17"/><line x1="-4.5" y1="28" x2="4.5" y2="24"/></g>
+<polyline points="38,-45 46,-39 42,-33 50,-27 44,-21 51,-15 44,-9 50,-3 42,3 46,7 38,8" fill="none" stroke="#1a1a18" stroke-width="5"/>
+<path d="M4,-36 L38,-45 Q50,-18 38,8 L4,-2 Z" fill="url(#metal)" stroke="#0c0c0a" stroke-width="2.5"/>
+<path d="M8,-34 L35,-42" stroke="#e8e6de" stroke-width="1.2" opacity="0.6"/>
+<circle cx="14" cy="-20" r="3" fill="#1a1a18"/><circle cx="14" cy="-20" r="1.2" fill="#8a1a14"/>
+<polyline points="38,-45 46,-39 42,-33 50,-27 44,-21 51,-15 44,-9 50,-3 42,3 46,7 38,8" fill="none" stroke="#8a8a84" stroke-width="2"/>
+<g fill="#7a0c0c"><circle cx="44" cy="-20" r="2.5"/><circle cx="40" cy="-4" r="2"/><circle cx="30" cy="2" r="1.8"/></g>
+</g>
+</defs>
+<g clip-path="url(#disc)">
+<circle r="55" fill="url(#bg)"/>
+<g fill="#000" opacity="0.3"><circle cx="-30" cy="-34" r="9"/><circle cx="34" cy="30" r="12"/><circle cx="-36" cy="22" r="7"/></g>
+<circle cy="-8" r="48" fill="url(#glow)"/>
+<path d="M-56,38 L-34,30 L-26,36 L-10,26 L0,34 L14,24 L24,32 L40,22 L56,28 L56,42 L38,32 L26,40 L14,30 L2,42 L-10,32 L-24,44 L-34,36 L-56,46 Z" fill="#ff3a1a" opacity="0.4" filter="url(#soft)"/>
+<path d="M-56,40 L-34,32 L-26,38 L-10,28 L0,36 L14,26 L24,34 L40,24 L56,30 L56,38 L40,30 L26,38 L14,30 L2,40 L-10,32 L-24,42 L-34,36 L-56,44 Z" fill="#c4161c" stroke="#3a0404" stroke-width="1"/>
+<path d="M-40,38 L-26,35 L-10,30 L2,37 L14,28 L26,35 L44,27" fill="none" stroke="#ffb070" stroke-width="1.2"/>
+<g stroke="#ff3a1a" stroke-width="12" stroke-linecap="square" opacity="0.45" filter="url(#soft)"><line x1="-18" y1="-30" x2="16" y2="4"/><line x1="18" y1="-30" x2="-16" y2="4"/><line x1="-20" y1="12" x2="20" y2="12"/></g>
+<g stroke="#2a1a08" stroke-width="10" stroke-linecap="square"><line x1="-18" y1="-30" x2="16" y2="4"/><line x1="18" y1="-30" x2="-16" y2="4"/><line x1="-20" y1="12" x2="20" y2="12"/></g>
+<g stroke="url(#brass)" stroke-width="7" stroke-linecap="square"><line x1="-18" y1="-30" x2="16" y2="4"/><line x1="18" y1="-30" x2="-16" y2="4"/><line x1="-20" y1="12" x2="20" y2="12"/></g>
+<g fill="#7a0c0c"><circle cx="-6" cy="-18" r="1.8"/><circle cx="10" cy="-6" r="1.5"/><circle cx="-12" cy="12" r="1.6"/></g>
+<g fill="#ff8a3a"><circle cx="-30" cy="-26" r="1.3"/><circle cx="34" cy="-20" r="1.1"/><circle cx="24" cy="-40" r="1"/><circle cx="-38" cy="6" r="1"/></g>
+</g>
+</svg>

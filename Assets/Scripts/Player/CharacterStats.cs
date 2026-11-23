@@ -11,6 +11,7 @@ using Anathema.Abilities.PlagueSurgeon;
 using Anathema.Abilities.Psyker;
 using Anathema.Abilities.SkitariiRanger;
 using Anathema.Abilities.Sorcerer;
+using Anathema.Abilities.SanguinaryPriest;
 using Anathema.Combat;
 using UnityEngine;
 
@@ -51,6 +52,7 @@ namespace Anathema.Player
             if (player.GetComponent<GlimmersteelBlade>() != null) return "Mandrake";
             if (player.GetComponent<SlabMaul>() != null) return "Bullgryn";
             if (player.GetComponent<SandsOfProspero>() != null) return "Sorcerer";
+            if (player.GetComponent<Chainsword>() != null) return "SanguinaryPriest";
             return null;
         }
 

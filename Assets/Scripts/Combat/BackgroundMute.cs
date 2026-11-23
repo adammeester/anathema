@@ -16,6 +16,6 @@ namespace Anathema.Combat
             OnFocusChanged(Application.isFocused);
         }
 
-        static void OnFocusChanged(bool focused) => AudioListener.volume = focused ? 1f : 0f;
+        static void OnFocusChanged(bool focused) => GameVolume.Apply(focused);
     }
 }

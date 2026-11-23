@@ -37,6 +37,25 @@ namespace Anathema.Combat
             Sfx.Play(Sfx.CounterHit, 0.65f, 0.97f, 1.03f);
         }
 
+        // A fighter was eliminated: a blood-red shockwave and burst of embers where they fell, and a low funeral knell
+        // (hit, then a tolling bell) heard by everyone.
+        public static void Death(Vector3 position)
+        {
+            Color blood = new Color(0.75f, 0.05f, 0.05f, 1f);
+            Color ember = new Color(1f, 0.45f, 0.2f, 1f);
+            Ring(position, 0.3f, 3.2f, 0.55f, blood, 0.4f, 0.12f);
+            Ring(position, 0.2f, 2.0f, 0.4f, ember, 0.18f, 0.1f);
+            Sparks(position, 12, 0.3f, 1.6f, 0.5f, ember);
+            Play(Get("death", BuildDeath), 0.6f, 0.97f, 1.03f);
+        }
+
+        // The body hits the floor: a ring of dust and a heavy thud.
+        public static void CorpseLanded(Vector3 position)
+        {
+            Ring(position, 0.4f, 1.8f, 0.4f, new Color(0.45f, 0.38f, 0.3f, 0.8f), 0.3f, 0.08f);
+            Play(Get("corpseThud", BuildThud), 0.55f, 0.92f, 1.04f);
+        }
+
         // A teleport from `from` to `to`: the origin collapses in a flash, a streak of energy links the two points, and the
         // arrival erupts in a pillar of light. Replicas call this too so both players see and hear it.
         public static void Teleport(Vector3 from, Vector3 to, Color color)
@@ -249,6 +268,50 @@ namespace Anathema.Combat
         static float Env(float t, float attack, float decay)
         {
             return Mathf.Clamp01(t / attack) * Mathf.Exp(-t * decay);
+        }
+
+        // Death: a deep body-blow (pitch-dropping sine + noise burst) followed by a low tolling bell (hum, prime,
+        // minor-third tierce, quint, nominal: the classic church-bell partials) that rings out for a couple of seconds.
+        static AudioClip BuildDeath()
+        {
+            var rng = new System.Random(77);
+            float low = 0f, hitPhase = 0f;
+            const float bellAt = 0.12f, bellBase = 98f;
+            float[] ratio = { 0.5f, 1f, 1.183f, 1.506f, 2f, 2.514f, 3.011f };
+            float[] amp = { 0.7f, 1f, 0.55f, 0.35f, 0.6f, 0.25f, 0.15f };
+            float[] decay = { 0.9f, 1.4f, 2.2f, 2.8f, 2.4f, 4f, 5.5f };
+            return Make("FxDeath", 2.8f, t =>
+            {
+                hitPhase += (38f + 90f * Mathf.Exp(-t * 18f)) / SampleRate;
+                float hit = Mathf.Sin(TwoPi * hitPhase) * Env(t, 0.002f, 6f) * 1.3f;
+
+                float white = (float)(rng.NextDouble() * 2.0 - 1.0);
+                low += 0.08f * (white - low);
+                float crunch = low * Env(t, 0.001f, 22f) * 2.2f;
+
+                float bell = 0f;
+                float bt = t - bellAt;
+                if (bt > 0f)
+                    for (int i = 0; i < ratio.Length; i++)
+                        bell += Mathf.Sin(TwoPi * bellBase * ratio[i] * bt) * amp[i] * Env(bt, 0.004f, decay[i]);
+
+                return hit + crunch + bell * 0.45f;
+            });
+        }
+
+        // Corpse landing: a short low thump with a little gritty noise.
+        static AudioClip BuildThud()
+        {
+            var rng = new System.Random(13);
+            float low = 0f, phase = 0f;
+            return Make("FxCorpseThud", 0.5f, t =>
+            {
+                phase += (45f + 60f * Mathf.Exp(-t * 30f)) / SampleRate;
+                float thump = Mathf.Sin(TwoPi * phase) * Env(t, 0.002f, 12f);
+                float white = (float)(rng.NextDouble() * 2.0 - 1.0);
+                low += 0.15f * (white - low);
+                return thump + low * Env(t, 0.001f, 30f) * 1.5f;
+            });
         }
 
         // Counter: a hard metallic clang (inharmonic partials that ring out), a sharp noise crack and a low thud.

@@ -9,6 +9,7 @@ using Anathema.Abilities.PlagueSurgeon;
 using Anathema.Abilities.Psyker;
 using Anathema.Abilities.SkitariiRanger;
 using Anathema.Abilities.Sorcerer;
+using Anathema.Abilities.SanguinaryPriest;
 using Anathema.Arena;
 using Anathema.CameraRig;
 using Anathema.Combat;
@@ -36,6 +37,8 @@ namespace Anathema.EditorTools
         const string MandrakeModelPath = "Assets/Models/Mandrake.fbx";
         const string BullgrynModelPath = "Assets/Models/Bullgryn.fbx";
         const string SorcererModelPath = "Assets/Models/Sorcerer.fbx";
+        // Until his own model exists the Grey Knight body stands in (its halberd carries the blade glow).
+        const string SanguinaryPriestModelPath = "Assets/Models/SanguinaryPriest.fbx";
         const string BullgrynShieldModelPath = "Assets/Models/BullgrynShield.fbx"; // planted by Living Wall
         // First model that exists is used for the player.
         static readonly string[] PlayerModelPaths =
@@ -62,7 +65,8 @@ namespace Anathema.EditorTools
             Hospitaller,
             Mandrake,
             Bullgryn,
-            Sorcerer
+            Sorcerer,
+            SanguinaryPriest
         }
 
         [MenuItem("Anathema/Rebuild Arena Scene")]
@@ -91,6 +95,9 @@ namespace Anathema.EditorTools
 
         [MenuItem("Anathema/Rebuild Arena Scene (Thousand Sons Sorcerer)")]
         static void BuildSorcerer() => Build(Character.Sorcerer);
+
+        [MenuItem("Anathema/Rebuild Arena Scene (Sanguinary Priest)")]
+        static void BuildSanguinaryPriest() => Build(Character.SanguinaryPriest);
 
         // The training ground on the Crucible map (breakable floor), in its own scene so Arena.unity stays as it is.
         // Slams that break the floor: the Berserker's R, and the Grey Knight's Q while the Daemonhammer is equipped (F1 panel).
@@ -150,6 +157,9 @@ namespace Anathema.EditorTools
             GameObject mover = CreateDummy(new Vector3(0f, 1f, -12f));
             mover.name = "Training Dummy (Moving)";
             mover.AddComponent<DummyMover>().Configure(Vector3.right, 10f, 4f);
+            // Champion-shaped targets with real health pools, for testing kills (death knell, corpse, ...).
+            CreateCharacterDummy("Psyker", "Net/Player_Psyker", new Vector3(-5f, 0f, 3f), 145f, 1.8f, 0.4f, 2.3f);
+            CreateCharacterDummy("Khorne Berserker", "Net/Player_KhorneBerserker", new Vector3(5f, 0f, 3f), 215f, 2f, 0.5f, 2.7f);
 
             Directory.CreateDirectory(Path.GetDirectoryName(scenePath));
             EditorSceneManager.SaveScene(scene, scenePath);
@@ -1734,13 +1744,15 @@ namespace Anathema.EditorTools
             bool bullgryn = character == Character.Bullgryn;
             // The Sorcerer is a Space Marine in power armour under a tall crested helm: a marine-sized body.
             bool sorcerer = character == Character.Sorcerer;
+            // The Sanguinary Priest is a Blood Angels marine: a marine-sized body.
+            bool priest = character == Character.SanguinaryPriest;
             bool small = psyker || ranger || hospitaller || mandrake;
             controller.height = ranger ? 1.9f : psyker ? 1.8f : hospitaller ? 1.85f : mandrake ? 1.9f : bullgryn ? 2.6f : 2f;
             // The Bullgryn is the biggest body on the roster (~2.9m model), so he is also the widest target.
             controller.radius = small ? 0.4f : bullgryn ? 0.6f : 0.5f;
             controller.center = new Vector3(0f, controller.height * 0.5f, 0f);
 
-            root.AddComponent<Health>().Configure(character == Character.KhorneBerserker ? 215f : ranger ? 150f : psyker ? 145f : hospitaller ? 160f : mandrake ? 155f : bullgryn ? 240f : sorcerer ? 165f : 175f, 1);
+            root.AddComponent<Health>().Configure(character == Character.KhorneBerserker ? 215f : ranger ? 150f : psyker ? 145f : hospitaller ? 160f : mandrake ? 155f : bullgryn ? 240f : sorcerer ? 165f : priest ? 170f : 175f, 1);
             root.AddComponent<HealthBar>().Configure(ranger ? 2.5f : psyker ? 2.3f : hospitaller ? 2.4f : mandrake ? 2.45f : bullgryn ? 3.2f : sorcerer ? 3.0f : 2.7f);
             root.AddComponent<Energy>();
             root.AddComponent<EnergyBar>().Configure(ranger ? 2.3f : psyker ? 2.1f : hospitaller ? 2.2f : mandrake ? 2.25f : bullgryn ? 3.0f : sorcerer ? 2.8f : 2.5f);
@@ -1838,6 +1850,20 @@ namespace Anathema.EditorTools
                 root.AddComponent<WeaverOfFates>();
                 root.AddComponent<EchoesOfProspero>();
             }
+            else if (priest)
+            {
+                // Melee battle-medic: chainsword cuts that heal the most injured teammate, a dash-stab that heals around
+                // its target, a jump-pack leap, an area heal stronger in melee (EX: a big single heal), a counter and the
+                // Wings of the Angel ultimate. Vitae (the passive) fills from healing and turns the next swing into the
+                // Exsanguinating Arc.
+                root.AddComponent<Chainsword>();
+                root.AddComponent<SanguineLunge>();
+                root.AddComponent<JumpPackDescent>();
+                root.AddComponent<ChaliceOffering>();
+                root.AddComponent<SanguineParry>();
+                root.AddComponent<WingsOfTheAngel>();
+                root.AddComponent<Vitae>();
+            }
             else if (psyker)
             {
                 // Glass-cannon caster: ranged bolts, chain lightning, a discharge that spends Charges, a damage-absorbing
@@ -1875,6 +1901,7 @@ namespace Anathema.EditorTools
                 : mandrake ? new[] { MandrakeModelPath, PsykerModelPath }.Concat(PlayerModelPaths).ToArray()
                 : bullgryn ? new[] { BullgrynModelPath }.Concat(PlayerModelPaths).ToArray()
                 : sorcerer ? new[] { SorcererModelPath }.Concat(PlayerModelPaths).ToArray()
+                : priest ? new[] { SanguinaryPriestModelPath }.Concat(PlayerModelPaths).ToArray()
                 : PlayerModelPaths;
             foreach (string path in modelPaths)
             {
@@ -1941,6 +1968,25 @@ namespace Anathema.EditorTools
             dummy.AddComponent<Health>().Configure(100f, 2);
             dummy.AddComponent<HealthBar>().Configure(1.7f);
             dummy.AddComponent<Respawner>().Configure(2f);
+            return dummy;
+        }
+
+        // A dummy wearing a champion's model (built at runtime by CharacterDummy), facing the middle of the arena.
+        static GameObject CreateCharacterDummy(string label, string prefabPath, Vector3 feet, float health, float height, float radius, float barHeight)
+        {
+            var dummy = new GameObject($"Training Dummy ({label})");
+            Vector3 toCentre = new Vector3(-feet.x, 0f, -feet.z);
+            dummy.transform.SetPositionAndRotation(feet, toCentre.sqrMagnitude > 0.01f ? Quaternion.LookRotation(toCentre) : Quaternion.identity);
+
+            var capsule = dummy.AddComponent<CapsuleCollider>();
+            capsule.height = height;
+            capsule.radius = radius;
+            capsule.center = new Vector3(0f, height * 0.5f, 0f);
+
+            dummy.AddComponent<CharacterDummy>().Configure(prefabPath);
+            dummy.AddComponent<Health>().Configure(health, 2);
+            dummy.AddComponent<HealthBar>().Configure(barHeight);
+            dummy.AddComponent<Respawner>().Configure(6f); // long enough to look at the corpse
             return dummy;
         }
 

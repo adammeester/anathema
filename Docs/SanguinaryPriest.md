@@ -3,7 +3,7 @@
 Blood Angels melee battle-medic. High risk, high reward: he heals his team *through* fighting, and his big swing is
 earned by supporting, never by dealing damage.
 
-**Look:** a Blood Angels veteran first, medic second. Gold armour with red trim, a winged jump pack, a long chainsword
+**Look:** a Blood Angels veteran first, medic second. Gold armour with red trim, a winged jump pack, an ornate power sword
 (Encarmine-style). The Blood Chalice is his one healing prop, hung at the hip; the narthecium is a small gauntlet detail.
 
 **Stats:** ~2.5 m, 170 HP (below the other marines: his healing only flows while he's in danger), 5.2 move speed.
@@ -11,8 +11,8 @@ earned by supporting, never by dealing damage.
 ## Passive: Vitae (the Blood Chalice)
 
 - **Sources (never damage):**
-  - Healing done on allies: 1 Vitae per point. Real healing only (no overheal, no self-healing).
-  - Damage prevented for allies: 1 per point (Jump Pack Descent's damage reduction, Sanguine Parry's negated hit).
+  - Healing done on allies and himself: 1 Vitae per point. Real healing only (no overheal).
+  - (Draft idea, not built yet: damage prevented for allies.)
 - **Front-line bonus:** Vitae earned while an enemy is within 3 m of him is x1.5.
 - **Cap 100.** After 3s without healing or preventing damage, it drains 6/s.
 - **At full** the next LMB is **Exsanguinating Arc** and spends the chalice:
@@ -28,7 +28,7 @@ earned by supporting, never by dealing damage.
 
 | Slot | Ability | Spec |
 | --- | --- | --- |
-| LMB | Chainsword | 2-hit chain, 100 degrees, 2.6 m, 9 damage, 0.7s cadence. Each hit sends a blood stream that heals the most injured ally within 10 m for 5 (nothing when nobody is hurt). Hits give energy. |
+| LMB | Power Sword | 2-hit chain, 100 degrees, 2.6 m, 9 damage, 0.7s cadence. Each hit sends a blood stream that heals the most injured ally within 10 m for 5 (nothing when nobody is hurt). Hits give energy. |
 | RMB | Sanguine Lunge | 4 m dash-stab, 10 damage; allies within 4 m of the target heal 12. 6s cooldown. |
 | Q | Jump Pack Descent | Leap up to 8 m, 10s cooldown, his only mobility. Near an enemy: 10 damage and knockback. On an ally: heal them 12, both take 20% less damage for 1.5s. |
 | E | Chalice Offering | Allies within 4 m heal 16 over 2s, +50% per enemy within 4 m of him (max +100%). 12s cooldown. **EX Red Thirst** (35 energy): spend 15 of his own HP to heal the ally nearest the cursor for 30. |
@@ -48,7 +48,7 @@ Charged weapon effect built like `PsychicHalberdEffect` (glow sleeve, point ligh
 **Exsanguinating Arc animation:** a low crouch with the blade drawn back during the wind-up, then 1.25 turns in ~0.3s
 with the blade at arm's length. Thick red crescent trail (`SlashEffect`, blood palette, wider and longer-lived), the ground
 ring flashes outward, a blood-mist burst, red streams snaking to each healed ally, a short camera shake for his own player,
-and a chainsword roar plus a choir sting. The glow fades over 0.5s afterwards.
+and a power-field crackle and blade cut plus a choir sting. The glow fades over 0.5s afterwards.
 
 ## Upgrade sketch (Armament / Endurance / Ferocity)
 
@@ -56,9 +56,22 @@ and a chainsword roar plus a choir sting. The glow fades over 0.5s afterwards.
 - **Endurance:** Sanctified Blood (Vitae no longer drains).
 - **Ferocity:** Brimming (cap 130, Arc damage up); Red Thirst Unbound (overheal counts at half).
 
+## Built in pass 1 (differences from the draft above)
+
+- **Self-healing fills Vitae at the full rate** (decided after the draft), so he can charge in 1v1 and training.
+  His heals (blood stream, Chalice Offering, Parry) all include himself as a target.
+- **Damage prevented is not a Vitae source yet**: only healing counts. Tracking prevented damage needs a server
+  report; left for later if the healing-only fill feels too slow.
+- **Sanguine Parry** heals a flat 15 instead of "the damage it negated" (the counter payoff isn't told the amount).
+- **Red Thirst** costs energy only, not 15 of his own HP (no self-damage path exists online yet).
+- **Chalice Offering** heals instantly rather than over 2s.
+- **Jump Pack** gives a 10-point barrier instead of 20% damage reduction (the barrier is already networked).
+- The +10% damage taken while full also applies during Wings of the Angel's 5s (both publish the same "empowered" flag).
+- Other players see only the full-chalice glow stage; the 33% and 66% stages show on his own screen.
+- No upgrade tree, placeholder model (the Grey Knight body; the glow sits on its halberd bone).
+
 ## Open questions
 
-- Solo modes (1v1, training arena): he can never charge. Allow self-healing at ~25% there, or accept it?
 - Vitae fill rate: check that a full chalice takes roughly 4-6s of committed brawling while the team is taking damage.
 - Front-line bonus readability: maybe a faint blood mist on him while it's active.
 

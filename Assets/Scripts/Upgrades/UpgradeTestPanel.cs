@@ -23,9 +23,15 @@ namespace Anathema.Upgrades
             state = GetComponent<UpgradeState>();
         }
 
+        // True while this panel or its picker is on screen, so the cursor stays visible for clicking it.
+        public static bool Showing { get; private set; }
+
+        void OnDestroy() => Showing = false;
+
         void Update()
         {
             if (Input.GetKeyDown(KeyCode.F1)) open = !open;
+            Showing = !Anathema.Net.NetGame.Online && (open || (state != null && state.Pending));
             if (Input.GetKeyDown(KeyCode.F2)) Anathema.Net.OfflinePrep.Begin(gameObject);
             if (!Anathema.Net.OfflinePrep.Active) picker.HandleKeys(state);
         }

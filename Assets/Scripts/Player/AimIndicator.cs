@@ -35,12 +35,23 @@ namespace Anathema.Player
             disc.GetComponent<Renderer>().sharedMaterial = VisualUtil.UnlitMaterial(new Color(1f, 1f, 1f, 0.6f));
             disc.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             reticle = disc.transform;
+
+            GameObject mark = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            mark.name = "AimGroundMark";
+            Destroy(mark.GetComponent<Collider>());
+            mark.transform.localScale = new Vector3(0.25f, 0.01f, 0.25f);
+            mark.GetComponent<Renderer>().sharedMaterial = VisualUtil.UnlitMaterial(new Color(1f, 1f, 1f, 0.3f));
+            mark.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            groundMark = mark.transform;
         }
+
+        Transform groundMark;
 
         void OnDestroy()
         {
             if (line != null) Destroy(line.gameObject);
             if (reticle != null) Destroy(reticle.gameObject);
+            if (groundMark != null) Destroy(groundMark.gameObject);
         }
 
         void LateUpdate()
@@ -48,16 +59,20 @@ namespace Anathema.Player
             bool visible = !health.IsDead;
             line.enabled = visible;
             reticle.gameObject.SetActive(visible);
+            groundMark.gameObject.SetActive(visible);
             if (!visible) return;
 
-            Vector3 start = transform.position + Vector3.up * lineHeight;
+            // Line and reticle at aim height, the height shots fly at, so the reticle sits exactly under the mouse and on
+            // whatever body it is over. The ground marker below shows where ground-placed abilities land.
+            Vector3 start = transform.position + Vector3.up * MouseAim.AimHeight;
             Vector3 toCursor = aim.AimPoint - transform.position;
             toCursor.y = 0f;
             Vector3 end = start + Vector3.ClampMagnitude(toCursor, maxLength);
 
             line.SetPosition(0, start);
             line.SetPosition(1, end);
-            reticle.position = new Vector3(aim.AimPoint.x, transform.position.y + lineHeight, aim.AimPoint.z);
+            reticle.position = new Vector3(aim.AimPoint.x, transform.position.y + MouseAim.AimHeight, aim.AimPoint.z);
+            groundMark.position = new Vector3(aim.AimPoint.x, transform.position.y + lineHeight, aim.AimPoint.z);
         }
     }
 }

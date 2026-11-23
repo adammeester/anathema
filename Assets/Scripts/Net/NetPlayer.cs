@@ -95,7 +95,7 @@ namespace Anathema.Net
         // Control effects (root, panic, stun...) are enforced on the machine that moves the character, so the owner
         // publishes which ones are up and replicas draw visual-only copies (see SyncStatusFx).
         const int FxRoot = 2, FxPanic = 4, FxCharged = 8, FxEnraged = 16, FxStun = 32, FxEmpowered = 64, FxStealth = 128, FxFaded = 256, FxHasted = 512,
-                  FxPetrify = 1024, FxTimeslip = 2048;
+                  FxPetrify = 1024, FxTimeslip = 2048, FxPrimed = 4096;
         readonly NetworkVariable<int> netStatusFx = new NetworkVariable<int>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Owner);
         int appliedStatusFx;
 
@@ -153,9 +153,8 @@ namespace Anathema.Net
             if (Hasted.IsHasted(gameObject)) m |= FxHasted;
             foreach (Ability a in abilities)
             {
-                if (!a.ShowsEmpowered) continue;
-                m |= FxEmpowered;
-                break;
+                if (a.ShowsEmpowered) m |= FxEmpowered;
+                if (a.ShowsPrimed) m |= FxPrimed;
             }
             return health.IsDead ? 0 : m;
         }
@@ -185,6 +184,8 @@ namespace Anathema.Net
             if ((changed & FxStun) != 0 && (mask & FxStun) == 0 && TryGetComponent(out StunFx stunFx)) Destroy(stunFx);
             if ((changed & FxEmpowered) != 0)
                 foreach (Ability a in abilities) a.ShowReplicaEmpowered((mask & FxEmpowered) != 0);
+            if ((changed & FxPrimed) != 0)
+                foreach (Ability a in abilities) a.ShowReplicaPrimed((mask & FxPrimed) != 0);
         }
 
         void ToggleFx<T>(int changed, int mask, int bit, System.Action<GameObject> show) where T : Component

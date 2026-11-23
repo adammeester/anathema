@@ -34,7 +34,7 @@ namespace Anathema.Abilities.Bullgryn
         [Header("Shove")]
         [SerializeField] float shoveWarning = 0.25f;
         [SerializeField] float shoveDistance = 3f;
-        [SerializeField] float shoveDuration = 0.5f;
+        [SerializeField] float shoveDuration = 0.16f;   // a hard launch, ~19 m/s
         [SerializeField] float shoveDamage = 10f;
         [SerializeField] float pinStun = 1.5f;
         [SerializeField] float energyPerHit = 0f;
@@ -267,8 +267,11 @@ namespace Anathema.Abilities.Bullgryn
             {
                 GameObject shield = Instantiate(shieldModel, transform);
                 shield.name = "Planted Slabshield";
+                // Keep the model root's own rotation and scale: the FBX import stores Blender's Z-up -> Y-up turn there
+                // (-90 degrees about X), and replacing it with identity laid the shield flat on the ground.
                 shield.transform.localPosition = Vector3.zero;
-                shield.transform.localRotation = Quaternion.identity;
+                shield.transform.localRotation = shieldModel.transform.localRotation;
+                shield.transform.localScale = shieldModel.transform.localScale;
                 foreach (Collider c in shield.GetComponentsInChildren<Collider>()) Destroy(c);
             }
             else

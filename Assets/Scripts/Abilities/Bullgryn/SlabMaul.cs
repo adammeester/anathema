@@ -63,12 +63,22 @@ namespace Anathema.Abilities.Bullgryn
         Vector3 target;
         int connectStreak;
         float lastConnect = float.NegativeInfinity;
+        // Haymaker: a passive charge on a cooldown. While it is ready the maul glows, and the next maul swing that
+        // connects is a Haymaker and starts the cooldown. Replicas learn "ready" from the published primed flag.
+        float haymakerReadyAt;
+        bool replicaPrimed;
+        MaulGlowEffect glow;
 
         bool Gauntlet => BullgrynUpgrade.HasGauntlet(gameObject);
+        bool HaymakerReady => !Gauntlet && BullgrynUpgrade.Has(gameObject, BullgrynUpgrade.Haymaker) && Time.time >= haymakerReadyAt;
+        // What the glow shows on this machine.
+        internal bool HaymakerGlowing => Health != null && !Health.IsDead && (IsReplica ? replicaPrimed && !Gauntlet : HaymakerReady);
 
         public override string DisplayName => Gauntlet ? "Grenadier" : "Slab Maul";
         public override string KeyLabel => "LMB";
         public override bool ShowsEmpowered => grit != null && grit.Full;
+        public override bool ShowsPrimed => HaymakerReady;
+        public override void ShowReplicaPrimed(bool on) => replicaPrimed = on;
 
         void Reset()
         {
@@ -81,6 +91,13 @@ namespace Anathema.Abilities.Bullgryn
             energy = GetComponent<Energy>();
             grit = GetComponent<Grit>();
             pose = new LimbPose(transform.Find("Model"), BoneNames);
+            // Built now, while the skeleton is still in its rest pose (it reads the maul's direction from it).
+            glow = MaulGlowEffect.Create(transform.Find("Model"), this);
+        }
+
+        void OnDestroy()
+        {
+            if (glow != null) Destroy(glow.gameObject);
         }
 
         protected override bool IsTriggered()
@@ -152,40 +169,65 @@ namespace Anathema.Abilities.Bullgryn
         void Swing()
         {
             Vector3 dir = BullgrynKit.FlatAim(Aim.AimDirection, transform);
-            if (Time.time - lastConnect > comboWindow) connectStreak = 0;
-            bool shove = connectStreak == 2;
+            bool big = BullgrynUpgrade.Has(gameObject, BullgrynUpgrade.BigSwings);
+            // Ground Pounder: Slab Slam strikes the whole ring around him.
+            bool pound = empowered && BullgrynUpgrade.Has(gameObject, BullgrynUpgrade.GroundPounder);
+            float reach = pound ? BullgrynUpgrade.GroundPounderRadius : range + (big ? BullgrynUpgrade.BigSwingsRangeBonus : 0f);
+            float arc = pound ? 360f : big ? BullgrynUpgrade.BigSwingsArc : arcDegrees;
+            float stun = pound ? BullgrynUpgrade.GroundPounderStun : slamStun;
 
-            SlashEffect.Spawn(transform.position, dir, range, arcDegrees, swingDuration * 2f, empowered ? BullgrynKit.Hazard : BullgrynKit.Power);
+            if (Time.time - lastConnect > comboWindow) connectStreak = 0;
+            // Haymaker: with the charge ready (the maul glowing), this swing is the heavy blow. A Slab Slam keeps the charge.
+            bool haymaker = !empowered && !IsReplica && HaymakerReady;
+            bool shove = haymaker || connectStreak == (big ? 1 : 2);
+            bool heavyLook = empowered || (IsReplica ? HaymakerGlowing : haymaker);
+
+            SlashEffect.Spawn(transform.position, dir, reach, Mathf.Min(arc, 359f), swingDuration * 2f, heavyLook ? BullgrynKit.Hazard : BullgrynKit.Power);
             MeleeSound.Swing(false, 0.45f, 0.7f, 0.8f);
 
             int hits = 0;
             if (!IsReplica)
             {
-                foreach (Health enemy in BullgrynKit.EnemiesInCone(Health, transform.position, dir, range, arcDegrees))
+                foreach (Health enemy in BullgrynKit.EnemiesInCone(Health, transform.position, dir, reach, arc).ToArray())
                 {
-                    float dealt = damage * (empowered ? slamDamageScale : 1f);
+                    float dealt = damage * (empowered ? slamDamageScale : haymaker ? BullgrynUpgrade.HaymakerDamageScale : 1f);
                     Hit hit = Hit.Direct(dealt);
-                    if (empowered) hit = hit.WithStun(slamStun);
+                    if (empowered) hit = hit.WithStun(stun);
+                    bool pinned = false;
+                    float shoveSeconds = 0f, wallDistance = 0f;
+                    Vector3 impact = Vector3.zero;
                     if (shove || empowered)
                     {
                         Vector3 push = enemy.transform.position - transform.position;
                         push.y = 0f;
-                        hit = hit.WithKnockback(push.sqrMagnitude > 0.0001f ? push.normalized : dir, shoveDistance, shoveDuration);
+                        Vector3 pushDir = push.sqrMagnitude > 0.0001f ? push.normalized : dir;
+                        float distance = haymaker ? BullgrynUpgrade.HaymakerShove : shoveDistance;
+                        shoveSeconds = shoveDuration * distance / Mathf.Max(0.01f, shoveDistance);
+                        hit = hit.WithKnockback(pushDir, distance, shoveSeconds);
+                        // Haymaker: knocked into terrain, they are stunned on impact.
+                        if (haymaker) pinned = BullgrynKit.FindWall(enemy, pushDir, distance, out wallDistance, out impact);
+                        if (pinned) wallDistance = Mathf.Clamp01(wallDistance / distance);
                     }
                     hits++;
+                    float firedAt = Time.time;
+                    Health target = enemy;
                     enemy.Strike(hit, gameObject, landed =>
                     {
-                        if (landed && energy != null) energy.Gain(energyPerHit);
+                        if (!landed) return;
+                        if (energy != null) energy.Gain(energyPerHit);
+                        if (pinned) StartCoroutine(PinLater(target, Mathf.Max(0f, shoveSeconds * wallDistance - (Time.time - firedAt)), impact));
                     });
                 }
                 if (hits > 0)
                 {
                     connectStreak = shove ? 0 : connectStreak + 1;
                     lastConnect = Time.time;
+                    // The charge is spent only by a Haymaker that connects; a whiff keeps the maul glowing.
+                    if (haymaker) haymakerReadyAt = Time.time + BullgrynUpgrade.HaymakerCooldown;
                 }
                 else connectStreak = 0;
                 // Slab Slam hits the ground hard enough to send a Hoarfrost casket across the ice.
-                if (empowered) Anathema.Arena.CasketField.Cone(gameObject, transform.position, dir, range, arcDegrees);
+                if (empowered) Anathema.Arena.CasketField.Cone(gameObject, transform.position, dir, reach, arc);
             }
 
             if (hits > 0 || IsReplica)
@@ -193,7 +235,22 @@ namespace Anathema.Abilities.Bullgryn
                 Sfx.Play(Sfx.HammerSmash, empowered ? 0.6f : 0.4f, empowered ? 0.75f : 0.95f, empowered ? 0.85f : 1.1f, 0.6f);
                 if (hits > 0) MeleeSound.Impact(hits);
             }
-            if (empowered) Anathema.Abilities.Psyker.PsykerFx.Ring(transform.position + dir * range * 0.6f, 0.3f, 1.8f, 0.3f, BullgrynKit.Hazard, 0.2f);
+            if (pound)
+            {
+                Anathema.Abilities.Psyker.PsykerFx.Ring(transform.position + Vector3.up * 0.1f, 0.4f, reach, 0.35f, BullgrynKit.Hazard, 0.3f);
+                Sfx.Play(Sfx.SlamExplosion, 0.55f, 0.7f, 0.8f, 0.7f);
+            }
+            else if (empowered) Anathema.Abilities.Psyker.PsykerFx.Ring(transform.position + dir * reach * 0.6f, 0.3f, 1.8f, 0.3f, BullgrynKit.Hazard, 0.2f);
+        }
+
+        // Haymaker: a target knocked into terrain is stunned when it gets there.
+        System.Collections.IEnumerator PinLater(Health target, float delay, Vector3 impact)
+        {
+            if (delay > 0f) yield return new WaitForSeconds(delay);
+            if (target == null || target.IsDead) yield break;
+            Stunned.Apply(target.gameObject, BullgrynUpgrade.HaymakerPinStun);
+            Anathema.Abilities.Psyker.PsykerFx.Ring(new Vector3(impact.x, target.transform.position.y, impact.z), 0.2f, 1.4f, 0.3f, BullgrynKit.Hazard, 0.25f);
+            Sfx.Play(Sfx.SlamExplosion, 0.45f, 0.8f, 0.9f, 0.5f);
         }
 
         void Fire()

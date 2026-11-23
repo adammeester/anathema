@@ -81,19 +81,27 @@ namespace Anathema.Net
             public int character;
             public bool ready;
             public int team; // 0 = team A, 1 = team B (only used in Teams mode)
+            public string name; // the player's chosen display name (sanitized by the server)
         }
 
-        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon", "Psyker", "Skitarii Ranger", "Hospitaller", "Mandrake", "Bullgryn", "Thousand Sons Sorcerer" };
-        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon", "Net/Player_Psyker", "Net/Player_SkitariiRanger", "Net/Player_Hospitaller", "Net/Player_Mandrake", "Net/Player_Bullgryn", "Net/Player_Sorcerer" };
+        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon", "Psyker", "Skitarii Ranger", "Hospitaller", "Mandrake", "Bullgryn", "Thousand Sons Sorcerer", "Sanguinary Priest" };
+        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon", "Net/Player_Psyker", "Net/Player_SkitariiRanger", "Net/Player_Hospitaller", "Net/Player_Mandrake", "Net/Player_Bullgryn", "Net/Player_Sorcerer", "Net/Player_SanguinaryPriest" };
 
         public static NetGame Instance { get; private set; }
         public static bool Online => Instance != null && Instance.manager != null && Instance.manager.IsListening;
         public static bool Frozen => Instance != null && Instance.frozen;
         // The between-rounds prep area: movement is allowed (inside PrepRadius), fighting is not.
-        public static bool InPrep => (Instance != null && Instance.phase == Phase.Prep) || OfflinePrep.Active;
+        public static bool RoundLive => Instance != null && Instance.phase == Phase.Playing;
+        public static bool InPrep =>(Instance != null && Instance.phase == Phase.Prep) || OfflinePrep.Active;
         public static bool IsHost => Online && Instance.manager.IsServer;
         // A headless server with no player of its own (see StartDedicated); every fighter is a remote client.
         public static bool IsDedicated => Instance != null && Instance.dedicated;
+        // The in-game (Esc) menu is up: abilities don't fire and aim holds still.
+        public static bool MenuOpen => Instance != null && Instance.menuOpen;
+        // The menu, or a surrender vote waiting on this player, needs the cursor shown.
+        public static bool WantsCursor => Instance != null && (Instance.menuOpen || Instance.MyVotePending);
+        // Mouse/keys belong to the UI right now (menu open, or the pointer is on the vote panel's buttons).
+        public static bool BlocksInput => Instance != null && (Instance.menuOpen || Instance.pointerOverVote);
 
         bool dedicated;
 
@@ -129,12 +137,23 @@ namespace Anathema.Net
         const byte IntentJoin = 0, IntentHost = 1;
         float hostPendingUntil; // server: a host was just approved and is about to take seat 0
         string joinAddress = DefaultServerAddress;
+        // The player's display name: typed on the main menu, remembered between launches, sent in the connection
+        // payload and shared with everyone through the lobby message.
+        public const int MaxNameLength = 16;
+        const string PlayerNamePref = "Anathema.PlayerName";
+        string playerName = "";
+        readonly Dictionary<ulong, string> pendingNames = new Dictionary<ulong, string>(); // server: approved, not yet seated
+        // Elimination banner ("X ELIMINATED"), shown on every client when a fighter goes down.
+        public const float EliminationBannerTime = 2.6f;
+        string eliminatedName = "";
+        bool eliminatedFriendly;
+        float eliminatedAt = -999f;
         string notice = "";
         string localIps = "";
 
         // GUI
         Texture2D pixel;
-        GUIStyle title, subtitle, label, labelSmall, labelCentered, button, buttonBig, field, headline;
+        GUIStyle title, subtitle, label, labelSmall, labelCentered, button, buttonBig, field, headline, sliderTrack, sliderThumb;
         float uiScale = 1f;
         readonly CharacterSelectView select = new CharacterSelectView();
         readonly bool[] roleFilter = new bool[3];
@@ -184,6 +203,7 @@ namespace Anathema.Net
             pendingNotice = "";
             localIps = FindLocalAddresses();
             try { joinAddress = PlayerPrefs.GetString(ServerAddressPref, DefaultServerAddress); } catch { }
+            try { playerName = SanitizeName(PlayerPrefs.GetString(PlayerNamePref, "")); } catch { }
         }
 
         void Start()
@@ -257,6 +277,8 @@ namespace Anathema.Net
             frozen = false;
             prepLocked = false;
             hostPendingUntil = 0f;
+            surrenderedTeam = -1;
+            ClearSurrender();
 
             if (SceneManager.GetActiveScene().name == MenuScene)
             {
@@ -293,9 +315,17 @@ namespace Anathema.Net
                 return;
             }
             try { PlayerPrefs.SetString(ServerAddressPref, joinAddress.Trim()); } catch { }
+            playerName = SanitizeName(playerName);
+            try { PlayerPrefs.SetString(PlayerNamePref, playerName); } catch { }
+
+            // Payload: [intent byte][UTF-8 display name].
+            byte[] nameBytes = System.Text.Encoding.UTF8.GetBytes(playerName);
+            var payload = new byte[1 + nameBytes.Length];
+            payload[0] = host ? IntentHost : IntentJoin;
+            System.Array.Copy(nameBytes, 0, payload, 1, nameBytes.Length);
 
             transport.SetConnectionData(address, port);
-            manager.NetworkConfig.ConnectionData = new[] { host ? IntentHost : IntentJoin };
+            manager.NetworkConfig.ConnectionData = payload;
             manager.OnClientConnectedCallback += OnClientConnected;
             manager.OnClientDisconnectCallback += OnClientDisconnected;
 
@@ -326,9 +356,57 @@ namespace Anathema.Net
             {
                 response.Approved = true;
                 if (wantsHost) hostPendingUntil = Time.unscaledTime + 10f;
+                string requested = "";
+                if (request.Payload != null && request.Payload.Length > 1)
+                {
+                    try { requested = System.Text.Encoding.UTF8.GetString(request.Payload, 1, Mathf.Min(request.Payload.Length - 1, 128)); }
+                    catch { requested = ""; }
+                }
+                pendingNames[request.ClientNetworkId] = SanitizeName(requested);
                 return;
             }
             response.Approved = false;
+        }
+
+        // Letters, digits, spaces and a little punctuation; trimmed and capped at MaxNameLength.
+        public static string SanitizeName(string raw)
+        {
+            if (string.IsNullOrEmpty(raw)) return "";
+            var sb = new System.Text.StringBuilder(MaxNameLength);
+            bool lastSpace = true; // drops leading spaces and collapses runs
+            foreach (char c in raw)
+            {
+                if (sb.Length >= MaxNameLength) break;
+                if (c == ' ')
+                {
+                    if (!lastSpace) sb.Append(c);
+                    lastSpace = true;
+                }
+                else if (char.IsLetterOrDigit(c) || c == '-' || c == '_' || c == '.' || c == '\'')
+                {
+                    sb.Append(c);
+                    lastSpace = false;
+                }
+            }
+            return sb.ToString().TrimEnd();
+        }
+
+        // A seat's display name, falling back to "Player N" when none was entered.
+        string SeatName(int seat) =>
+            seat < 0 || seat >= seats.Length ? "Player" : string.IsNullOrEmpty(seats[seat].name) ? "Player " + (seat + 1) : seats[seat].name;
+
+        int SeatOfClient(ulong clientId)
+        {
+            for (int i = 0; i < seats.Length; i++)
+                if (seats[i].used && seats[i].clientId == clientId) return i;
+            return -1;
+        }
+
+        // The display name of the fighter owned by this client (used by the HUD and the elimination banner).
+        public static string NameOf(ulong clientId)
+        {
+            if (Instance == null) return "Player";
+            return Instance.SeatName(Instance.SeatOfClient(clientId));
         }
 
         int FreeSeat()
@@ -396,6 +474,228 @@ namespace Anathema.Net
             msg.RegisterNamedMessageHandler("bestOf", OnBestOfMessage);
             msg.RegisterNamedMessageHandler("mode", OnModeMessage);
             msg.RegisterNamedMessageHandler("matchChoice", OnMatchChoiceMessage);
+            msg.RegisterNamedMessageHandler("surrender", OnSurrenderMessage);
+            msg.RegisterNamedMessageHandler("surrenderVote", OnSurrenderVoteMessage);
+            msg.RegisterNamedMessageHandler("elim", OnEliminatedMessage);
+        }
+
+        // --- Surrender votes ----------------------------------------------------------------------------------------
+        // Any player can call one from the in-game menu while exactly two teams are left in the match. Every connected
+        // member of the caller's team must vote yes; a single no, or the timer running out, fails it (and the team can't
+        // call another for SurrenderCooldown). Passing it ends the match at once with the other team as the winner.
+        // The server owns the votes; each voter is sent only their own team's vote.
+
+        public const float SurrenderVoteTime = 30f;
+        public const float SurrenderCooldown = 30f;
+        const int VoteYes = 0, VoteNo = 1;
+        const int VoteNone = 0, VoteActive = 1, VoteFailed = 2;
+
+        class SurrenderVote
+        {
+            public float end;
+            public readonly HashSet<ulong> yes = new HashSet<ulong>();
+        }
+
+        // Server: running votes by team, and when each team may call again after a failed one.
+        readonly Dictionary<int, SurrenderVote> surrenderVotes = new Dictionary<int, SurrenderVote>();
+        readonly Dictionary<int, float> surrenderCooldowns = new Dictionary<int, float>();
+
+        // Client: my team's vote.
+        bool voteActive;
+        int voteYes, voteNeeded;
+        float voteEnd;
+        bool iVoted;
+        float surrenderCooldownUntil;
+        string voteNotice = "";
+        float voteNoticeUntil;
+        int surrenderedTeam = -1; // the team that gave up the match that just ended (-1: it was played out)
+
+        bool MatchLive => phase == Phase.Playing || phase == Phase.RoundEnd || phase == Phase.Prep;
+        int MyTeam => NetPlayer.Local != null ? NetPlayer.Local.Health.Team : -1;
+        bool MyVotePending => voteActive && !iVoted && MyTeam >= 0 && MatchLive;
+
+        static int TeamOfClient(ulong clientId)
+        {
+            foreach (NetPlayer p in NetPlayer.All)
+                if (p != null && p.OwnerClientId == clientId) return p.Health.Team;
+            return -1;
+        }
+
+        static HashSet<int> TeamsInMatch(ulong excluded)
+        {
+            var teams = new HashSet<int>();
+            foreach (NetPlayer p in NetPlayer.All)
+                if (p != null && p.OwnerClientId != excluded) teams.Add(p.Health.Team);
+            return teams;
+        }
+
+        static List<ulong> TeamMembers(int team, ulong excluded)
+        {
+            var members = new List<ulong>();
+            foreach (NetPlayer p in NetPlayer.All)
+                if (p != null && p.OwnerClientId != excluded && p.Health.Team == team && !members.Contains(p.OwnerClientId))
+                    members.Add(p.OwnerClientId);
+            return members;
+        }
+
+        // Calling a vote is voting yes when none is running.
+        void CastSurrenderVote(bool yes)
+        {
+            if (manager.IsServer) ServerSurrenderVote(manager.LocalClientId, yes);
+            else SendToServer("surrender", yes ? VoteYes : VoteNo);
+        }
+
+        void OnSurrenderMessage(ulong sender, FastBufferReader reader)
+        {
+            if (!manager.IsServer) return;
+            reader.ReadValueSafe(out int vote);
+            ServerSurrenderVote(sender, vote == VoteYes);
+        }
+
+        void ServerSurrenderVote(ulong sender, bool yes)
+        {
+            if (!MatchLive) return;
+            int team = TeamOfClient(sender);
+            if (team < 0 || TeamsInMatch(ulong.MaxValue).Count != 2) return;
+
+            if (!surrenderVotes.TryGetValue(team, out SurrenderVote vote))
+            {
+                if (!yes) return;
+                if (surrenderCooldowns.TryGetValue(team, out float until) && Time.time < until) return;
+                vote = new SurrenderVote { end = Time.time + SurrenderVoteTime };
+                surrenderVotes[team] = vote;
+                if (dedicated) Debug.Log($"[Server] Client {sender} called a surrender vote for team {team}.");
+            }
+
+            if (!yes)
+            {
+                ServerFailSurrender(team);
+                return;
+            }
+
+            vote.yes.Add(sender);
+            ServerCheckSurrender(team, ulong.MaxValue);
+        }
+
+        // Re-counts a team's vote (after a yes, or someone leaving): passes it once every remaining member agrees,
+        // otherwise tells the team where it stands.
+        void ServerCheckSurrender(int team, ulong leftClient)
+        {
+            if (!surrenderVotes.TryGetValue(team, out SurrenderVote vote)) return;
+
+            List<ulong> members = TeamMembers(team, leftClient);
+            vote.yes.RemoveWhere(id => !members.Contains(id));
+            if (members.Count == 0)
+            {
+                surrenderVotes.Remove(team);
+                return;
+            }
+
+            if (vote.yes.Count >= members.Count)
+            {
+                ServerSurrender(team, leftClient);
+                return;
+            }
+
+            ServerSendVoteState(members, VoteActive, vote.yes, members.Count, vote.end - Time.time);
+        }
+
+        void ServerFailSurrender(int team)
+        {
+            if (!surrenderVotes.Remove(team)) return;
+            surrenderCooldowns[team] = Time.time + SurrenderCooldown;
+            if (dedicated) Debug.Log($"[Server] Team {team}'s surrender vote failed.");
+            ServerSendVoteState(TeamMembers(team, ulong.MaxValue), VoteFailed, null, 0, 0f);
+        }
+
+        void ServerSendVoteState(List<ulong> recipients, int state, HashSet<ulong> yes, int needed, float remaining)
+        {
+            int yesCount = yes != null ? yes.Count : 0;
+            foreach (ulong id in recipients)
+            {
+                bool voted = yes != null && yes.Contains(id);
+                if (id == manager.LocalClientId)
+                {
+                    ApplyVoteState(state, yesCount, needed, remaining, voted);
+                    continue;
+                }
+
+                using var writer = new FastBufferWriter(32, Allocator.Temp);
+                writer.WriteValueSafe(state);
+                writer.WriteValueSafe(yesCount);
+                writer.WriteValueSafe(needed);
+                writer.WriteValueSafe(remaining);
+                writer.WriteValueSafe(voted);
+                manager.CustomMessagingManager.SendNamedMessage("surrenderVote", id, writer);
+            }
+        }
+
+        void OnSurrenderVoteMessage(ulong sender, FastBufferReader reader)
+        {
+            if (manager.IsServer) return;
+            reader.ReadValueSafe(out int state);
+            reader.ReadValueSafe(out int yes);
+            reader.ReadValueSafe(out int needed);
+            reader.ReadValueSafe(out float remaining);
+            reader.ReadValueSafe(out bool voted);
+            ApplyVoteState(state, yes, needed, remaining, voted);
+        }
+
+        void ApplyVoteState(int state, int yes, int needed, float remaining, bool voted)
+        {
+            voteActive = state == VoteActive;
+            voteYes = yes;
+            voteNeeded = needed;
+            voteEnd = Time.time + remaining;
+            iVoted = voted;
+            if (state == VoteFailed)
+            {
+                surrenderCooldownUntil = Time.time + SurrenderCooldown;
+                voteNotice = "SURRENDER VOTE FAILED";
+                voteNoticeUntil = Time.time + 4f;
+            }
+        }
+
+        // The vote passed: the match ends now and the other team wins it.
+        void ServerSurrender(int team, ulong leftClient)
+        {
+            int winner = -1;
+            foreach (int t in TeamsInMatch(leftClient)) if (t != team) winner = t;
+            if (winner < 0) return;
+
+            if (dedicated) Debug.Log($"[Server] Team {team} surrendered; team {winner} wins.");
+            using var writer = new FastBufferWriter(16, Allocator.Temp);
+            writer.WriteValueSafe(winner);
+            writer.WriteValueSafe(team);
+            manager.CustomMessagingManager.SendNamedMessageToAll("over", writer);
+            EnterMatchOver(winner, team);
+        }
+
+        void ServerExpireSurrenderVotes()
+        {
+            if (surrenderVotes.Count == 0) return;
+            foreach (int team in new List<int>(surrenderVotes.Keys))
+                if (surrenderVotes.TryGetValue(team, out SurrenderVote vote) && Time.time >= vote.end) ServerFailSurrender(team);
+        }
+
+        void ClearSurrender()
+        {
+            surrenderVotes.Clear();
+            surrenderCooldowns.Clear();
+            voteActive = false;
+            iVoted = false;
+            surrenderCooldownUntil = 0f;
+        }
+
+        // Both sides: the match is decided (played out, or a team surrendered).
+        void EnterMatchOver(int winner, int surrendered)
+        {
+            winnerTeam = winner;
+            surrenderedTeam = surrendered;
+            phase = Phase.Over;
+            frozen = true;
+            ClearSurrender();
+            if (prepArea != null) Destroy(prepArea.gameObject);
         }
 
         // --- Lobby leader (sets the rules; the host, or on a dedicated server the lowest occupied seat) ------------
@@ -590,7 +890,9 @@ namespace Anathema.Net
                     manager.DisconnectClient(clientId, "The game is full.");
                     return;
                 }
-                seats[free] = new Seat { used = true, clientId = clientId, character = 0, ready = false, team = SmallerTeam() };
+                pendingNames.TryGetValue(clientId, out string joinName);
+                pendingNames.Remove(clientId);
+                seats[free] = new Seat { used = true, clientId = clientId, character = 0, ready = false, team = SmallerTeam(), name = joinName ?? "" };
                 hostPendingUntil = 0f;
                 if (dedicated) Debug.Log($"[Server] Client {clientId} joined (seat {free}, {UsedSeats()}/{MaxSeats}).");
                 BroadcastLobby();
@@ -608,6 +910,7 @@ namespace Anathema.Net
             if (manager.IsServer)
             {
                 if (clientId == manager.LocalClientId) return;
+                pendingNames.Remove(clientId);
                 bool hadSeat = false;
                 for (int i = 0; i < seats.Length; i++)
                 {
@@ -626,6 +929,10 @@ namespace Anathema.Net
                 if (phase == Phase.Lobby) BroadcastLobby();
                 else if (phase == Phase.Loading) LeaveToMenu("A player left the match.");
                 else ServerEvaluateRound(clientId); // the match carries on while at least two teams remain
+
+                // A surrender vote only needs the players still here: the leaver's absence may complete it.
+                if (MatchLive)
+                    foreach (int team in new List<int>(surrenderVotes.Keys)) ServerCheckSurrender(team, clientId);
             }
             else if (clientId == manager.LocalClientId)
             {
@@ -803,7 +1110,7 @@ namespace Anathema.Net
             // A host alone has nobody to tell; a dedicated server's first player needs the lobby straight away.
             if (UsedSeats() < (dedicated ? 1 : 2)) return;
 
-            using var writer = new FastBufferWriter(256, Allocator.Temp);
+            using var writer = new FastBufferWriter(1024, Allocator.Temp);
             for (int i = 0; i < seats.Length; i++)
             {
                 writer.WriteValueSafe(seats[i].used);
@@ -811,6 +1118,7 @@ namespace Anathema.Net
                 writer.WriteValueSafe(seats[i].character);
                 writer.WriteValueSafe(seats[i].ready);
                 writer.WriteValueSafe(seats[i].team);
+                writer.WriteValueSafe(seats[i].name ?? "");
             }
             writer.WriteValueSafe(bestOf);
             writer.WriteValueSafe((int)mode);
@@ -827,6 +1135,7 @@ namespace Anathema.Net
                 reader.ReadValueSafe(out seats[i].character);
                 reader.ReadValueSafe(out seats[i].ready);
                 reader.ReadValueSafe(out seats[i].team);
+                reader.ReadValueSafe(out seats[i].name);
             }
             reader.ReadValueSafe(out bestOf);
             reader.ReadValueSafe(out int modeValue);
@@ -858,11 +1167,15 @@ namespace Anathema.Net
             if (!manager.IsServer && phase == Phase.Loading && SceneManager.GetActiveScene().name == MenuScene)
                 phase = Phase.Lobby;
 
-            if (phase == Phase.Prep && !prepLocked && NetPlayer.Local != null)
+            if (!dedicated) UpdateGameMenu();
+
+            if (phase == Phase.Prep && !prepLocked && NetPlayer.Local != null && !menuOpen)
                 upgradePicker.HandleKeys(NetPlayer.Local.Upgrades);
 
             if (manager.IsServer)
             {
+                ServerExpireSurrenderVotes();
+
                 // Report -> prep area.
                 if (phase == Phase.RoundEnd && Time.time >= nextRoundTime) StartPrep();
 
@@ -913,7 +1226,7 @@ namespace Anathema.Net
                 return;
             }
 
-            if (spectateTarget == null || spectateTarget.Health.IsDead || Input.GetMouseButtonDown(0))
+            if (spectateTarget == null || spectateTarget.Health.IsDead || (Input.GetMouseButtonDown(0) && !BlocksInput))
                 spectateTarget = NextSpectateTarget(me, spectateTarget);
 
             spectateCamera.SetTarget(spectateTarget != null ? spectateTarget.transform : me.transform);
@@ -975,6 +1288,8 @@ namespace Anathema.Net
             lastDeadTeam = -1;
             roundsCompleted = 0;
             frozen = false;
+            surrenderedTeam = -1;
+            ClearSurrender();
             phase = Phase.Playing;
             introUntil = Time.time + RoundIntro;
         }
@@ -1088,6 +1403,14 @@ namespace Anathema.Net
         public void ServerOnDeath(NetPlayer victim)
         {
             if (!manager.IsServer || phase != Phase.Playing || victim == null) return;
+            if (!victim.ServerDead)
+            {
+                // Everyone gets the "X ELIMINATED" banner (sent before any round-end message, so it arrives first).
+                using var elim = new FastBufferWriter(16, Allocator.Temp);
+                elim.WriteValueSafe(victim.OwnerClientId);
+                elim.WriteValueSafe(victim.Health.Team);
+                manager.CustomMessagingManager.SendNamedMessageToAll("elim", elim);
+            }
             victim.ServerDead = true;
             lastDeadTeam = victim.Health.Team;
             ServerEvaluateRound(ulong.MaxValue);
@@ -1137,8 +1460,9 @@ namespace Anathema.Net
 
             if (wins >= RoundsToWin)
             {
-                phase = Phase.Over;
+                writer.WriteValueSafe(-1); // nobody surrendered
                 manager.CustomMessagingManager.SendNamedMessageToAll("over", writer);
+                EnterMatchOver(winner, -1);
             }
             else
             {
@@ -1150,6 +1474,18 @@ namespace Anathema.Net
                 manager.CustomMessagingManager.SendNamedMessageToAll("roundEnd", writer);
                 if (NetPlayer.Local != null) NetPlayer.Local.OnRoundEnded(roundsCompleted);
             }
+        }
+
+        void OnEliminatedMessage(ulong sender, FastBufferReader reader)
+        {
+            if (manager.IsServer) return;
+            reader.ReadValueSafe(out ulong victimClient);
+            reader.ReadValueSafe(out int victimTeam);
+            int myTeam = NetPlayer.Local != null ? NetPlayer.Local.Health.Team : -1;
+            eliminatedFriendly = victimTeam == myTeam;
+            eliminatedName = victimClient == manager.LocalClientId ? "YOU WERE"
+                : (eliminatedFriendly ? "TEAMMATE " : "ENEMY ") + NameOf(victimClient).ToUpperInvariant();
+            eliminatedAt = Time.time;
         }
 
         void OnRoundEndMessage(ulong sender, FastBufferReader reader)
@@ -1166,9 +1502,9 @@ namespace Anathema.Net
         void OnOverMessage(ulong sender, FastBufferReader reader)
         {
             if (manager.IsServer) return;
-            reader.ReadValueSafe(out winnerTeam);
-            phase = Phase.Over;
-            frozen = true;
+            reader.ReadValueSafe(out int winner);
+            reader.ReadValueSafe(out int surrendered);
+            EnterMatchOver(winner, surrendered);
         }
 
         // ---- Prep area ---------------------------------------------------------------------------------------------
@@ -1272,6 +1608,8 @@ namespace Anathema.Net
 
             foreach (NetPlayer player in NetPlayer.All) player.ServerResetKills();
             roundsCompleted = 0;
+            surrenderedTeam = -1;
+            ClearSurrender();
             if (NetPlayer.Local != null) NetPlayer.Local.ResetUpgrades(); // a rematch starts from scratch
             using var writer = new FastBufferWriter(8, Allocator.Temp);
             writer.WriteValueSafe(true);
@@ -1303,6 +1641,8 @@ namespace Anathema.Net
         {
             if (manager.IsServer) return;
             roundsCompleted = 0;
+            surrenderedTeam = -1;
+            ClearSurrender();
             if (NetPlayer.Local != null) NetPlayer.Local.ResetUpgrades();
             ApplyRoundReset();
         }
@@ -1391,6 +1731,12 @@ namespace Anathema.Net
             field.focused.background = field.normal.background;
             field.normal.textColor = Color.white;
             field.focused.textColor = Color.white;
+
+            sliderTrack = new GUIStyle(); // invisible: the bar is drawn by hand under it (see DrawGameMenu)
+            sliderThumb = new GUIStyle { fixedWidth = 22 };
+            sliderThumb.normal.background = Tex(Gold);
+            sliderThumb.hover.background = Tex(new Color(1f, 0.88f, 0.55f));
+            sliderThumb.active.background = sliderThumb.hover.background;
         }
 
         void Rect(Rect r, Color c)
@@ -1417,6 +1763,7 @@ namespace Anathema.Net
             float w = Screen.width / uiScale;
             float h = 1080f;
 
+            pointerOverVote = false;
             switch (phase)
             {
                 case Phase.Menu: DrawMainMenu(w, h); break;
@@ -1426,7 +1773,15 @@ namespace Anathema.Net
                 case Phase.Playing:
                 case Phase.RoundEnd:
                 case Phase.Prep:
-                case Phase.Over: DrawMatch(w, h); break;
+                case Phase.Over:
+                    // With the menu up, everything beneath it is inert (IMGUI would otherwise let clicks reach it).
+                    bool wasEnabled = GUI.enabled;
+                    if (menuOpen) GUI.enabled = false;
+                    DrawMatch(w, h);
+                    GUI.enabled = wasEnabled;
+                    if (menuOpen) DrawGameMenu(w, h);
+                    else DrawSurrenderVote(w, h);
+                    break;
             }
 
             GUI.matrix = Matrix4x4.identity;
@@ -1449,10 +1804,14 @@ namespace Anathema.Net
             Rect(new Rect(w * 0.5f - 260, 305, 520, 3), DarkGold);
 
             float bx = w * 0.5f - 230;
-            GUI.Label(new Rect(bx, 340, 460, 36), "SERVER ADDRESS", labelCentered);
-            joinAddress = GUI.TextField(new Rect(bx, 380, 460, 56), joinAddress, 64, field);
-            if (GUI.Button(new Rect(bx, 470, 460, 84), "HOST GAME", buttonBig)) HostGame();
-            if (GUI.Button(new Rect(bx, 574, 460, 84), "JOIN GAME", buttonBig)) JoinGame();
+            GUI.Label(new Rect(bx, 322, 460, 32), "PLAYER NAME", labelCentered);
+            playerName = GUI.TextField(new Rect(bx, 356, 460, 52), playerName, MaxNameLength, field);
+            if (string.IsNullOrEmpty(playerName))
+                GUI.Label(new Rect(bx, 356, 460, 52), "enter a name", new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter, normal = { textColor = new Color(1f, 1f, 1f, 0.3f) } });
+            GUI.Label(new Rect(bx, 418, 460, 32), "SERVER ADDRESS", labelCentered);
+            joinAddress = GUI.TextField(new Rect(bx, 452, 460, 52), joinAddress, 64, field);
+            if (GUI.Button(new Rect(bx, 530, 460, 80), "HOST GAME", buttonBig)) HostGame();
+            if (GUI.Button(new Rect(bx, 624, 460, 80), "JOIN GAME", buttonBig)) JoinGame();
 
             if (GUI.Button(new Rect(bx, 730, 460, 66), "QUIT", button))
             {
@@ -1556,8 +1915,13 @@ namespace Anathema.Net
                 var row = new System.Collections.Generic.List<CharacterSelectView.AbilityInfo>();
                 foreach (var a in info.abilities) if (a.ex == (pass == 1)) row.Add(a);
                 if (row.Count == 0) continue;
-                const float icon = 72f, spacing = 16f;
+                // Full size is 72px icons with 16px gaps; a long kit shrinks the whole row to fit inside the panel.
+                float fullW = row.Count * 72f + (row.Count - 1) * 16f;
+                float fit = Mathf.Min(1f, (left.width - 40f) / fullW);
+                float icon = 72f * fit, spacing = 16f * fit;
                 float rowW = row.Count * icon + (row.Count - 1) * spacing;
+                var rowKeyStyle = new GUIStyle(keyStyle) { fontSize = Mathf.RoundToInt(18f * Mathf.Max(fit, 0.8f)) };
+                var rowAbbrStyle = new GUIStyle(keyStyle) { fontSize = Mathf.RoundToInt(26f * fit), normal = { textColor = Color.white } };
                 float rx = left.x + (left.width - rowW) * 0.5f;
                 float ry = left.y + (pass == 0 ? 380 : 560);
                 if (pass == 1)
@@ -1569,10 +1933,9 @@ namespace Anathema.Net
                 for (int i = 0; i < row.Count; i++)
                 {
                     var ir = new Rect(rx + i * (icon + spacing), ry + 28, icon, icon);
-                    GUI.Label(new Rect(ir.x - 20, ry, icon + 40, 28), row[i].key, keyStyle);
+                    GUI.Label(new Rect(ir.x - spacing * 0.5f, ry, icon + spacing, 28), row[i].key, rowKeyStyle);
                     if (row[i].icon != null) GUI.DrawTexture(ir, row[i].icon, ScaleMode.StretchToFill, true);
-                    GUI.Label(new Rect(ir.x - 4, ir.y + 20, icon + 8, 36), Abbreviation(row[i].name),
-                        new GUIStyle(keyStyle) { fontSize = 26, normal = { textColor = Color.white } });
+                    GUI.Label(new Rect(ir.x - 4, ir.y + (icon - 36f) * 0.5f, icon + 8, 36), Abbreviation(row[i].name), rowAbbrStyle);
                     if (ir.Contains(mouse)) { hoveredAbility = row[i]; hoveredRect = ir; }
                 }
             }
@@ -1672,7 +2035,7 @@ namespace Anathema.Net
                 chip++;
                 Color tint = mode == GameMode.Teams ? (seats[s].team == 0 ? TeamAColor : TeamBColor) : Gold;
                 Frame(cr, new Color(0.05f, 0.06f, 0.09f, 0.95f), tint, 2f);
-                string who = s == mine ? "YOU" : s == 0 ? "HOST" : "P" + (s + 1);
+                string who = SeatName(s);
                 string firstName = CharacterNames[seats[s].character].Split(' ')[0];
                 GUI.Label(cr, $"{who} · {firstName}{(seats[s].ready ? " [OK]" : "")}",
                     new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter, fontSize = 16, fontStyle = FontStyle.Bold, wordWrap = false, normal = { textColor = seats[s].ready ? Color.white : tint } });
@@ -1875,7 +2238,7 @@ namespace Anathema.Net
                     style.normal.textColor = mine ? new Color(0.4f, 1f, 0.5f) : ally ? new Color(0.45f, 0.75f, 1f) : new Color(1f, 0.4f, 0.35f);
                     float x = screen.x / uiScale;
                     float y = (Screen.height - screen.y) / uiScale;
-                    GUI.Label(new Rect(x - 80, y - 16, 160, 32), mine ? "YOU" : ally ? "ALLY" : "ENEMY", style);
+                    GUI.Label(new Rect(x - 140, y - 16, 280, 32), mine ? "YOU" : NameOf(player.OwnerClientId), style);
                 }
             }
 
@@ -1913,13 +2276,13 @@ namespace Anathema.Net
             }
 
             if (phase == Phase.Playing || phase == Phase.RoundEnd || phase == Phase.Prep)
-                if (GUI.Button(new Rect(w - 190, 18, 160, 52), "LEAVE", button)) LeaveToMenu("");
+                if (GUI.Button(new Rect(w - 190, 18, 160, 52), "MENU", button)) OpenGameMenu();
 
             bool won = myTeam >= 0 && myTeam == winnerTeam;
 
             if (spectateTarget != null && phase == Phase.Playing)
             {
-                string targetName = spectateTarget.name.Replace("(Clone)", "").Replace("Player_", "").Trim();
+                string targetName = NameOf(spectateTarget.OwnerClientId);
                 var spec = new GUIStyle(labelCentered) { fontSize = 26, fontStyle = FontStyle.Bold };
                 spec.normal.textColor = Gold;
                 GUI.Label(new Rect(0, h - 110, w, 40), $"SPECTATING  ·  {targetName}", spec);
@@ -1935,6 +2298,7 @@ namespace Anathema.Net
                     GUI.Label(new Rect(0, h * 0.36f + 8, w, 110), $"ROUND {roundNumber}", new GUIStyle(title) { fontSize = 90 });
                     GUI.Label(new Rect(0, h * 0.36f + 108, w, 50), $"{scoreLine}      ·      BEST OF {bestOf}", subtitle);
                 }
+                DrawEliminationBanner(w, h);
                 return;
             }
 
@@ -1947,7 +2311,9 @@ namespace Anathema.Net
                 roundResult.normal.textColor = won ? green : red;
                 GUI.Label(new Rect(0, top + 4, w, 110), won ? "ROUND WON" : "ROUND LOST", roundResult);
                 GUI.Label(new Rect(0, top + 110, w, 60), $"{scoreLine}      ·      BEST OF {bestOf}", new GUIStyle(headline) { fontSize = 40 });
-                GUI.Label(new Rect(0, top + 162, w, 34), $"First to {RoundsToWin} rounds wins the match", subtitle);
+                string finalBlow = Time.time - eliminatedAt < RoundPause + 2f && eliminatedName.Length > 0
+                    ? $"{eliminatedName} ELIMINATED      ·      " : "";
+                GUI.Label(new Rect(0, top + 162, w, 34), $"{finalBlow}First to {RoundsToWin} rounds wins the match", subtitle);
 
                 DrawDamageReport(w, top + 220);
 
@@ -1968,6 +2334,8 @@ namespace Anathema.Net
             var result = new GUIStyle(title) { fontSize = 130 };
             result.normal.textColor = won ? green : red;
             GUI.Label(new Rect(0, 230, w, 170), won ? "MATCH WON" : "MATCH LOST", result);
+            if (surrenderedTeam >= 0)
+                GUI.Label(new Rect(0, 180, w, 50), surrenderedTeam == myTeam ? "YOUR TEAM SURRENDERED" : "THE ENEMY SURRENDERED", subtitle);
             GUI.Label(new Rect(0, 410, w, 70), scoreLine, new GUIStyle(headline) { fontSize = 60 });
             GUI.Label(new Rect(0, 480, w, 40), $"BEST OF {bestOf}", subtitle);
 
@@ -1984,6 +2352,41 @@ namespace Anathema.Net
                 GUI.Label(new Rect(0, 780, w, 50), "Waiting for the host to choose rematch or character select...", labelCentered);
             }
             if (GUI.Button(new Rect(bx, 920, 460, 70), "MAIN MENU", button)) LeaveToMenu("");
+        }
+
+        // "X ELIMINATED" strip across the upper screen for a couple of seconds after a fighter goes down:
+        // slides in, holds, fades out. Blue-ish when it's your side that lost someone, red when it's the enemy.
+        void DrawEliminationBanner(float w, float h)
+        {
+            float t = Time.time - eliminatedAt;
+            if (t < 0f || t > EliminationBannerTime || eliminatedName.Length == 0) return;
+
+            float fadeIn = Mathf.Clamp01(t / 0.15f);
+            float fadeOut = Mathf.Clamp01((EliminationBannerTime - t) / 0.5f);
+            float alpha = Mathf.Min(fadeIn, fadeOut);
+            float slide = (1f - Mathf.SmoothStep(0f, 1f, fadeIn)) * 40f;
+
+            float y = h * 0.17f;
+            Color accent = eliminatedFriendly ? new Color(0.45f, 0.75f, 1f) : new Color(1f, 0.32f, 0.25f);
+            Rect(new Rect(0, y, w, 96), new Color(0f, 0f, 0f, 0.6f * alpha));
+            Rect(new Rect(0, y, w, 3), new Color(accent.r, accent.g, accent.b, 0.9f * alpha));
+            Rect(new Rect(0, y + 93, w, 3), new Color(accent.r, accent.g, accent.b, 0.9f * alpha));
+
+            var nameStyle = new GUIStyle(title) { fontSize = 58, alignment = TextAnchor.MiddleCenter };
+            Color text = Color.white;
+            text.a = alpha;
+            nameStyle.normal.textColor = text;
+            var whatStyle = new GUIStyle(nameStyle);
+            whatStyle.normal.textColor = new Color(accent.r, accent.g, accent.b, alpha);
+
+            // "NAME" in white, "ELIMINATED" in the accent colour, centred together.
+            string who = eliminatedName + "  ";
+            const string what = "ELIMINATED";
+            float whoW = nameStyle.CalcSize(new GUIContent(who)).x;
+            float whatW = whatStyle.CalcSize(new GUIContent(what)).x;
+            float x = (w - whoW - whatW) * 0.5f + slide;
+            GUI.Label(new Rect(x, y + 4, whoW, 88), who, nameStyle);
+            GUI.Label(new Rect(x + whoW, y + 4, whatW, 88), what, whatStyle);
         }
 
         // The prep area screen: the upgrade menu, then "waiting", then the round-start countdown.
@@ -2017,6 +2420,180 @@ namespace Anathema.Net
             if (mine != null && mine.Mask != 0)
                 GUI.Label(new Rect(w * 0.5f - 700f, h - 250, 1400f, 50f), "UPGRADES:  " + UpgradePickerView.OwnedSummary(mine),
                     new GUIStyle(labelCentered) { fontSize = 22 });
+        }
+
+        // --- In-game menu (Esc): volume, surrender, leave ---------------------------------------------------------------
+        // The match keeps running underneath (it is online); while it is up, abilities don't fire and aim holds still.
+
+        bool menuOpen;
+        bool confirmLeave;
+        bool confirmSurrender;
+        bool pointerOverVote; // the cursor is on the vote panel's buttons (a click there must not also attack)
+
+        void UpdateGameMenu()
+        {
+            if (!MatchLive && phase != Phase.Over)
+            {
+                if (menuOpen) CloseGameMenu();
+                return;
+            }
+            // A vote the server never confirmed (or whose end message was lost) doesn't linger.
+            if (!MatchLive || (voteActive && Time.time > voteEnd + 2f)) voteActive = false;
+
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (menuOpen) CloseGameMenu();
+                else OpenGameMenu();
+            }
+        }
+
+        void OpenGameMenu()
+        {
+            menuOpen = true;
+            confirmLeave = false;
+            confirmSurrender = false;
+        }
+
+        void CloseGameMenu()
+        {
+            menuOpen = false;
+            confirmLeave = false;
+            confirmSurrender = false;
+            GameVolume.Save();
+        }
+
+        bool SurrenderAvailable => MatchLive && MyTeam >= 0 && TeamsInMatch(ulong.MaxValue).Count == 2;
+
+        void VoteFromUi(bool yes)
+        {
+            CastSurrenderVote(yes);
+            // Shown straight away; the server's answer follows.
+            if (yes) iVoted = true;
+            else voteActive = false;
+        }
+
+        void DrawGameMenu(float w, float h)
+        {
+            Rect(new Rect(0, 0, w, h), new Color(0f, 0f, 0f, 0.6f));
+
+            bool surrender = SurrenderAvailable;
+            bool voting = surrender && voteActive && !iVoted;
+            const float pw = 560f, rowH = 64f, gap = 20f;
+            float ph = 26f + 94f + 94f + (surrender ? rowH + gap + (voting ? 34f : 0f) : 0f) + (rowH + gap) * 2f + 44f;
+            var panel = new Rect(w * 0.5f - pw * 0.5f, h * 0.5f - ph * 0.5f, pw, ph);
+            Frame(panel, Panel, DarkGold);
+
+            float x = panel.x + 50f, bw = pw - 100f, y = panel.y + 26f;
+            GUI.Label(new Rect(panel.x, y, pw, 60), "MENU", new GUIStyle(headline) { fontSize = 46 });
+            y += 70f;
+            Rect(new Rect(x, y, bw, 2), DarkGold);
+            y += 24f;
+
+            // Master volume.
+            var volumeStyle = new GUIStyle(label) { fontSize = 24, fontStyle = FontStyle.Bold, alignment = TextAnchor.MiddleLeft, wordWrap = false };
+            GUI.Label(new Rect(x, y, bw, 34), "VOLUME", volumeStyle);
+            GUI.Label(new Rect(x, y, bw, 34), $"{Mathf.RoundToInt(GameVolume.Master * 100f)}%", new GUIStyle(volumeStyle) { alignment = TextAnchor.MiddleRight });
+            y += 44f;
+            var sliderRect = new Rect(x, y, bw, 26);
+            Rect(new Rect(x, y + 10, bw, 6), new Color(0.2f, 0.18f, 0.15f, 1f));
+            Rect(new Rect(x, y + 10, bw * GameVolume.Master, 6), DarkGold);
+            GameVolume.Master = GUI.HorizontalSlider(sliderRect, GameVolume.Master, 0f, 1f, sliderTrack, sliderThumb);
+            y += 50f;
+
+            var danger = new GUIStyle(button) { normal = { textColor = Ember } };
+
+            // Surrender.
+            if (surrender)
+            {
+                if (voting)
+                {
+                    int secs = Mathf.Max(0, Mathf.CeilToInt(voteEnd - Time.time));
+                    GUI.Label(new Rect(x, y, bw, 30), $"SURRENDER VOTE  ·  {voteYes} / {voteNeeded} YES  ·  {secs}s",
+                        new GUIStyle(labelCentered) { fontSize = 22, fontStyle = FontStyle.Bold, normal = { textColor = Gold } });
+                    y += 34f;
+                    if (GUI.Button(new Rect(x, y, bw * 0.5f - 8f, rowH), "VOTE YES", button)) VoteFromUi(true);
+                    if (GUI.Button(new Rect(x + bw * 0.5f + 8f, y, bw * 0.5f - 8f, rowH), "VOTE NO", button)) VoteFromUi(false);
+                }
+                else
+                {
+                    bool cooling = Time.time < surrenderCooldownUntil;
+                    string text = voteActive ? $"VOTE RUNNING  ·  {voteYes} / {voteNeeded}"
+                        : cooling ? $"SURRENDER  ({Mathf.CeilToInt(surrenderCooldownUntil - Time.time)}s)"
+                        : confirmSurrender ? "CONFIRM SURRENDER" : "SURRENDER";
+                    bool wasEnabled = GUI.enabled;
+                    GUI.enabled = !voteActive && !cooling;
+                    if (GUI.Button(new Rect(x, y, bw, rowH), text, confirmSurrender ? danger : button))
+                    {
+                        if (!confirmSurrender) confirmSurrender = true;
+                        else
+                        {
+                            VoteFromUi(true);
+                            voteActive = true;
+                            voteYes = 1;
+                            voteNeeded = TeamMembers(MyTeam, ulong.MaxValue).Count;
+                            voteEnd = Time.time + SurrenderVoteTime;
+                            CloseGameMenu();
+                        }
+                    }
+                    GUI.enabled = wasEnabled;
+                }
+                y += rowH + gap;
+            }
+
+            // Leave (asks once more: there is no way back into a running match).
+            if (GUI.Button(new Rect(x, y, bw, rowH), confirmLeave ? "CONFIRM LEAVE" : "LEAVE MATCH", confirmLeave ? danger : button))
+            {
+                if (!confirmLeave) confirmLeave = true;
+                else
+                {
+                    GameVolume.Save();
+                    LeaveToMenu("");
+                    return;
+                }
+            }
+            y += rowH + gap;
+
+            if (GUI.Button(new Rect(x, y, bw, rowH), "RESUME", button)) CloseGameMenu();
+            y += rowH + 8f;
+
+            GUI.Label(new Rect(panel.x, y, pw, 30), "ESC  to close", new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter });
+        }
+
+        // My team's running surrender vote (top centre), or the note that it failed.
+        void DrawSurrenderVote(float w, float h)
+        {
+            if (!MatchLive) return;
+
+            if (voteActive)
+            {
+                var box = new Rect(w * 0.5f - 210f, 96f, 420f, iVoted ? 110f : 176f);
+                Frame(box, Panel, DarkGold);
+                GUI.Label(new Rect(box.x, box.y + 10, box.width, 34), "SURRENDER VOTE",
+                    new GUIStyle(labelCentered) { fontSize = 26, fontStyle = FontStyle.Bold, normal = { textColor = Gold } });
+                int secs = Mathf.Max(0, Mathf.CeilToInt(voteEnd - Time.time));
+                GUI.Label(new Rect(box.x, box.y + 46, box.width, 30), $"{voteYes} / {voteNeeded} YES   ·   {secs}s",
+                    new GUIStyle(labelCentered) { fontSize = 22 });
+
+                if (iVoted)
+                {
+                    GUI.Label(new Rect(box.x, box.y + 76, box.width, 26), "Waiting for your team...",
+                        new GUIStyle(labelSmall) { alignment = TextAnchor.MiddleCenter, fontSize = 18 });
+                }
+                else
+                {
+                    if (GUI.Button(new Rect(box.x + 20, box.y + 92, 180, 64), "YES", button)) VoteFromUi(true);
+                    if (GUI.Button(new Rect(box.xMax - 200, box.y + 92, 180, 64), "NO", button)) VoteFromUi(false);
+                    if (box.Contains(Event.current.mousePosition)) pointerOverVote = true;
+                }
+                return;
+            }
+
+            if (Time.time < voteNoticeUntil)
+            {
+                var box = new Rect(w * 0.5f - 210f, 96f, 420f, 56f);
+                Frame(box, Panel, DarkGold);
+                GUI.Label(box, voteNotice, new GUIStyle(labelCentered) { fontSize = 24, fontStyle = FontStyle.Bold, normal = { textColor = Ember } });
+            }
         }
 
         // Post-round damage report: one row per fighter (you first, then allies, then enemies), so it scales to 2v2 / 3v3.

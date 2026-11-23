@@ -1,0 +1,168 @@
+// Shared pieces for the ability icon SVGs. Each script here writes one or more characters' SVGs into
+// Art/AbilityIcons/<Character>/ (overwriting them), e.g. `node generate/gk_psyker.mjs`; then `npm run render`.
+// The Khorne Berserker set was drawn by hand and has no script here.
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+export const OUT = fileURLToPath(new URL("../../../Art/AbilityIcons", import.meta.url));
+
+export function head(acc) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-55 -55 110 110">
+<defs>
+<radialGradient id="bg" cx="0" cy="-6" r="62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2a1e16"/><stop offset="1" stop-color="#060403"/></radialGradient>
+<radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="${acc}" stop-opacity="0.5"/><stop offset="1" stop-color="${acc}" stop-opacity="0"/></radialGradient>
+<linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c4c2ba"/><stop offset="1" stop-color="#34322e"/></linearGradient>
+<linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0cc78"/><stop offset="1" stop-color="#7a5418"/></linearGradient>
+<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>
+<filter id="blur4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+<clipPath id="disc"><circle r="55"/></clipPath>
+<g id="halberd">
+<rect x="-2.5" y="-30" width="5" height="76" rx="1.5" fill="#3a2a1a" stroke="#0c0806" stroke-width="1"/>
+<path d="M0,-48 L4.5,-30 L-4.5,-30 Z" fill="url(#metal)" stroke="#0c0c0a" stroke-width="1"/>
+<path d="M2,-33 Q24,-35 28,-14 Q19,-21 2,-17 Z" fill="url(#metal)" stroke="#0c0c0a" stroke-width="1.5"/>
+<path d="M5,-31 Q20,-31 25,-19" fill="none" stroke="#e8f4ff" stroke-width="0.9" opacity="0.7"/>
+<path d="M-2,-30 L-13,-26 L-2,-21 Z" fill="url(#metal)" stroke="#0c0c0a" stroke-width="1"/>
+<rect x="-4.5" y="-21" width="9" height="4" fill="#b8924c" stroke="#3a2a10" stroke-width="0.6"/>
+</g>
+<g id="skull">
+<path d="M-26,-6 Q-26,-32 0,-32 Q26,-32 26,-6 Q26,8 16,13 L16,24 L-16,24 L-16,13 Q-26,8 -26,-6 Z" fill="#cfc4a8" stroke="#1a140c" stroke-width="2"/>
+<ellipse cx="-10" cy="-3" rx="7" ry="6.5" fill="#120e0a"/><ellipse cx="10" cy="-3" rx="7" ry="6.5" fill="#120e0a"/>
+<path d="M0,5 L-3.5,11 L3.5,11 Z" fill="#120e0a"/>
+<g stroke="#1a140c" stroke-width="1.5"><line x1="-16" y1="16" x2="16" y2="16"/><line x1="-8" y1="13" x2="-8" y2="24"/><line x1="0" y1="13" x2="0" y2="24"/><line x1="8" y1="13" x2="8" y2="24"/></g>
+</g>
+<g id="dove">
+<path d="M-14,2 Q-6,-2 2,0 Q8,-3 12,-1.5 L17,-1 L12,2 Q6,6 -4,5 Q-10,6 -14,2 Z" stroke="#5a5040" stroke-width="0.8"/>
+<path d="M-5,0 Q-12,-15 -2,-22 Q0,-11 5,-1 Z" stroke="#5a5040" stroke-width="0.8"/>
+<path d="M-14,2 L-21,-2 L-20,6 Z" stroke="#5a5040" stroke-width="0.6"/>
+<circle cx="11" cy="-1" r="0.9" fill="#222"/>
+</g>
+<g id="fly">
+<ellipse cx="-7" cy="-3" rx="8" ry="3.6" transform="rotate(-25 -7 -3)" fill="#d4dcb0" opacity="0.55" stroke="#3a4020" stroke-width="0.6"/>
+<ellipse cx="7" cy="-3" rx="8" ry="3.6" transform="rotate(25 7 -3)" fill="#d4dcb0" opacity="0.55" stroke="#3a4020" stroke-width="0.6"/>
+<ellipse cx="0" cy="3" rx="4.5" ry="7.5" fill="#3a4a14" stroke="#141a06" stroke-width="1"/>
+<circle cx="0" cy="-5.5" r="3.6" fill="#2a3010" stroke="#141a06" stroke-width="0.6"/>
+<circle cx="-1.7" cy="-6.6" r="1.5" fill="#c4161c"/><circle cx="1.7" cy="-6.6" r="1.5" fill="#c4161c"/>
+<g stroke="#6a7a24" stroke-width="0.7"><line x1="-3.5" y1="3" x2="3.5" y2="3"/><line x1="-4" y1="6" x2="4" y2="6"/></g>
+</g>
+<g id="wing">
+<path d="M0,0 Q-12,-4 -22,-18 Q-30,-30 -42,-36 Q-36,-26 -38,-18 Q-31,-20 -31,-11 Q-24,-13 -25,-4 Q-17,-7 -15,1 Q-8,-1 0,5 Z" stroke-width="1"/>
+<g fill="none" stroke-width="0.7" opacity="0.6"><path d="M-6,0 Q-16,-8 -24,-20"/><path d="M-10,2 Q-20,-4 -30,-12"/></g>
+</g>
+<g id="chainsword">
+<rect x="-15" y="-3" width="13" height="6" rx="2" fill="#3a2614" stroke="#0c0806"/>
+<rect x="-3" y="-8" width="4" height="16" fill="#b8924c" stroke="#3a2a10" stroke-width="0.8"/>
+<path d="M1,-5 L42,-5 Q49,0 42,5 L1,5 Z" fill="url(#metal)" stroke="#0c0c0a" stroke-width="1.5"/>
+<polyline points="2,-5 5,-8 8,-5 11,-8 14,-5 17,-8 20,-5 23,-8 26,-5 29,-8 32,-5 35,-8 38,-5 41,-8 45,-3" fill="none" stroke="#8a8a84" stroke-width="1.3"/>
+<line x1="4" y1="0" x2="40" y2="0" stroke="#1a1a18" stroke-width="1"/>
+</g>
+<g id="flask">
+<rect x="-3.5" y="-16" width="7" height="8" fill="#6a7a5a" stroke="#1a1a10"/>
+<rect x="-5" y="-19" width="10" height="3.5" rx="1" fill="#5a3a1a"/>
+<circle cy="2" r="11" fill="#4a6a14" stroke="#1a2008" stroke-width="1.5"/>
+<path d="M-9.5,4 Q0,0 9.5,4 Q8,12.5 0,13 Q-8,12.5 -9.5,4 Z" fill="#9adf3a" opacity="0.85"/>
+<path d="M-6,-4 Q-7.5,0 -5,3" stroke="#e8ffd0" stroke-width="1.5" fill="none" opacity="0.7"/>
+</g>
+<g id="round">
+<rect x="-8" y="-3" width="12" height="6" fill="#b8924c" stroke="#3a2a10" stroke-width="0.8"/>
+<path d="M4,-3 L10,-3 Q14,0 10,3 L4,3 Z" fill="url(#metal)" stroke="#1a1a18" stroke-width="0.8"/>
+</g>
+<g id="slab">
+<rect x="-18" y="-26" width="36" height="52" rx="3" fill="#5a4a3a" stroke="#f2a61a" stroke-width="2.5"/>
+<rect x="-13" y="-20" width="26" height="40" fill="#6e5c48"/>
+<rect x="-18" y="-4" width="36" height="8" fill="#3a2f25"/>
+<g fill="#d9a441"><circle cx="-13" cy="-21" r="2"/><circle cx="13" cy="-21" r="2"/><circle cx="-13" cy="21" r="2"/><circle cx="13" cy="21" r="2"/></g>
+<polyline points="-8,-14 -2,-8 -5,-2" fill="none" stroke="#2a211a" stroke-width="1.5"/>
+</g>
+<g id="maul">
+<rect x="-3" y="-20" width="6" height="62" rx="2" fill="#3a2614" stroke="#0c0806"/>
+<rect x="-19" y="-37" width="38" height="20" rx="2" fill="url(#metal)" stroke="#0c0c0a" stroke-width="2"/>
+<rect x="-19" y="-31" width="38" height="5" fill="#4a4640"/>
+<g fill="#b8924c"><circle cx="-13" cy="-22" r="1.6"/><circle cx="13" cy="-22" r="1.6"/><circle cx="-13" cy="-34" r="1.6"/><circle cx="13" cy="-34" r="1.6"/></g>
+</g>
+<g id="hourglass">
+<path d="M-10,-16 L10,-16 L1.5,0 L10,16 L-10,16 L-1.5,0 Z" fill="#cfe6ff" fill-opacity="0.25" stroke="#e3c27a" stroke-width="1"/>
+<path d="M-6,-10 L6,-10 L0,-1 Z" fill="#e8c56a"/>
+<path d="M-8,15.5 Q0,6 8,15.5 Z" fill="#e8c56a"/>
+<line x1="0" y1="-1" x2="0" y2="12" stroke="#e8c56a" stroke-width="0.8"/>
+<rect x="-13" y="-20" width="26" height="4" rx="1" fill="url(#gold)" stroke="#3a2a10" stroke-width="0.6"/>
+<rect x="-13" y="16" width="26" height="4" rx="1" fill="url(#gold)" stroke="#3a2a10" stroke-width="0.6"/>
+</g>
+<g id="kblade">
+<path d="M-2,22 Q-7,-4 11,-32 Q4,-4 5,22 Z" fill="url(#metal)" stroke="#0c0c0a" stroke-width="1.2"/>
+<path d="M0,18 Q-2,-3 9,-26" fill="none" stroke="#c8ffc0" stroke-width="0.8" opacity="0.7"/>
+<rect x="-6" y="21" width="13" height="3" fill="#1a1a1a" stroke="#73ff4d" stroke-width="0.6"/>
+<rect x="-1" y="24" width="4" height="13" fill="#121410" stroke="#000" stroke-width="0.6"/>
+</g>
+</defs>
+<g clip-path="url(#disc)">
+<circle r="55" fill="url(#bg)"/>
+<g fill="#000" opacity="0.3"><circle cx="-30" cy="-34" r="9"/><circle cx="34" cy="30" r="12"/><circle cx="-36" cy="22" r="7"/></g>
+`;
+}
+export const TAIL = `</g>\n</svg>\n`;
+
+// ---- helpers ----
+export const glow = (cx = 0, cy = 0, r = 44, op = 1) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#glow)" opacity="${op}"/>`;
+export const embers = (pts, c = "#ff8a3a") => `<g fill="${c}">${pts.map(([x, y, r = 1.1]) => `<circle cx="${x}" cy="${y}" r="${r}"/>`).join("")}</g>`;
+export const use = (id, t, extra = "") => `<use xlink:href="#${id}" transform="${t}" ${extra}/>`;
+// A glowing line: soft halo, coloured body, bright core.
+export const bolt = (pts, halo, core = "#ffffff", w = 3) =>
+  `<polyline points="${pts}" fill="none" stroke="${halo}" stroke-width="${w * 3.5}" opacity="0.35" filter="url(#soft)" stroke-linejoin="round" stroke-linecap="round"/>` +
+  `<polyline points="${pts}" fill="none" stroke="${halo}" stroke-width="${w * 1.7}" opacity="0.85" stroke-linejoin="round" stroke-linecap="round"/>` +
+  `<polyline points="${pts}" fill="none" stroke="${core}" stroke-width="${w * 0.7}" stroke-linejoin="round" stroke-linecap="round"/>`;
+export const glowPath = (d, halo, core = "#ffffff", w = 3) =>
+  `<path d="${d}" fill="none" stroke="${halo}" stroke-width="${w * 3.5}" opacity="0.35" filter="url(#soft)" stroke-linecap="round"/>` +
+  `<path d="${d}" fill="none" stroke="${halo}" stroke-width="${w * 1.7}" opacity="0.85" stroke-linecap="round"/>` +
+  `<path d="${d}" fill="none" stroke="${core}" stroke-width="${w * 0.7}" stroke-linecap="round"/>`;
+export const rays = (cx, cy, r0, r1, n, color, w = 2, op = 0.6, start = 0) => {
+  let s = `<g stroke="${color}" stroke-width="${w}" stroke-linecap="round" opacity="${op}">`;
+  for (let i = 0; i < n; i++) {
+    const a = start + (i / n) * Math.PI * 2;
+    s += `<line x1="${f(cx + Math.cos(a) * r0)}" y1="${f(cy + Math.sin(a) * r0)}" x2="${f(cx + Math.cos(a) * r1)}" y2="${f(cy + Math.sin(a) * r1)}"/>`;
+  }
+  return s + "</g>";
+};
+// Star / burst polygon: alternating outer and inner radius.
+export const star = (cx, cy, rOut, rIn, n, fill, extra = "", rot = -Math.PI / 2) => {
+  const pts = [];
+  for (let i = 0; i < n * 2; i++) {
+    const r = i % 2 ? rIn : rOut, a = rot + (i / (n * 2)) * Math.PI * 2;
+    pts.push(`${f(cx + Math.cos(a) * r)},${f(cy + Math.sin(a) * r)}`);
+  }
+  return `<polygon points="${pts.join(" ")}" fill="${fill}" ${extra}/>`;
+};
+// Gear outline.
+export const cog = (cx, cy, r, teeth, fill, stroke = "#0c0c0a", extra = "") => {
+  const pts = [], depth = r * 0.22;
+  for (let i = 0; i < teeth * 4; i++) {
+    const a = (i / (teeth * 4)) * Math.PI * 2, rr = (i % 4 < 2) ? r : r - depth;
+    pts.push(`${f(cx + Math.cos(a) * rr)},${f(cy + Math.sin(a) * rr)}`);
+  }
+  return `<polygon points="${pts.join(" ")}" fill="${fill}" stroke="${stroke}" stroke-width="1.2" ${extra}/><circle cx="${cx}" cy="${cy}" r="${f(r * 0.35)}" fill="#14100d" stroke="${stroke}" stroke-width="1"/>`;
+};
+// Ring of flame tongues.
+export const flameRing = (cx, cy, r, n, len, fill, op = 1) => {
+  let pts = [];
+  for (let i = 0; i < n * 2; i++) {
+    const a = (i / (n * 2)) * Math.PI * 2, rr = i % 2 ? r : r + len * (0.6 + 0.4 * Math.abs(Math.sin(i * 1.7)));
+    pts.push(`${f(cx + Math.cos(a) * rr)},${f(cy + Math.sin(a) * rr)}`);
+  }
+  return `<polygon points="${pts.join(" ")}" fill="${fill}" opacity="${op}"/>`;
+};
+export const stunStars = (cx, cy, r, color = "#ffe27a") =>
+  [0, 2.1, 4.2].map(a => star(f(cx + Math.cos(a) * r), f(cy + Math.sin(a) * r * 0.4), 3.2, 1.2, 4, color)).join("");
+export const chevrons = (x, y, n, dx, size, color, op = 0.8) => {
+  let s = `<g fill="none" stroke="${color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="${op}">`;
+  for (let i = 0; i < n; i++) { const cx = x + i * dx; s += `<polyline points="${cx},${y - size} ${cx + size * Math.sign(dx)},${y} ${cx},${y + size}"/>`; }
+  return s + "</g>";
+};
+export const drops = (pts, c = "#8a0c0c") => `<g fill="${c}">${pts.map(([x, y, s = 1]) => `<path d="M${x},${y - 5 * s} Q${x + 3.5 * s},${y} ${x},${y + 2 * s} Q${x - 3.5 * s},${y} ${x},${y - 5 * s} Z"/>`).join("")}</g>`;
+export const f = v => Math.round(v * 100) / 100;
+
+export function write(character, acc, icons) {
+  const dir = join(OUT, character);
+  mkdirSync(dir, { recursive: true });
+  for (const [name, body] of Object.entries(icons)) writeFileSync(join(dir, name + ".svg"), head(acc) + body + "\n" + TAIL);
+  console.log(character, Object.keys(icons).length);
+}

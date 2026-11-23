@@ -1,0 +1,8 @@
+{
+  "name": "anathema-icon-render",
+  "private": true,
+  "description": "Renders the ability icon SVGs in Art/AbilityIcons to PNGs in Assets/Resources/AbilityIcons.",
+  "type": "module",
+  "scripts": { "render": "node render.mjs" },
+  "dependencies": { "@resvg/resvg-js": "2.6.2" }
+}

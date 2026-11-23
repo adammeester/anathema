@@ -35,3 +35,6 @@ crashlytics-build.properties
 
 # Local reference images (not redistributed)
 /Art/Reference/
+
+# Icon renderer
+Tools/IconRender/node_modules/

@@ -93,7 +93,6 @@ MonoBehaviour:
   team: 1
   recoverableDecayDelay: 4
   recoverableDecayRate: 6
-  maxRecoverableFraction: 0.2
 --- !u!114 &7813902772134687245
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -351,7 +350,7 @@ MonoBehaviour:
   shieldModel: {fileID: 919132149155446097, guid: 922a3fe6beceb9b41abcf6e0ee53701c, type: 3}
   shoveWarning: 0.25
   shoveDistance: 3
-  shoveDuration: 0.5
+  shoveDuration: 0.16
   shoveDamage: 10
   pinStun: 1.5
   energyPerHit: 0

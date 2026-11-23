@@ -35,5 +35,20 @@ namespace Anathema.Combat
         {
             Sfx.Play(Sfx.ChainswordImpact, volume, 0.92f, 1.08f, 0.8f);
         }
+
+        // A power weapon swing (the Sanguinary Priest's power sword): a clean blade cut over the brief, high crackle of
+        // its power field.
+        public static void PowerSwing(float volume = 0.45f, float pitchMin = 0.92f, float pitchMax = 1.08f)
+        {
+            Slash(volume, pitchMin, pitchMax);
+            Sfx.Play(Sfx.ElectricShock, volume * 0.35f, 1.25f, 1.4f, 0.25f);
+        }
+
+        // A power blade biting in: the blow landing, and the field discharging into the target.
+        public static void PowerImpact(float volume = 0.4f)
+        {
+            Sfx.Play(Sfx.MeleeImpact, volume, 0.92f, 1.08f);
+            Sfx.Play(Sfx.Either(Sfx.ElectricShock, Sfx.TeleportCrackle), volume * 0.45f, 1.1f, 1.25f, 0.35f);
+        }
     }
 }

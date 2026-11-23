@@ -77,7 +77,7 @@
       "lifetime": 6,
       "shoveWarning": 0.25,
       "shoveDistance": 3,
-      "shoveDuration": 0.5,
+      "shoveDuration": 0.16,
       "shoveDamage": 10,
       "pinStun": 1.5
     }

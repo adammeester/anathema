@@ -283,6 +283,32 @@ namespace Anathema.Net
                     EX("Shift+Q", "Warp Rift", "Instead of the shield, tear open a rift at the cursor: enemies inside are slowed and enemy projectiles that enter are turned back.",
                         "Radius 2.6  |  Lasts 2s  |  40% slow  |  Range 9  |  Costs 25 energy")
                 }
+            },
+            new CharacterInfo
+            {
+                name = "Sanguinary Priest", epithet = "The Blood Chalice", prefabPath = "Net/Player_SanguinaryPriest",
+                role = Role.Support, accent = new Color(0.9f, 0.12f, 0.12f),
+                blurb = "Blood Angels battle-medic. Heals his brothers with every cut he lands, and when the chalice brims, spins through the enemy line in a storm of blood.",
+                footnote = "Hold Shift in game to use EX abilities",
+                passive = P("Vitae", "Healing you give (teammates or yourself) fills the Blood Chalice, and fills it half again as fast while an enemy is right beside you. Damage never fills it. Full, your next Power Sword swing is the Exsanguinating Arc: a full spin slash that cuts everything around you and heals every teammate near you for part of the damage. While the chalice is full your blade blazes and you take a little more damage. Stop healing for a few seconds and it drains.",
+                    "1 Vitae per point healed (x1.5 with an enemy within 3)  |  Full at 100  |  Arc: 28 damage all around, radius 3.3, 30% slow, allies within 6 healed 40% of each hit  |  +10% damage taken while full  |  Drains 6/s after 3s"),
+                abilities = new[]
+                {
+                    A("LMB", "Power Sword", "Click or hold to cut in alternating arcs in front of you with your crackling power sword. A swing that connects sends a stream of blood to the most injured teammate nearby (you included) and heals them.",
+                        "Damage 9  |  Every 0.7s  |  Range 2.6, 100 degrees  |  Heals 5 per connecting swing (within 10)"),
+                    A("RMB", "Sanguine Lunge", "Dash forward and stab. If it lands, every teammate near your target (you included) is healed.",
+                        "Damage 10  |  Dash 4  |  Ally heal 12 within 4 of the target  |  Cooldown 6s"),
+                    A("Q", "Jump Pack", "Leap to the cursor, over walls. Enemies where you land take damage and are knocked back; teammates there are healed, and they and you get a short barrier.",
+                        "Range 8  |  Damage 10 in 2.5 radius  |  Ally heal 12  |  Barrier 10 for 2s  |  Cooldown 10s"),
+                    A("E", "Chalice Offering", "Raise the chalice: every teammate around you, you included, is healed. The heal is stronger for each enemy close to you.",
+                        "Heal 16 (+50% per enemy within 4, up to +100%)  |  Radius 4  |  Cooldown 12s"),
+                    A("Space", "Sanguine Parry", "Your counter. The hit is negated; the attacker is cut if they are close, and the most injured teammate near you is healed.",
+                        "Riposte 8  |  Heal 15 (within 8)"),
+                    A("R", "Wings of the Angel", "Costs a full energy bar. Golden wings unfold; then you leap to the cursor and crash down. Teammates in the ring are healed, enemies take damage and are pushed back. For 5 seconds every Power Sword swing is an Exsanguinating Arc. C during the gather cancels and refunds.",
+                        "Heal 30 / Damage 20 in 6 radius  |  Range 9  |  Arcs for 5s, every 0.9s  |  Costs 100 energy", true),
+                    EX("Shift+E", "Red Thirst", "Pour the chalice for one: the teammate nearest the cursor (you, if nobody is near it) gets a large heal.",
+                        "Heal 30  |  Range 10  |  Costs 35 energy")
+                }
             }
         };
 

@@ -15,8 +15,11 @@ namespace Anathema.Combat
 
         float endTime;
         Transform model;
-        Vector3 modelPosition;
-        Quaternion modelRotation;
+        // The shake currently on the model, taken off again before the next one. Only the shake is undone, never a saved
+        // absolute pose: PlayerMovement nudges the same transform for its visual smoothing, and restoring a snapshot would
+        // wipe (or bake in) its offset and leave the body orbiting the character's pivot.
+        Vector3 shakeOffset;
+        Quaternion shakeTilt = Quaternion.identity;
         Vector3 center;
         float height;
         float radius;
@@ -43,11 +46,6 @@ namespace Anathema.Combat
         void Awake()
         {
             model = transform.Find("Model");
-            if (model != null)
-            {
-                modelPosition = model.localPosition;
-                modelRotation = model.localRotation;
-            }
 
             // Size the lightning to the character (a human is much smaller than a marine).
             Bounds bounds = new Bounds(transform.position + Vector3.up, Vector3.zero);
@@ -100,8 +98,11 @@ namespace Anathema.Combat
             // Judder: the model is jolted around every frame (the root, which owns the collider and movement, stays put).
             if (model != null)
             {
-                model.localPosition = modelPosition + Random.insideUnitSphere * ShakeDistance;
-                model.localRotation = modelRotation * Quaternion.Euler(Random.Range(-ShakeTilt, ShakeTilt), 0f, Random.Range(-ShakeTilt, ShakeTilt));
+                RemoveShake();
+                shakeOffset = Random.insideUnitSphere * ShakeDistance;
+                shakeTilt = Quaternion.Euler(Random.Range(-ShakeTilt, ShakeTilt), 0f, Random.Range(-ShakeTilt, ShakeTilt));
+                model.localPosition += shakeOffset;
+                model.localRotation *= shakeTilt;
             }
 
             if (Time.time < nextReroll) return;
@@ -134,13 +135,18 @@ namespace Anathema.Combat
             return origin + new Vector3(ring.x, Random.Range(-0.5f, 0.5f) * height, ring.y);
         }
 
+        void RemoveShake()
+        {
+            if (model == null) return;
+            model.localPosition -= shakeOffset;
+            model.localRotation *= Quaternion.Inverse(shakeTilt);
+            shakeOffset = Vector3.zero;
+            shakeTilt = Quaternion.identity;
+        }
+
         void OnDestroy()
         {
-            if (model != null)
-            {
-                model.localPosition = modelPosition;
-                model.localRotation = modelRotation;
-            }
+            RemoveShake();
 
             foreach (LineRenderer l in glow ?? new LineRenderer[0]) if (l != null) Destroy(l.gameObject);
             foreach (LineRenderer l in core ?? new LineRenderer[0]) if (l != null) Destroy(l.gameObject);

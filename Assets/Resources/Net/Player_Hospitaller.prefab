@@ -95,7 +95,6 @@ MonoBehaviour:
   team: 1
   recoverableDecayDelay: 4
   recoverableDecayRate: 6
-  maxRecoverableFraction: 0.2
 --- !u!114 &9049595562018989486
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -221,9 +220,9 @@ MonoBehaviour:
   range: 10
   radius: 2.2
   delay: 0.5
-  totalHeal: 26
+  totalHeal: 36
   energyPerHeal: 5
-  rechargeTime: 6
+  rechargeTime: 9
 --- !u!114 &4717878336103322777
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -287,7 +286,7 @@ MonoBehaviour:
   poseBlendTime: 0.1
   glowScale: 1.06
   glowColor: {r: 0.3, g: 0.6, b: 1, a: 0.4}
-  heal: 15
+  heal: 22
   healRadius: 6
   smiteDamage: 6
   silenceSeconds: 1.2

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-55 -55 110 110">
+<defs>
+<radialGradient id="bg" cx="0" cy="-6" r="62" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2a1e16"/><stop offset="1" stop-color="#060403"/></radialGradient>
+<radialGradient id="glow" cx="0" cy="0" r="1"><stop offset="0" stop-color="#ff5238" stop-opacity="0.5"/><stop offset="1" stop-color="#ff5238" stop-opacity="0"/></radialGradient>
+<linearGradient id="metal" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c4c2ba"/><stop offset="1" stop-color="#34322e"/></linearGradient>
+<linearGradient id="brass" gradientUnits="userSpaceOnUse" x1="-20" y1="-30" x2="20" y2="14"><stop offset="0" stop-color="#e3b862"/><stop offset="1" stop-color="#5e4014"/></linearGradient>
+<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>
+<clipPath id="disc"><circle r="55"/></clipPath>
+<g id="axe">
+<rect x="-4.5" y="-38" width="9" height="76" rx="2" fill="#3a2614" stroke="#0c0806" stroke-width="1.5"/>
+<g stroke="#1a0e06" stroke-width="2"><line x1="-4.5" y1="14" x2="4.5" y2="10"/><line x1="-4.5" y1="21" x2="4.5" y2="17"/><line x1="-4.5" y1="28" x2="4.5" y2="24"/></g>
+<polyline points="38,-45 46,-39 42,-33 50,-27 44,-21 51,-15 44,-9 50,-3 42,3 46,7 38,8" fill="none" stroke="#1a1a18" stroke-width="5"/>
+<path d="M4,-36 L38,-45 Q50,-18 38,8 L4,-2 Z" fill="url(#metal)" stroke="#0c0c0a" stroke-width="2.5"/>
+<path d="M8,-34 L35,-42" stroke="#e8e6de" stroke-width="1.2" opacity="0.6"/>
+<circle cx="14" cy="-20" r="3" fill="#1a1a18"/><circle cx="14" cy="-20" r="1.2" fill="#8a1a14"/>
+<polyline points="38,-45 46,-39 42,-33 50,-27 44,-21 51,-15 44,-9 50,-3 42,3 46,7 38,8" fill="none" stroke="#8a8a84" stroke-width="2"/>
+<g fill="#7a0c0c"><circle cx="44" cy="-20" r="2.5"/><circle cx="40" cy="-4" r="2"/><circle cx="30" cy="2" r="1.8"/></g>
+</g>
+</defs>
+<g clip-path="url(#disc)">
+<circle r="55" fill="url(#bg)"/>
+<g fill="#000" opacity="0.3"><circle cx="-30" cy="-34" r="9"/><circle cx="34" cy="30" r="12"/><circle cx="-36" cy="22" r="7"/></g>
+<path d="M-44,-20 Q0,-58 44,-20" fill="none" stroke="#ff5238" stroke-width="7" opacity="0.35" filter="url(#soft)"/>
+<path d="M-40,-22 Q0,-54 40,-22" fill="none" stroke="#ff8a6a" stroke-width="1.6" opacity="0.8"/>
+<circle r="38" fill="url(#glow)"/>
+<use xlink:href="#axe" transform="translate(-7 8) scale(-1 1) rotate(32) scale(0.72)"/>
+<use xlink:href="#axe" transform="translate(7 8) rotate(32) scale(0.72)"/>
+<g fill="#6a0a0a"><circle cx="-6" cy="40" r="3"/><circle cx="8" cy="44" r="2.4"/><circle cx="0" cy="34" r="1.6"/></g>
+<g fill="#ff8a3a"><circle cx="30" cy="-36" r="1.2"/><circle cx="-26" cy="-40" r="1"/></g>
+</g>
+</svg>

@@ -1,0 +1,75 @@
+{
+  "health": 170,
+  "moveSpeed": 5.2,
+  "maxEnergy": 100,
+  "abilities": {
+    "Chainsword": {
+      "cooldown": 0.7,
+      "damage": 9,
+      "range": 2.6,
+      "arcDegrees": 100,
+      "windupDuration": 0.12,
+      "healPerSwing": 5,
+      "healRange": 10,
+      "energyPerHit": 6,
+      "arcWindup": 0.25,
+      "arcSpinDuration": 0.3,
+      "arcRange": 3.3,
+      "arcDamage": 28,
+      "arcSlow": 0.3,
+      "arcSlowDuration": 1,
+      "arcHealShare": 0.4,
+      "arcHealRadius": 6,
+      "arcEnergyPerHit": 10,
+      "ascendedCooldown": 0.9
+    },
+    "SanguineLunge": {
+      "cooldown": 6,
+      "dashDistance": 4,
+      "damage": 10,
+      "range": 2.4,
+      "arcDegrees": 60,
+      "allyHeal": 12,
+      "allyHealRadius": 4,
+      "energyPerHit": 8
+    },
+    "JumpPackDescent": {
+      "cooldown": 10,
+      "range": 8,
+      "flightDuration": 0.45,
+      "landingRadius": 2.5,
+      "damage": 10,
+      "knockbackDistance": 2,
+      "allyHeal": 12,
+      "barrier": 10,
+      "barrierSeconds": 2,
+      "energyPerHit": 8
+    },
+    "ChaliceOffering": {
+      "cooldown": 12,
+      "radius": 4,
+      "heal": 16,
+      "bonusPerEnemy": 0.5,
+      "maxBonusEnemies": 2,
+      "exEnergyCost": 35,
+      "exHeal": 30,
+      "exRange": 10
+    },
+    "SanguineParry": {
+      "cooldown": 4,
+      "riposteDamage": 8,
+      "heal": 15,
+      "healRange": 8,
+      "energyGain": 10
+    },
+    "WingsOfTheAngel": {
+      "energyCost": 100,
+      "windup": 0.6,
+      "range": 9,
+      "radius": 6,
+      "allyHeal": 30,
+      "damage": 20,
+      "ascendDuration": 5
+    }
+  }
+}
