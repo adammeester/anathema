@@ -59,7 +59,8 @@ namespace Anathema.Abilities.Sorcerer
             float bestDistance = float.MaxValue;
             foreach (Health h in Object.FindObjectsByType<Health>())
             {
-                if (h.IsDead || h.Structure || h.Team != caster.Team || !h.TryGetComponent(out MouseAim _)) continue;
+                if (h.IsDead || h.Structure || h.Team != caster.Team) continue;
+                if (!h.TryGetComponent(out MouseAim _) && !h.TryGetComponent(out Anathema.Arena.TrainingAlly _)) continue;
                 Vector3 fromCaster = h.transform.position - caster.transform.position;
                 fromCaster.y = 0f;
                 if (fromCaster.magnitude > range) continue;

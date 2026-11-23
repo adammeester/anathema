@@ -23,7 +23,6 @@ namespace Anathema.Arena
         [SerializeField] float orbSpacing = 3f;
         [SerializeField] float chargeOrbFirstDelay = 15f;
         [SerializeField] float chargeOrbRespawn = 30f; // after it is destroyed
-        [SerializeField] float chargeOrbHealth = ChargeOrb.DefaultHealth;
 
         // Order the lines refill in: direction from the centre, and the orb kind on that line.
         static readonly Vector3[] LineDirections = { Vector3.forward, Vector3.right, Vector3.back, Vector3.left };
@@ -33,12 +32,15 @@ namespace Anathema.Arena
         int nextId = 1;
         int nextLine;
         float nextChargeOrb;
+        float chargeOrbCountdown;              // the full length of the current countdown, for the rune ring
+        float shownChargeOrb = float.NaN;      // the due time last sent to the rune ring (NaN: send it again)
 
         void Start()
         {
             gas = FindAnyObjectByType<GasZone>();
             nextSpawn = Time.time + firstDelay;
             nextChargeOrb = Time.time + chargeOrbFirstDelay;
+            chargeOrbCountdown = chargeOrbFirstDelay;
         }
 
         // Called on rematch.
@@ -48,13 +50,22 @@ namespace Anathema.Arena
             ChargeOrb.Despawn();
             nextSpawn = Time.time + firstDelay;
             nextChargeOrb = Time.time + chargeOrbFirstDelay;
+            chargeOrbCountdown = chargeOrbFirstDelay;
+            shownChargeOrb = float.NaN;
             nextLine = 0;
         }
 
         void Update()
         {
             if (NetGame.Online && (!NetGame.IsHost || NetPlayer.All.Count < 2)) return;
-            if (NetGame.Frozen || NetGame.InPrep) return;
+            if (NetGame.Frozen || NetGame.InPrep)
+            {
+                // The charge orb's clock only runs while the fight is on, so it really appears that long into a round.
+                // The rune ring hides meanwhile and is sent the corrected time once fighting starts.
+                nextChargeOrb += Time.deltaTime;
+                shownChargeOrb = float.NaN;
+                return;
+            }
 
             UpdateChargeOrb();
             if (Time.time < nextSpawn) return;
@@ -70,16 +81,27 @@ namespace Anathema.Arena
             {
                 // The respawn clock only starts once it is gone.
                 nextChargeOrb = Time.time + chargeOrbRespawn;
+                chargeOrbCountdown = chargeOrbRespawn;
                 return;
             }
-            if (Time.time < nextChargeOrb) return;
 
             Vector3 centre = gas != null ? gas.transform.position : Vector3.zero;
             centre.y = 0f;
+
+            // Start (or correct) the rune ring's countdown, here and on every other machine.
+            if (!Mathf.Approximately(shownChargeOrb, nextChargeOrb))
+            {
+                shownChargeOrb = nextChargeOrb;
+                float remaining = nextChargeOrb - Time.time;
+                ChargeOrbRing.Begin(centre, remaining, chargeOrbCountdown);
+                if (NetGame.Online) NetGame.Instance.BroadcastChargeOrbTimer(centre, remaining, chargeOrbCountdown);
+            }
+
+            if (Time.time < nextChargeOrb) return;
             if (ChargeOrb.Blocked(centre)) return; // someone is standing on the spot: wait for them to move
 
-            ChargeOrb.Spawn(centre, chargeOrbHealth);
-            if (NetGame.Online) NetGame.Instance.BroadcastChargeOrb(ChargeOrb.EventSpawn, centre, chargeOrbHealth, 0);
+            ChargeOrb.Spawn(centre, ChargeOrb.MaxHealth);
+            if (NetGame.Online) NetGame.Instance.BroadcastChargeOrb(ChargeOrb.EventSpawn, centre, ChargeOrb.MaxHealth, 0);
         }
 
         void SpawnLine(Vector3 direction)

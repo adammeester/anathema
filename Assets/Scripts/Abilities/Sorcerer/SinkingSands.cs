@@ -57,6 +57,11 @@ namespace Anathema.Abilities.Sorcerer
 
         protected override bool IsTriggered() => Input.GetKeyDown(KeyCode.E);
 
+        // The free (non-staff) hand rises with the hourglass during the wind-up (the echo throw has none and just flings).
+        protected override void OnWindupStart() => SorcererPose.For(gameObject).Raise(SorcererPose.Hand.Free, windup);
+
+        protected override void OnWindupCancel() => SorcererPose.For(gameObject).Drop(SorcererPose.Hand.Free);
+
         protected override void Activate()
         {
             bool echo = IsReplica ? IsEchoCue : EchoReady;
@@ -87,7 +92,9 @@ namespace Anathema.Abilities.Sorcerer
                 }
             }
 
-            Vector3 hand = transform.position + Vector3.up * 1.7f + transform.right * 0.4f + dir * 0.5f;
+            SorcererPose pose = SorcererPose.For(gameObject);
+            Vector3 hand = transform.position + Vector3.up * 1.7f + pose.SideOffset(SorcererPose.Hand.Free, 0.4f) + dir * 0.5f;
+            pose.Strike(SorcererPose.Hand.Free, target, 0f);
             BullgrynKit.GroundCircle(target, area, flightTime, SorcererFx.Sand);
             Sfx.Play(Sfx.MagicAttack2, 0.3f, 0.75f, 0.85f, 0.6f);
             bool owner = !IsReplica;

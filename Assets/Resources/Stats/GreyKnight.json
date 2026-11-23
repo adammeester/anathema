@@ -106,7 +106,13 @@
       "beamRadius": 0.35,
       "chargeDuration": 0.35,
       "energyPerHit": 10,
-      "originHeight": 1.2
+      "originHeight": 1.2,
+      "flameDuration": 2,
+      "flameRange": 7,
+      "flameHalfAngle": 20,
+      "flameTotalDamage": 30,
+      "flameBurnPerSecond": 6,
+      "flameBurnSeconds": 4
     },
     "BasicAttack": {
       "cooldown": 0.85,

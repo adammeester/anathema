@@ -59,6 +59,8 @@ namespace Anathema.Abilities.Sorcerer
 
         protected override void OnWindupStart()
         {
+            // The free (non-staff) hand draws back for the throw, on the owner and replicas alike.
+            SorcererPose.For(gameObject).Raise(SorcererPose.Hand.Free, windup);
             if (IsReplica) return;
             ExActivation = Time.time >= exReadyAt && TrySpendEx(energy, exEnergyCost);
             if (ExActivation) exReadyAt = Time.time + exCooldown;
@@ -66,6 +68,7 @@ namespace Anathema.Abilities.Sorcerer
 
         protected override void OnWindupCancel()
         {
+            SorcererPose.For(gameObject).Drop(SorcererPose.Hand.Free);
             if (IsReplica || !ExActivation) return;
             if (energy != null) energy.Gain(exEnergyCost);
             exReadyAt = 0f;
@@ -74,7 +77,10 @@ namespace Anathema.Abilities.Sorcerer
         protected override void Activate()
         {
             Vector3 dir = SorcererFx.Flat(Aim.AimDirection, transform);
-            Vector3 origin = transform.position + Vector3.up * MuzzleHeight + dir * MuzzleForward;
+            SorcererPose pose = SorcererPose.For(gameObject);
+            // Thrown from the free hand's side, flinging it out along the aim.
+            Vector3 origin = transform.position + Vector3.up * MuzzleHeight + dir * MuzzleForward + pose.SideOffset(SorcererPose.Hand.Free);
+            pose.Strike(SorcererPose.Hand.Free, transform.position + dir * 5f, 0.05f);
 
             if (ExActivation)
             {

@@ -89,7 +89,7 @@ namespace Anathema.Player
 
         // A round is being fought and no menu needs the mouse: online that is the Playing phase; offline (training) it is
         // any time outside the prep screens and the dev upgrade panel.
-        static bool InFight()
+        public static bool InFight()
         {
             if (Net.NetGame.Online) return Net.NetGame.RoundLive;
             if (Net.OfflinePrep.Active) return false;

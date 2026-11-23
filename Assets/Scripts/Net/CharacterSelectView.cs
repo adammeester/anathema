@@ -266,7 +266,7 @@ namespace Anathema.Net
                 {
                     A("LMB", "Sands of Prospero", "Hold to hurl bolts of enchanted sand. Every hit lays the Curse of the Rubricae.",
                         "Damage 10 (+10 curse)  |  Range 13  |  0.3s cast  |  +7 energy per hit"),
-                    A("RMB", "Mending Sands", "Throw a handful of healing dust onto the ground at the cursor. Every teammate inside the circle, you included, is healed. The Rejuvenate upgrade also leaves a second, delayed heal on them.",
+                    A("RMB", "Mending Sands", "Channel a short cast, then healing dust bursts on the ground at the cursor. Every teammate inside the circle, you included, is healed. The Rejuvenate upgrade also leaves a second, delayed heal on them.",
                         "Heal 12  |  Radius 2.2  |  Range 11  |  3 charges, 6s recharge each  |  Rejuvenate: +6 after 3.5s"),
                     A("Space", "Dust Form", "Come apart into sand and pour to the cursor, through walls and characters, untouchable on the way. Teammates you pass through are healed (and a Rejuvenate heal on them lands at once); enemies you pass through have their curse set off.",
                         "Range 8  |  0.5-0.65s travel  |  Ally heal 12  |  Cooldown 10s"),

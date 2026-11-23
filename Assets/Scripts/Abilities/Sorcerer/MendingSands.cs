@@ -1,25 +1,23 @@
-using Anathema.Abilities.Bullgryn;
 using Anathema.Combat;
 using UnityEngine;
 
 namespace Anathema.Abilities.Sorcerer
 {
-    // RMB: Mending Sands. A handful of healing dust is thrown on a short arc to the cursor (held within range) and
-    // scatters over the ground there: every teammate inside the circle, the Sorcerer included, is healed. A ring marks
-    // where it will land. Three charges, each recharging on its own.
+    // RMB: Mending Sands. The Sorcerer winds up the cast (cancellable like any wind-up: C, a stun, silence or knockback
+    // stops it and no charge is spent), then healing dust bursts on the ground at the cursor (held within range) at
+    // once: every teammate inside the circle, the Sorcerer included, is healed. Three charges, each recharging on its own.
     // Rejuvenate (upgrade): everyone healed is also left with Mending, a second, smaller heal a few seconds later (Dust
     // Form sets it off at once). Shifting Dunes (upgrade): Sinking Sands hits add bonus charges that don't recharge.
     public class MendingSands : Ability
     {
         const int MaxCharges = 3;
 
-        [SerializeField] float heal = 12f;
+        [SerializeField] float heal = 18f;
         [SerializeField] float mendHeal = 6f;
         [SerializeField] float mendSeconds = 3.5f;
         [SerializeField] float range = 11f;
         [SerializeField] float radius = 2.2f;
-        [SerializeField] float flightTime = 0.35f;
-        [SerializeField] float windup = 0.3f;
+        [SerializeField] float windup = 0.65f;
         [SerializeField] float rechargeTime = 6f;
         [SerializeField] float energyPerHeal = 5f;
 
@@ -85,6 +83,11 @@ namespace Anathema.Abilities.Sorcerer
 
         protected override bool IsTriggered() => Input.GetMouseButtonDown(1) && ReadyCharges > 0;
 
+        // The wind-up is the cast animation: the staff rises gradually overhead (owner and replicas alike).
+        protected override void OnWindupStart() => SorcererPose.For(gameObject).Raise(SorcererPose.Hand.Staff, windup);
+
+        protected override void OnWindupCancel() => SorcererPose.For(gameObject).Drop(SorcererPose.Hand.Staff);
+
         protected override void Activate()
         {
             if (!IsReplica && bonusCharges > 0)
@@ -105,20 +108,17 @@ namespace Anathema.Abilities.Sorcerer
             if (offset.magnitude > range) offset = offset.normalized * range;
             Vector3 spot = transform.position + offset;
 
-            Vector3 from = transform.position + Vector3.up * 1.6f + transform.forward * 0.5f;
-            BullgrynKit.GroundCircle(spot, radius, flightTime, Mending.Glow);
+            SorcererPose.For(gameObject).Strike(SorcererPose.Hand.Staff, spot);
             Sfx.Play(Sfx.MagicAttack2, 0.3f, 1.25f, 1.4f, 0.6f);
-            bool owner = !IsReplica;
-            var go = new GameObject("Mending Sands");
-            go.AddComponent<Mote>().Launch(from, spot, flightTime, () => Land(spot, owner));
+            Land(spot);
         }
 
-        void Land(Vector3 centre, bool owner)
+        void Land(Vector3 centre)
         {
             Anathema.Abilities.Psyker.PsykerFx.Ring(centre + Vector3.up * 0.1f, 0.2f, radius, 0.35f, Mending.Glow, 0.18f);
             Anathema.Abilities.Psyker.PsykerFx.Ring(centre + Vector3.up * 0.12f, radius, radius * 0.4f, 0.5f, SorcererFx.Sand, 0.12f);
             Sfx.Play(Sfx.MagicImpact, 0.28f, 1.35f, 1.5f, 0.5f);
-            if (!owner || this == null || Health == null || Health.IsDead) return;
+            if (IsReplica || Health.IsDead) return;
 
             bool any = false;
             foreach (Health ally in FindObjectsByType<Health>())
@@ -143,64 +143,6 @@ namespace Anathema.Abilities.Sorcerer
 
         protected override void Cancel()
         {
-        }
-
-        // The thrown dust: a swirl of gold and blue motes on a short arc to the landing spot, then `onLand`. Purely visual.
-        sealed class Mote : MonoBehaviour
-        {
-            const int Grains = 6;
-            const float ApexHeight = 1.5f;
-
-            Vector3 from, to;
-            float start, duration;
-            System.Action onLand;
-            Transform[] grains;
-            Material gold, blue;
-
-            public void Launch(Vector3 a, Vector3 b, float seconds, System.Action landed)
-            {
-                from = a;
-                to = b + Vector3.up * 0.3f;
-                start = Time.time;
-                duration = Mathf.Max(0.05f, seconds);
-                onLand = landed;
-                transform.position = from;
-                gold = VisualUtil.UnlitMaterial(SorcererFx.Sand, 3003);
-                blue = VisualUtil.UnlitMaterial(Mending.Glow, 3003);
-                grains = new Transform[Grains];
-                for (int i = 0; i < Grains; i++)
-                {
-                    GameObject g = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    Destroy(g.GetComponent<Collider>());
-                    g.GetComponent<Renderer>().sharedMaterial = i % 2 == 0 ? gold : blue;
-                    g.GetComponent<Renderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                    g.transform.SetParent(transform, false);
-                    g.transform.localScale = Vector3.one * 0.14f;
-                    grains[i] = g.transform;
-                }
-            }
-
-            void Update()
-            {
-                float t = Mathf.Clamp01((Time.time - start) / duration);
-                Vector3 p = Vector3.Lerp(from, to, t);
-                p.y += ApexHeight * 4f * t * (1f - t);
-                transform.position = p;
-                for (int i = 0; i < grains.Length; i++)
-                {
-                    float a = Time.time * 14f + i * Mathf.PI * 2f / grains.Length;
-                    grains[i].localPosition = new Vector3(Mathf.Cos(a), Mathf.Sin(a * 0.7f), Mathf.Sin(a)) * 0.25f;
-                }
-                if (t < 1f) return;
-                onLand?.Invoke();
-                Destroy(gameObject);
-            }
-
-            void OnDestroy()
-            {
-                if (gold != null) Destroy(gold);
-                if (blue != null) Destroy(blue);
-            }
         }
     }
 }

@@ -23,13 +23,12 @@
     },
     "MendingSands": {
       "cooldown": 0.75,
-      "heal": 12,
+      "heal": 18,
       "mendHeal": 6,
       "mendSeconds": 3.5,
       "range": 11,
       "radius": 2.2,
-      "flightTime": 0.35,
-      "windup": 0.3,
+      "windup": 0.65,
       "rechargeTime": 6,
       "energyPerHeal": 5
     },

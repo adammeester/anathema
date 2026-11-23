@@ -189,6 +189,14 @@ namespace Anathema.Combat
         // not the authority, and attacks on it are handed to this to pass on to the server.
         public Action<Hit, GameObject, Action<bool>> StrikeRelay;
 
+        // Structures only (the charge orb): when above zero, every landed hit costs exactly this much, whoever lands it
+        // and however hard it hits, so breaking it is a matter of hits landed rather than damage dealt.
+        public float FixedHitDamage { get; set; }
+
+        // Structures only: asked (with the attacker) before a hit lands; false turns the hit away. The charge orb uses
+        // it for a short per-attacker lockout so beams and volleys can't land a burst of hits at once.
+        public Func<GameObject, bool> HitGate;
+
         // Lets an ability (e.g. a counter) rewrite or negate incoming damage. Receives (amount, source); returns the new amount.
         public Func<float, GameObject, float> DamageModifier;
 
@@ -343,35 +351,44 @@ namespace Anathema.Combat
             if (IsDead || Invulnerable || Time.time < lastStandUntil || amount <= 0f || NetGame.Frozen) return false;
             if (Structure && (dot || source == null || !source.TryGetComponent(out Health _))) return false;
 
-            if (!aoe && DamageModifier != null) amount = DamageModifier(amount, source);
-            if (amount <= 0f) return false;
-
-            amount *= Irradiated.DamageMultiplier(gameObject); // Rad-Saturation: more damage from every source
-            amount *= ExposedMultiplier;                       // Penance: likewise
-
-            pierce = Mathf.Clamp01(pierce);
-            float armour = EffectiveArmor;
-            if (armour > 0f) amount *= 1f - armour * (1f - pierce);
-            if ((aoe || dot) && areaResistance > 0f) amount *= 1f - areaResistance;
-            if (dot && Time.time < dotWardEnd) amount *= 1f - dotWardFraction;
-
-            // Shares of the hit carried by someone else (the Hospitaller); each returns what is left for this one.
-            for (int i = 0; i < damageSharers.Count && amount > 0f; i++) amount = damageSharers[i](amount, source);
-            if (amount <= 0f) return true;
-
-            // A fully absorbed hit still counts as landing (the attacker gets their energy) but doesn't touch health.
-            // A shield-breaking hit uses up the shield faster: the shield sees the hit scaled up, and whatever it could not
-            // absorb is scaled back down before it reaches health.
-            if (StatusAbsorber != null || BarrierAbsorber != null || BonusAbsorber != null || Absorber != null)
+            if (Structure && FixedHitDamage > 0f)
             {
-                float breaker = Mathf.Max(1f, shieldBreak);
-                amount *= breaker;
-                if (StatusAbsorber != null) amount = StatusAbsorber(amount, source);
-                if (amount > 0f && BarrierAbsorber != null) amount = BarrierAbsorber(amount, source);
-                if (amount > 0f && BonusAbsorber != null) amount = BonusAbsorber(amount, source);
-                if (amount > 0f && Absorber != null) amount = Absorber(amount, source);
-                amount /= breaker;
+                // Every hit counts the same: no modifiers, armour or shields.
+                if (HitGate != null && !HitGate(source)) return false;
+                amount = FixedHitDamage;
+            }
+            else
+            {
+                if (!aoe && DamageModifier != null) amount = DamageModifier(amount, source);
+                if (amount <= 0f) return false;
+
+                amount *= Irradiated.DamageMultiplier(gameObject); // Rad-Saturation: more damage from every source
+                amount *= ExposedMultiplier;                       // Penance: likewise
+
+                pierce = Mathf.Clamp01(pierce);
+                float armour = EffectiveArmor;
+                if (armour > 0f) amount *= 1f - armour * (1f - pierce);
+                if ((aoe || dot) && areaResistance > 0f) amount *= 1f - areaResistance;
+                if (dot && Time.time < dotWardEnd) amount *= 1f - dotWardFraction;
+
+                // Shares of the hit carried by someone else (the Hospitaller); each returns what is left for this one.
+                for (int i = 0; i < damageSharers.Count && amount > 0f; i++) amount = damageSharers[i](amount, source);
                 if (amount <= 0f) return true;
+
+                // A fully absorbed hit still counts as landing (the attacker gets their energy) but doesn't touch health.
+                // A shield-breaking hit uses up the shield faster: the shield sees the hit scaled up, and whatever it could
+                // not absorb is scaled back down before it reaches health.
+                if (StatusAbsorber != null || BarrierAbsorber != null || BonusAbsorber != null || Absorber != null)
+                {
+                    float breaker = Mathf.Max(1f, shieldBreak);
+                    amount *= breaker;
+                    if (StatusAbsorber != null) amount = StatusAbsorber(amount, source);
+                    if (amount > 0f && BarrierAbsorber != null) amount = BarrierAbsorber(amount, source);
+                    if (amount > 0f && BonusAbsorber != null) amount = BonusAbsorber(amount, source);
+                    if (amount > 0f && Absorber != null) amount = Absorber(amount, source);
+                    amount /= breaker;
+                    if (amount <= 0f) return true;
+                }
             }
 
             float dealt = Mathf.Min(amount, Current);
@@ -463,6 +480,17 @@ namespace Anathema.Combat
             Recoverable = Mathf.Max(0f, Recoverable - Mathf.Max(0f, healed - permanent));
             if (healed > 0f) Healed?.Invoke(healed, source);
             return healed;
+        }
+
+        // Training ally only: sets the character to full health minus `healable`, all of it healable (white), as if just
+        // hit. Bypasses shields, armour and hit hooks so a barrier you put on it isn't eaten. Authority only.
+        public void TrainingWound(float healable)
+        {
+            if (IsDead || !IsAuthority) return;
+            healable = Mathf.Clamp(healable, 0f, Mathf.Min(MaxRecoverable, maxHealth - 1f));
+            Current = maxHealth - healable;
+            Recoverable = healable;
+            lastDamageTime = Time.time;
         }
 
         public void ResetHealth()

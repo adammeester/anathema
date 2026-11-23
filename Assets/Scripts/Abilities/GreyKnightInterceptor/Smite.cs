@@ -18,12 +18,16 @@ namespace Anathema.Abilities.GreyKnightInterceptor
         [SerializeField] float energyPerHit = 10f;
         [SerializeField] float originHeight = 1.2f;
         [SerializeField] Color telegraphColor = new Color(1f, 1f, 1f, 0.25f);
-        // Purifying Flame (Purifier Order): a 2s flame-thrower channel instead of the lance. ~32 damage over the channel
-        // (similar to Smite) plus the burn it applies on top.
+        // Purifying Flame (Purifier Order): a 2s flame-thrower channel instead of the lance. A target kept in the cone for
+        // the whole channel takes the same direct damage as one Smite, streamed instead of burst, and every enemy in the
+        // cone takes it. Each pulse also sets the target burning; later pulses refresh the burn's duration, so it keeps
+        // going for flameBurnSeconds after the target leaves the cone or the channel ends.
         [SerializeField] float flameDuration = 2f;
         [SerializeField] float flameRange = 7f;
         [SerializeField] float flameHalfAngle = 20f;
-        [SerializeField] float flameTotalDamage = 32f;
+        [SerializeField] float flameTotalDamage = 30f;
+        [SerializeField] float flameBurnPerSecond = GreyKnightUpgrade.BurnPerSecond;
+        [SerializeField] float flameBurnSeconds = GreyKnightUpgrade.BurnSeconds;
         const float FlameTick = 0.25f;
 
         bool channeling;
@@ -168,7 +172,7 @@ namespace Anathema.Abilities.GreyKnightInterceptor
                     if (to.magnitude > flameRange) continue;
                     if (to.sqrMagnitude > 0.0001f && Vector3.Angle(dir, to) > flameHalfAngle) continue;
 
-                    Hit flame = GreyKnightUpgrade.Ignited(gameObject, Hit.Direct(perTick).AsAoe().AsDot());
+                    Hit flame = Hit.Direct(perTick).AsAoe().AsDot().WithBurn(flameBurnPerSecond, flameBurnSeconds);
                     target.Strike(flame, gameObject, landed =>
                     {
                         if (landed && energy != null) energy.Gain(energyPerHit * 0.1f);

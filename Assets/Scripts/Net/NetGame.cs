@@ -144,7 +144,7 @@ namespace Anathema.Net
         string playerName = "";
         readonly Dictionary<ulong, string> pendingNames = new Dictionary<ulong, string>(); // server: approved, not yet seated
         // Elimination banner ("X ELIMINATED"), shown on every client when a fighter goes down.
-        public const float EliminationBannerTime = 2.6f;
+        public const float EliminationBannerTime = EliminationBanner.Duration;
         string eliminatedName = "";
         bool eliminatedFriendly;
         float eliminatedAt = -999f;
@@ -471,6 +471,7 @@ namespace Anathema.Net
             msg.RegisterNamedMessageHandler("orbTaken", OnOrbTakenMessage);
             msg.RegisterNamedMessageHandler("chargeOrb", OnChargeOrbMessage);
             msg.RegisterNamedMessageHandler("chargeOrbHit", OnChargeOrbHitMessage);
+            msg.RegisterNamedMessageHandler("chargeOrbTimer", OnChargeOrbTimerMessage);
             msg.RegisterNamedMessageHandler("bestOf", OnBestOfMessage);
             msg.RegisterNamedMessageHandler("mode", OnModeMessage);
             msg.RegisterNamedMessageHandler("matchChoice", OnMatchChoiceMessage);
@@ -846,6 +847,27 @@ namespace Anathema.Net
             reader.ReadValueSafe(out float value);
             reader.ReadValueSafe(out int team);
             ChargeOrb.OnServerEvent(evt, position, value, team);
+        }
+
+        // Server -> everyone: the orb is due at `position` in `remaining` seconds of a `total`-second countdown (the
+        // rune ring around its spot; see ChargeOrbRing).
+        public void BroadcastChargeOrbTimer(Vector3 position, float remaining, float total)
+        {
+            if (!manager.IsServer) return;
+            using var writer = new FastBufferWriter(24, Allocator.Temp);
+            writer.WriteValueSafe(position);
+            writer.WriteValueSafe(remaining);
+            writer.WriteValueSafe(total);
+            manager.CustomMessagingManager.SendNamedMessageToAll("chargeOrbTimer", writer);
+        }
+
+        void OnChargeOrbTimerMessage(ulong sender, FastBufferReader reader)
+        {
+            if (manager.IsServer) return;
+            reader.ReadValueSafe(out Vector3 position);
+            reader.ReadValueSafe(out float remaining);
+            reader.ReadValueSafe(out float total);
+            ChargeOrbRing.Begin(position, remaining, total);
         }
 
         // Client -> server: my character hit the orb.
@@ -2356,38 +2378,8 @@ namespace Anathema.Net
 
         // "X ELIMINATED" strip across the upper screen for a couple of seconds after a fighter goes down:
         // slides in, holds, fades out. Blue-ish when it's your side that lost someone, red when it's the enemy.
-        void DrawEliminationBanner(float w, float h)
-        {
-            float t = Time.time - eliminatedAt;
-            if (t < 0f || t > EliminationBannerTime || eliminatedName.Length == 0) return;
-
-            float fadeIn = Mathf.Clamp01(t / 0.15f);
-            float fadeOut = Mathf.Clamp01((EliminationBannerTime - t) / 0.5f);
-            float alpha = Mathf.Min(fadeIn, fadeOut);
-            float slide = (1f - Mathf.SmoothStep(0f, 1f, fadeIn)) * 40f;
-
-            float y = h * 0.17f;
-            Color accent = eliminatedFriendly ? new Color(0.45f, 0.75f, 1f) : new Color(1f, 0.32f, 0.25f);
-            Rect(new Rect(0, y, w, 96), new Color(0f, 0f, 0f, 0.6f * alpha));
-            Rect(new Rect(0, y, w, 3), new Color(accent.r, accent.g, accent.b, 0.9f * alpha));
-            Rect(new Rect(0, y + 93, w, 3), new Color(accent.r, accent.g, accent.b, 0.9f * alpha));
-
-            var nameStyle = new GUIStyle(title) { fontSize = 58, alignment = TextAnchor.MiddleCenter };
-            Color text = Color.white;
-            text.a = alpha;
-            nameStyle.normal.textColor = text;
-            var whatStyle = new GUIStyle(nameStyle);
-            whatStyle.normal.textColor = new Color(accent.r, accent.g, accent.b, alpha);
-
-            // "NAME" in white, "ELIMINATED" in the accent colour, centred together.
-            string who = eliminatedName + "  ";
-            const string what = "ELIMINATED";
-            float whoW = nameStyle.CalcSize(new GUIContent(who)).x;
-            float whatW = whatStyle.CalcSize(new GUIContent(what)).x;
-            float x = (w - whoW - whatW) * 0.5f + slide;
-            GUI.Label(new Rect(x, y + 4, whoW, 88), who, nameStyle);
-            GUI.Label(new Rect(x + whoW, y + 4, whatW, 88), what, whatStyle);
-        }
+        void DrawEliminationBanner(float w, float h) =>
+            EliminationBanner.Draw(w, h, Time.time - eliminatedAt, eliminatedName, eliminatedFriendly);
 
         // The prep area screen: the upgrade menu, then "waiting", then the round-start countdown.
         void DrawPrep(float w, float h, int roundNumber, string scoreLine)

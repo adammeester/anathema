@@ -197,7 +197,10 @@ namespace Anathema.Abilities.Sorcerer
         void Throw()
         {
             Vector3 dir = SorcererFx.Flat(Aim.AimDirection, transform);
-            Vector3 origin = transform.position + Vector3.up * 1.5f + dir * 0.9f;
+            // Flung from the free (non-staff) hand.
+            SorcererPose pose = SorcererPose.For(gameObject);
+            Vector3 origin = transform.position + Vector3.up * 1.5f + dir * 0.9f + pose.SideOffset(SorcererPose.Hand.Free);
+            pose.Strike(SorcererPose.Hand.Free, transform.position + dir * 5f, 0.05f);
             float damage = caughtDamage;
             float speed = Mathf.Max(throwMinSpeed, caughtSpeed);
             holding = false;

@@ -4,7 +4,8 @@ using UnityEngine;
 
 namespace Anathema.Arena
 {
-    // The big orb in the centre of the arena. Anyone can attack it; the team that lands the destroying blow has every
+    // The big orb in the centre of the arena. Anyone can attack it, and it breaks after HitsToBreak hits whoever
+    // lands them (see FixedHitDamage on Health); the team that lands the destroying blow has every
     // living member's energy (the ultimate's charge) topped up by a quarter of their bar and is healed for as much as three
     // health orbs (HealAmount). OrbSpawner decides when it
     // appears. It is a neutral Health (a "structure": no status effects, gas or damage over time), so every attack
@@ -14,7 +15,14 @@ namespace Anathema.Arena
     {
         public const float ChargeFraction = 0.25f; // of each team member's full energy bar
         public const float HealAmount = 50f;
-        public const float DefaultHealth = 100f;
+
+        // It breaks after a set number of hits, whoever lands them: every hit costs HitDamage, which matches the health
+        // bar's chunk size so the bar shows one segment per hit left.
+        public const int HitsToBreak = 8;
+        public const float HitDamage = Health.ChunkSize;
+        public const float MaxHealth = HitsToBreak * HitDamage;
+        // One attacker can land at most one hit per this long, so beams, channels and volleys count as a single hit.
+        public const float HitLockout = 0.4f;
         public const int NeutralTeam = -1;         // on nobody's side, so every team's attacks treat it as an enemy
 
         public const int EventSpawn = 0, EventHealth = 1, EventDestroyed = 2;
@@ -31,13 +39,15 @@ namespace Anathema.Arena
         public Health Health { get; private set; }
 
         Transform core, halo;
+        readonly System.Collections.Generic.Dictionary<GameObject, float> lastHitBy =
+            new System.Collections.Generic.Dictionary<GameObject, float>();
         float phase;
         float shownHealth;
         float flashUntil;
 
         public static ChargeOrb Spawn(Vector3 groundPoint, float maxHealth)
         {
-            Despawn();
+            DestroyCurrent();
 
             var go = new GameObject("ChargeOrb");
             go.transform.position = groundPoint;
@@ -59,6 +69,8 @@ namespace Anathema.Arena
             Health health = go.AddComponent<Health>();
             health.Configure(maxHealth, NeutralTeam);
             health.Structure = true;
+            health.FixedHitDamage = HitDamage;
+            health.HitGate = orb.AllowHit;
             orb.Health = health;
             orb.shownHealth = maxHealth;
             go.AddComponent<HealthBar>();
@@ -75,7 +87,17 @@ namespace Anathema.Arena
             }
 
             Current = orb;
+            ChargeOrbRing.Appeared();
             return orb;
+        }
+
+        // Authority only: at most one hit per attacker every HitLockout seconds.
+        bool AllowHit(GameObject attacker)
+        {
+            if (attacker == null) return false;
+            if (lastHitBy.TryGetValue(attacker, out float last) && Time.time - last < HitLockout) return false;
+            lastHitBy[attacker] = Time.time;
+            return true;
         }
 
         static Transform AddSphere(Transform parent, string name, Material mat, float size)
@@ -95,6 +117,12 @@ namespace Anathema.Arena
 
         // Removes the orb without rewarding anyone (round reset, prep).
         public static void Despawn()
+        {
+            DestroyCurrent();
+            ChargeOrbRing.Clear();
+        }
+
+        static void DestroyCurrent()
         {
             if (Current != null) Destroy(Current.gameObject);
             Current = null;

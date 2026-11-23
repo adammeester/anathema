@@ -19,6 +19,9 @@ namespace Anathema.Combat
         public const string PsykerUltimate = "PsykerUltimate";
         public const string SkitariiUltimateReady = "SkitariiUltimateReady";
         public const string SkitariiUltimate = "SkitariiUltimate";
+        public const string SorcererUltimateReady = "SorcererUltimateReady";
+        public const string SorcererUltimateSelf = "SorcererUltimateSelf";     // Weaver of Fates cast on himself
+        public const string SorcererUltimateTarget = "SorcererUltimateTarget"; // Weaver of Fates cast on a teammate
 
         public static AudioSource Say(string line, float volume = 0.7f) => Sfx.Say(line, volume);
 

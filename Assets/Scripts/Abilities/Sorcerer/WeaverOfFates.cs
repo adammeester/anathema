@@ -33,6 +33,9 @@ namespace Anathema.Abilities.Sorcerer
         {
             base.Awake();
             energy = GetComponent<Energy>();
+            Voice.AnnounceUltimateReady(energy, Health, Voice.SorcererUltimateReady, () => energyCost);
+            Voice.Preload(Voice.SorcererUltimateSelf);
+            Voice.Preload(Voice.SorcererUltimateTarget);
         }
 
         protected override bool IsTriggered() => Input.GetKeyDown(KeyCode.F) && energy != null && energy.Current >= energyCost;
@@ -47,6 +50,8 @@ namespace Anathema.Abilities.Sorcerer
             Anathema.Abilities.SkitariiRanger.RangerFx.Tracer(a, b, 0.12f, SorcererFx.Warp, 0.3f);
             Anathema.Abilities.Psyker.PsykerFx.Ring(transform.position + Vector3.up * 0.1f, 0.3f, 2f, 0.4f, SorcererFx.Warp, 0.2f);
             Sfx.Play(Sfx.ElectricBeam, 0.35f, 0.7f, 0.8f, 0.8f);
+            // Spoken on every machine; each one picked the same target, so they all choose the same line.
+            Voice.Shout(target == Health ? Voice.SorcererUltimateSelf : Voice.SorcererUltimateTarget);
 
             if (IsReplica) return;
             if (energy == null || !energy.TrySpend(energyCost)) return;
