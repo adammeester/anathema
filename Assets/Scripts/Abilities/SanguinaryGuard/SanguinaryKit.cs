@@ -2,9 +2,9 @@ using System.Collections.Generic;
 using Anathema.Combat;
 using UnityEngine;
 
-namespace Anathema.Abilities.SanguinaryPriest
+namespace Anathema.Abilities.SanguinaryGuard
 {
-    // Shared pieces of the Sanguinary Priest's kit: colours, ally / enemy searches, the one way his abilities heal
+    // Shared pieces of the Sanguinary Guard's kit: colours, ally / enemy searches, the one way his abilities heal
     // (so Vitae sees every heal), and the blood stream drawn from him to whoever he heals.
     public static class SanguinaryKit
     {
@@ -72,19 +72,59 @@ namespace Anathema.Abilities.SanguinaryPriest
             return best;
         }
 
-        // Every heal the priest gives goes through here: Vitae counts it (Healing.Applying), unless `feedsVitae` is
+        // Every heal the guard gives goes through here: Vitae counts it (Healing.Applying), unless `feedsVitae` is
         // false (the Exsanguinating Arc's own healing never refills the chalice). Owner only.
-        public static void Heal(GameObject priest, Health target, float amount, bool feedsVitae = true)
+        public static void Heal(GameObject guard, Health target, float amount, bool feedsVitae = true)
         {
-            if (priest == null || target == null || target.IsDead || amount <= 0f) return;
-            if (feedsVitae || !priest.TryGetComponent(out Vitae vitae))
+            if (guard == null || target == null || target.IsDead || amount <= 0f) return;
+            if (feedsVitae || !guard.TryGetComponent(out Vitae vitae))
             {
-                Healing.Apply(target, amount, priest);
+                Healing.Apply(target, amount, guard);
                 return;
             }
             vitae.Suppressed++;
-            try { Healing.Apply(target, amount, priest); }
+            try { Healing.Apply(target, amount, guard); }
             finally { vitae.Suppressed--; }
+        }
+
+        // He never pays health he doesn't have: an ability that costs `cost` can only be cast while it leaves him at or
+        // above this share of his max health.
+        public const float SacrificeFloor = 0.15f;
+
+        public static bool CanPay(Health guard, float cost) =>
+            guard != null && !guard.IsDead && guard.Current - cost >= guard.Max * SacrificeFloor;
+
+        // Owner: spend `cost` of his own health (Health.Sacrifice; the server's copy applies it online). What he pays
+        // fills Vitae.
+        public static void Pay(Health guard, float cost)
+        {
+            if (guard == null || cost <= 0f) return;
+            float paid = Mathf.Min(cost, guard.Current - 1f);
+            guard.Sacrifice(cost);
+            if (paid > 0f && guard.TryGetComponent(out Vitae vitae)) vitae.OnSacrifice(paid);
+            Mist(guard.transform.position, 0.6f, 0.35f);
+        }
+
+        // Owner, from a landed hit's callback: under Red Thirst the damage he deals fills Vitae (see RedThirst). Only
+        // Power Sword cuts and Crimson Rush call this (not the Arc, the slam, the riposte or Chalice of Wrath).
+        public static void FeedThirst(GameObject guard, float damage)
+        {
+            if (guard != null && guard.TryGetComponent(out RedThirst thirst)) thirst.OnDamageDealt(damage);
+        }
+
+        // The teammate (never himself) nearest `point` within `radius` of it.
+        public static Health OtherAllyNearest(Health self, Vector3 point, float radius)
+        {
+            Health best = null;
+            float bestSq = radius * radius;
+            foreach (Health h in AlliesNear(self, point, radius, includeSelf: false))
+            {
+                float sq = Flat(h.transform.position - point).sqrMagnitude;
+                if (sq > bestSq) continue;
+                bestSq = sq;
+                best = h;
+            }
+            return best;
         }
 
         public static Vector3 Flat(Vector3 v)
@@ -101,7 +141,7 @@ namespace Anathema.Abilities.SanguinaryPriest
 
         // ---- Visuals --------------------------------------------------------------------------------------------------
 
-        // A ribbon of blood droplets arcing from the priest to the ally he heals. Every machine plays it.
+        // A ribbon of blood droplets arcing from the guard to the ally he heals. Every machine plays it.
         public static void BloodStream(Vector3 from, Transform to)
         {
             if (to == null) return;

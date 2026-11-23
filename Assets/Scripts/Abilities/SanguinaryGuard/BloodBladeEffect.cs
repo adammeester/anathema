@@ -1,7 +1,7 @@
 using Anathema.Combat;
 using UnityEngine;
 
-namespace Anathema.Abilities.SanguinaryPriest
+namespace Anathema.Abilities.SanguinaryGuard
 {
     // The blade charging with Vitae, in stages (Vitae.GlowLevel):
     //   1 - a faint red sheen along the blade;
@@ -19,8 +19,12 @@ namespace Anathema.Abilities.SanguinaryPriest
         // Bone names tried in order: his own sword first, then the placeholder model's halberd, then the hand.
         static readonly string[] WeaponBones = { "Chainsword", "Sword", "Blade", "Halberd", "Hand_R", "Forearm_R" };
 
-        [SerializeField] float bladeStart = 0.1f;
-        [SerializeField] float bladeEnd = 1.6f;
+        // His model has a Chainsword_Tip bone at the point: the glow runs from this share of the way along (above the
+        // chain-wheel) to the tip. Without one (another model), it runs bladeStart..bladeEnd metres up the bone's axis.
+        const float TipStart = 0.18f;
+        [SerializeField] float bladeStart = 0.3f;
+        [SerializeField] float bladeEnd = 1.45f;
+        Transform tip;
         [SerializeField] float arcReach = 0.45f;
 
         Vitae vitae;
@@ -63,6 +67,8 @@ namespace Anathema.Abilities.SanguinaryPriest
             effect.vitae = vitae;
             effect.weapon = bone;
             effect.owner = model.parent;
+            foreach (Transform t in model.GetComponentsInChildren<Transform>(true))
+                if (t.name == bone.name + "_Tip") { effect.tip = t; break; }
             // At rest the model stands upright, so world up in the bone's frame is along the blade.
             effect.localAxis = bone.InverseTransformDirection(Vector3.up).normalized;
             effect.Build();
@@ -165,9 +171,21 @@ namespace Anathema.Abilities.SanguinaryPriest
             if (level <= 0) return;
 
             float scale = Mathf.Max(0.01f, weapon.lossyScale.y);
-            Vector3 axis = weapon.TransformDirection(localAxis).normalized;
-            Vector3 start = weapon.position + axis * (bladeStart * scale);
-            Vector3 end = weapon.position + axis * (bladeEnd * scale);
+            Vector3 axis, start, end;
+            if (tip != null && (tip.position - weapon.position).sqrMagnitude > 1e-4f)
+            {
+                // His own sword: grip -> point, however it is held (it trails behind him at rest).
+                axis = (tip.position - weapon.position).normalized;
+                start = Vector3.Lerp(weapon.position, tip.position, TipStart);
+                end = tip.position;
+                scale = 1f;
+            }
+            else
+            {
+                axis = weapon.TransformDirection(localAxis).normalized;
+                start = weapon.position + axis * (bladeStart * scale);
+                end = weapon.position + axis * (bladeEnd * scale);
+            }
             float speed = level >= 3 ? 16f : 6f;
             float pulse = 0.75f + 0.25f * Mathf.Sin(Time.time * speed);
 

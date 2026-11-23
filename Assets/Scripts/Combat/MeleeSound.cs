@@ -36,7 +36,7 @@ namespace Anathema.Combat
             Sfx.Play(Sfx.ChainswordImpact, volume, 0.92f, 1.08f, 0.8f);
         }
 
-        // A power weapon swing (the Sanguinary Priest's power sword): a clean blade cut over the brief, high crackle of
+        // A power weapon swing (the Sanguinary Guard's power sword): a clean blade cut over the brief, high crackle of
         // its power field.
         public static void PowerSwing(float volume = 0.45f, float pitchMin = 0.92f, float pitchMax = 1.08f)
         {

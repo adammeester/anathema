@@ -3,16 +3,16 @@ using Anathema.CameraRig;
 using Anathema.Combat;
 using UnityEngine;
 
-namespace Anathema.Abilities.SanguinaryPriest
+namespace Anathema.Abilities.SanguinaryGuard
 {
-    // LMB (click or hold): the Sanguinary Priest's ornate power sword. Alternating forehand and backhand cuts in a frontal arc.
-    // A swing that connects sends a stream of blood to the most injured teammate nearby (himself included) and heals
-    // them: this is where most of his healing comes from, so it only flows while he is in the fight.
+    // LMB (click or hold): the Sanguinary Guard's ornate power sword. Alternating forehand and backhand cuts in a frontal arc.
+    // Plain cuts only deal damage and build energy: no lifesteal. The blood comes back on the Exsanguinating Arc.
     //
-    // Exsanguinating Arc: with a full Vitae chalice (or while Wings of the Angel lasts) the swing becomes a spin slash.
-    // A ring fills on the ground around him during a longer wind-up, then he spins a full turn and a quarter with the
-    // blade at arm's length: everything around him is cut, slowed, and every landed hit heals each teammate near him for
-    // a share of its damage. The Arc's own healing never refills the chalice. Online "Arc" travels as the cue's EX flag.
+    // Exsanguinating Arc: with a full Vitae chalice (or while Wings of the Angel lasts) the next swing is the Arc, a spin
+    // slash. A ring fills on the ground around him during a longer wind-up, then he spins a full turn and a quarter with the
+    // blade at arm's length: everything around him is cut and slowed. Every landed hit draws a large share of its damage
+    // back into him (that is how he wins back the health he spends healing), and heals each other teammate near him for
+    // a share of its damage. A landed Arc also brings his next Chalice Offering charge forward. The Arc's own healing never refills the chalice. Online "Arc" travels as the cue's EX flag.
     [DefaultExecutionOrder(50)] // after ProceduralWalk, which also writes the spine and arms every LateUpdate
     public class Chainsword : Ability
     {
@@ -23,8 +23,6 @@ namespace Anathema.Abilities.SanguinaryPriest
         [SerializeField] float windupDuration = 0.12f;
         [SerializeField] float swingDuration = 0.12f;
         [SerializeField] float recoverDuration = 0.2f;
-        [SerializeField] float healPerSwing = 5f;
-        [SerializeField] float healRange = 10f;
         [SerializeField] float energyPerHit = 6f;
 
         [Header("Exsanguinating Arc")]
@@ -35,11 +33,14 @@ namespace Anathema.Abilities.SanguinaryPriest
         [SerializeField] float arcDamage = 28f;
         [SerializeField] float arcSlow = 0.3f;
         [SerializeField] float arcSlowDuration = 1f;
-        [SerializeField] float arcHealShare = 0.4f;
+        [SerializeField] float arcLifesteal = 0.8f;         // share of each landed Arc hit that heals him
+        [SerializeField] float arcHealShare = 0.4f;         // share of each landed Arc hit that heals each other teammate
         [SerializeField] float arcHealRadius = 6f;
         [SerializeField] float arcEnergyPerHit = 10f;
         [SerializeField] float arcSpinDegrees = 450f;
         [SerializeField] float ascendedCooldown = 0.9f;
+        [SerializeField] float arcChaliceRefund = 0.5f;      // a landed Arc brings the next Chalice charge forward by this much of its recharge
+        [SerializeField] float ascendedChaliceRefund = 0.25f; // the same, for each Arc during Wings of the Angel
 
         [Header("Pose")]
         [SerializeField] float spineTwist = 35f;
@@ -51,6 +52,7 @@ namespace Anathema.Abilities.SanguinaryPriest
         Energy energy;
         Vitae vitae;
         WingsOfTheAngel wings;
+        ChaliceOffering chalice;
         BloodBladeEffect blade;
         LimbPose pose;
         Transform model;
@@ -62,6 +64,7 @@ namespace Anathema.Abilities.SanguinaryPriest
         float side = 1f;
         float strikeAt, swingEnd, recoverEnd, curWindup, curSwing, curRecover;
         GameObject telegraph;
+
 
         public override string DisplayName => "Power Sword";
         public override string KeyLabel => "LMB";
@@ -81,6 +84,7 @@ namespace Anathema.Abilities.SanguinaryPriest
             energy = GetComponent<Energy>();
             vitae = GetComponent<Vitae>();
             wings = GetComponent<WingsOfTheAngel>();
+            chalice = GetComponent<ChaliceOffering>();
             model = transform.Find("Model");
             pose = new LimbPose(model, BoneNames);
         }
@@ -165,15 +169,8 @@ namespace Anathema.Abilities.SanguinaryPriest
             SlashEffect.Spawn(transform.position, dir, range, arcDegrees, swingDuration * 2f, SanguinaryKit.Blood);
             MeleeSound.PowerSwing(0.4f);
 
-            if (IsReplica)
-            {
-                // Visual only: the stream to whoever the owner most likely healed.
-                if (Mandrake.MandrakeKit.EnemiesInCone(Health, transform.position, dir, range, arcDegrees).Count > 0)
-                    StreamToMostInjured();
-                return;
-            }
+            if (IsReplica) return;
 
-            bool healed = false;
             bool marked = false;
             foreach (Health enemy in Mandrake.MandrakeKit.EnemiesInCone(Health, transform.position, dir, range, arcDegrees).ToArray())
             {
@@ -181,26 +178,14 @@ namespace Anathema.Abilities.SanguinaryPriest
                 {
                     if (!landed || this == null) return;
                     if (energy != null) energy.Gain(energyPerHit);
+                    SanguinaryKit.FeedThirst(gameObject, damage);
                     if (!marked)
                     {
                         marked = true;
                         MeleeSound.PowerImpact(0.35f);
                     }
-                    // One heal per connecting swing, however many it cuts.
-                    if (healed) return;
-                    healed = true;
-                    Health ally = SanguinaryKit.MostInjuredAlly(Health, transform.position, healRange);
-                    if (ally == null) return;
-                    SanguinaryKit.Heal(gameObject, ally, healPerSwing);
-                    SanguinaryKit.BloodStream(transform.position, ally.transform);
                 });
             }
-        }
-
-        void StreamToMostInjured()
-        {
-            Health ally = SanguinaryKit.MostInjuredAlly(Health, transform.position, healRange);
-            if (ally != null) SanguinaryKit.BloodStream(transform.position, ally.transform);
         }
 
         void SpinStrike()
@@ -223,8 +208,12 @@ namespace Anathema.Abilities.SanguinaryPriest
             if (IsReplica)
             {
                 if (hits > 0)
-                    foreach (Health ally in SanguinaryKit.AlliesNear(Health, here, arcHealRadius).ToArray())
+                {
+                    foreach (Health enemy in Mandrake.MandrakeKit.EnemiesInCone(Health, here, dir, arcRange, 360f).ToArray())
+                        SanguinaryKit.BloodStream(enemy.transform.position, transform);
+                    foreach (Health ally in SanguinaryKit.AlliesNear(Health, here, arcHealRadius, includeSelf: false).ToArray())
                         SanguinaryKit.BloodStream(here, ally.transform);
+                }
                 return;
             }
 
@@ -241,11 +230,16 @@ namespace Anathema.Abilities.SanguinaryPriest
                     {
                         marked = true;
                         HitMarkerSound.Play();
+                        // Once per Arc that lands: the chalice refills faster.
+                        if (chalice != null) chalice.RefundCharge(Ascended ? ascendedChaliceRefund : arcChaliceRefund);
                         MeleeSound.Impact(hits);
                     }
                     BloodImpact.Play(enemy.transform.position + Vector3.up, SanguinaryKit.Flat(enemy.transform.position - transform.position), 1.2f);
-                    // Each landed cut heals every teammate near him for a share of it; this never refills the chalice.
-                    foreach (Health ally in SanguinaryKit.AlliesNear(Health, transform.position, arcHealRadius).ToArray())
+                    // Lifesteal: most of the cut's blood comes back into him...
+                    SanguinaryKit.Heal(gameObject, Health, arcDamage * arcLifesteal, feedsVitae: false);
+                    SanguinaryKit.BloodStream(enemy.transform.position, transform);
+                    // ...and a share goes to every other teammate near him. None of it refills the chalice.
+                    foreach (Health ally in SanguinaryKit.AlliesNear(Health, transform.position, arcHealRadius, includeSelf: false).ToArray())
                     {
                         SanguinaryKit.Heal(gameObject, ally, arcDamage * arcHealShare, feedsVitae: false);
                         SanguinaryKit.BloodStream(enemy.transform.position, ally.transform);

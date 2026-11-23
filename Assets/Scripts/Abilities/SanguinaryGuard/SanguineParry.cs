@@ -1,9 +1,9 @@
 using Anathema.Combat;
 using UnityEngine;
 
-namespace Anathema.Abilities.SanguinaryPriest
+namespace Anathema.Abilities.SanguinaryGuard
 {
-    // Space: Sanguine Parry, the priest's counter. The hit is negated; he cuts the attacker if they are close, and the
+    // Space: Sanguine Parry, the guard's counter. The hit is negated; he cuts the attacker if they are close, and the
     // blood he draws heals the most injured teammate near him (himself included), which fills Vitae like any heal.
     [DefaultExecutionOrder(100)] // keep in step with Counter
     public class SanguineParry : Counter

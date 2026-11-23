@@ -1,11 +1,13 @@
 using Anathema.Combat;
 using UnityEngine;
 
-namespace Anathema.Abilities.SanguinaryPriest
+namespace Anathema.Abilities.SanguinaryGuard
 {
-    // Passive: Vitae, the Blood Chalice. Healing the priest gives (to teammates or himself) fills it, one Vitae per point
+    // Passive: Vitae, the Blood Chalice. Healing the guard gives (to teammates or himself) fills it, one Vitae per point
     // of health actually restored (overhealing counts for nothing). Healing given while an enemy stands within
-    // `frontlineRadius` of him counts `frontlineBonus` times over. Damage never fills it.
+    // `frontlineRadius` of him counts `frontlineBonus` times over. Health he pays for his abilities (Blood Transfusion,
+    // Chalice Offering) fills it too, `perHealthPaid` per point. Damage dealt or taken never fills it, except under Red
+    // Thirst, where his hits feed it (RedThirst.OnDamageDealt).
     // After `drainDelay` seconds without healing anyone it drains, unless it is full. Full, his next Chainsword swing is
     // the Exsanguinating Arc, which empties it; while it is full he takes `fullExposure` more damage.
     //
@@ -20,6 +22,7 @@ namespace Anathema.Abilities.SanguinaryPriest
         [SerializeField] float drainDelay = 3f;
         [SerializeField] float drainPerSecond = 6f;
         [SerializeField] float fullExposure = 0.1f;
+        [SerializeField] float perHealthPaid = 1f;   // Vitae per point of health he sacrifices
 
         const int Pips = 5;
 
@@ -28,7 +31,7 @@ namespace Anathema.Abilities.SanguinaryPriest
         float lastGain = float.NegativeInfinity;
         bool replicaFull;
 
-        // While above zero, heals the priest gives don't fill the chalice (the Arc's own healing).
+        // While above zero, heals the guard gives don't fill the chalice (the Arc's own healing).
         public int Suppressed { get; set; }
 
         public float Current { get; private set; }
@@ -80,6 +83,13 @@ namespace Anathema.Abilities.SanguinaryPriest
             if (amount <= 0f) return;
             lastGain = Time.time;
             Current = Mathf.Min(maxVitae, Current + amount);
+        }
+
+        // Owner: he paid `paid` of his own health for an ability (SanguinaryKit.Pay).
+        public void OnSacrifice(float paid)
+        {
+            if (health == null || health.IsReplica || health.IsDead) return;
+            Add(paid * perHealthPaid);
         }
 
         // The Arc spends the whole chalice.

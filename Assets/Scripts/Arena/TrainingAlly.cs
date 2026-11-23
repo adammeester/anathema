@@ -16,7 +16,7 @@ namespace Anathema.Arena
     public class TrainingAlly : MonoBehaviour
     {
         const int Team = 1;
-        const string PrefabPath = "Net/Player_SanguinaryPriest";
+        const string PrefabPath = "Net/Player_SanguinaryGuard";
         const float MaxHealth = 170f;
         const float Height = 2f;
         const float Radius = 0.5f;
@@ -46,7 +46,7 @@ namespace Anathema.Arena
                 new GameObject("Training Eliminations").AddComponent<TrainingEliminations>();
             if (FindAnyObjectByType<TrainingAlly>() != null) return;
 
-            var go = new GameObject("Training Ally (Sanguinary Priest)");
+            var go = new GameObject("Training Ally (Sanguinary Guard)");
             Vector3 toCentre = new Vector3(-Spot.x, 0f, -Spot.z);
             go.transform.SetPositionAndRotation(Spot, Quaternion.LookRotation(toCentre));
 

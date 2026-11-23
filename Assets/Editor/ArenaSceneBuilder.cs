@@ -9,7 +9,7 @@ using Anathema.Abilities.PlagueSurgeon;
 using Anathema.Abilities.Psyker;
 using Anathema.Abilities.SkitariiRanger;
 using Anathema.Abilities.Sorcerer;
-using Anathema.Abilities.SanguinaryPriest;
+using Anathema.Abilities.SanguinaryGuard;
 using Anathema.Arena;
 using Anathema.CameraRig;
 using Anathema.Combat;
@@ -37,8 +37,8 @@ namespace Anathema.EditorTools
         const string MandrakeModelPath = "Assets/Models/Mandrake.fbx";
         const string BullgrynModelPath = "Assets/Models/Bullgryn.fbx";
         const string SorcererModelPath = "Assets/Models/Sorcerer.fbx";
-        // Until his own model exists the Grey Knight body stands in (its halberd carries the blade glow).
-        const string SanguinaryPriestModelPath = "Assets/Models/SanguinaryPriest.fbx";
+        // Built by Art/sanguinary_guard.py; the Grey Knight body stands in if it is missing.
+        const string SanguinaryGuardModelPath = "Assets/Models/SanguinaryGuard.fbx";
         const string BullgrynShieldModelPath = "Assets/Models/BullgrynShield.fbx"; // planted by Living Wall
         // First model that exists is used for the player.
         static readonly string[] PlayerModelPaths =
@@ -66,7 +66,7 @@ namespace Anathema.EditorTools
             Mandrake,
             Bullgryn,
             Sorcerer,
-            SanguinaryPriest
+            SanguinaryGuard
         }
 
         [MenuItem("Anathema/Rebuild Arena Scene")]
@@ -96,8 +96,8 @@ namespace Anathema.EditorTools
         [MenuItem("Anathema/Rebuild Arena Scene (Thousand Sons Sorcerer)")]
         static void BuildSorcerer() => Build(Character.Sorcerer);
 
-        [MenuItem("Anathema/Rebuild Arena Scene (Sanguinary Priest)")]
-        static void BuildSanguinaryPriest() => Build(Character.SanguinaryPriest);
+        [MenuItem("Anathema/Rebuild Arena Scene (Sanguinary Guard)")]
+        static void BuildSanguinaryGuard() => Build(Character.SanguinaryGuard);
 
         // The training ground on the Crucible map (breakable floor), in its own scene so Arena.unity stays as it is.
         // Slams that break the floor: the Berserker's R, and the Grey Knight's Q while the Daemonhammer is equipped (F1 panel).
@@ -1744,15 +1744,15 @@ namespace Anathema.EditorTools
             bool bullgryn = character == Character.Bullgryn;
             // The Sorcerer is a Space Marine in power armour under a tall crested helm: a marine-sized body.
             bool sorcerer = character == Character.Sorcerer;
-            // The Sanguinary Priest is a Blood Angels marine: a marine-sized body.
-            bool priest = character == Character.SanguinaryPriest;
+            // The Sanguinary Guard is a Blood Angels marine: a marine-sized body.
+            bool guard = character == Character.SanguinaryGuard;
             bool small = psyker || ranger || hospitaller || mandrake;
             controller.height = ranger ? 1.9f : psyker ? 1.8f : hospitaller ? 1.85f : mandrake ? 1.9f : bullgryn ? 2.6f : 2f;
             // The Bullgryn is the biggest body on the roster (~2.9m model), so he is also the widest target.
             controller.radius = small ? 0.4f : bullgryn ? 0.6f : 0.5f;
             controller.center = new Vector3(0f, controller.height * 0.5f, 0f);
 
-            root.AddComponent<Health>().Configure(character == Character.KhorneBerserker ? 215f : ranger ? 150f : psyker ? 145f : hospitaller ? 160f : mandrake ? 155f : bullgryn ? 240f : sorcerer ? 165f : priest ? 170f : 175f, 1);
+            root.AddComponent<Health>().Configure(character == Character.KhorneBerserker ? 215f : ranger ? 150f : psyker ? 145f : hospitaller ? 160f : mandrake ? 155f : bullgryn ? 240f : sorcerer ? 165f : guard ? 170f : 175f, 1);
             root.AddComponent<HealthBar>().Configure(ranger ? 2.5f : psyker ? 2.3f : hospitaller ? 2.4f : mandrake ? 2.45f : bullgryn ? 3.2f : sorcerer ? 3.0f : 2.7f);
             root.AddComponent<Energy>();
             root.AddComponent<EnergyBar>().Configure(ranger ? 2.3f : psyker ? 2.1f : hospitaller ? 2.2f : mandrake ? 2.25f : bullgryn ? 3.0f : sorcerer ? 2.8f : 2.5f);
@@ -1850,19 +1850,22 @@ namespace Anathema.EditorTools
                 root.AddComponent<WeaverOfFates>();
                 root.AddComponent<EchoesOfProspero>();
             }
-            else if (priest)
+            else if (guard)
             {
-                // Melee battle-medic: chainsword cuts that heal the most injured teammate, a dash-stab that heals around
-                // its target, a jump-pack leap, an area heal stronger in melee (EX: a big single heal), a counter and the
-                // Wings of the Angel ultimate. Vitae (the passive) fills from healing and turns the next swing into the
-                // Exsanguinating Arc.
+                // Melee battle-medic who heals with his own blood: sword cuts, a blood-bolt transfusion and an area heal
+                // paid for with his health (EX: Chalice of Wrath, an area drain that heals him), a jump-pack leap, a
+                // counter, a stunning dash (Crimson Rush) and the Wings of the Angel ultimate on F. Vitae (the passive)
+                // fills from healing given and health paid and turns the next swing into the Exsanguinating Arc; Red
+                // Thirst (the second passive) makes him faster and his slam harder at low health.
                 root.AddComponent<Chainsword>();
-                root.AddComponent<SanguineLunge>();
+                root.AddComponent<BloodTransfusion>();
                 root.AddComponent<JumpPackDescent>();
                 root.AddComponent<ChaliceOffering>();
                 root.AddComponent<SanguineParry>();
+                root.AddComponent<CrimsonRush>();
                 root.AddComponent<WingsOfTheAngel>();
                 root.AddComponent<Vitae>();
+                root.AddComponent<RedThirst>();
             }
             else if (psyker)
             {
@@ -1901,7 +1904,7 @@ namespace Anathema.EditorTools
                 : mandrake ? new[] { MandrakeModelPath, PsykerModelPath }.Concat(PlayerModelPaths).ToArray()
                 : bullgryn ? new[] { BullgrynModelPath }.Concat(PlayerModelPaths).ToArray()
                 : sorcerer ? new[] { SorcererModelPath }.Concat(PlayerModelPaths).ToArray()
-                : priest ? new[] { SanguinaryPriestModelPath }.Concat(PlayerModelPaths).ToArray()
+                : guard ? new[] { SanguinaryGuardModelPath }.Concat(PlayerModelPaths).ToArray()
                 : PlayerModelPaths;
             foreach (string path in modelPaths)
             {

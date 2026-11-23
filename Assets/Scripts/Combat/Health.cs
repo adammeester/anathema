@@ -461,6 +461,27 @@ namespace Anathema.Combat
             return healed;
         }
 
+        // A character paying for an ability with their own health (the Sanguinary Guard's Blood Transfusion). Not an
+        // attack: no counter, shield, armour or sharer sees it, and it can never take them below 1 health. What is paid
+        // stays healable (lifesteal can win it back) and the healable part only starts to fade as after a hit.
+        // Returns how much was paid here (0 when sent to the server, which applies it).
+        public float Sacrifice(float amount)
+        {
+            if (IsDead || Structure || amount <= 0f) return 0f;
+            if (!IsAuthority)
+            {
+                net.SendSacrifice(amount);
+                return 0f;
+            }
+
+            float paid = Mathf.Min(amount, Current - 1f);
+            if (paid <= 0f) return 0f;
+            Current -= paid;
+            Recoverable = Mathf.Min(Recoverable + paid, maxHealth - Current, MaxRecoverable);
+            lastDamageTime = Time.time;
+            return paid;
+        }
+
         // Healing orbs: restore any lost health. Permanently lost health goes first (nothing else can restore it),
         // then the healable (black) part. Returns how much was actually healed (0 when sent to the server).
         public float HealPermanent(float amount, GameObject source = null)

@@ -175,7 +175,7 @@ namespace Anathema.Net
                 blurb = "Battle-sister healer. Tethers foes to burn them or allies to share their pain, and blesses the ground to mend.",
                 footnote = "Hold Shift in game to use EX abilities",
                 passive = P("Blessed Suffering", "Damage you take for an ally (through your tether or Martyrdom) gives you energy and builds Faith. Every stack of Faith makes all your damage stronger and makes you take less damage, including the damage you carry for allies. Go a few seconds without sharing any damage and the stacks fade one by one. Your Faith shows above your action bar.",
-                    "1 energy per 2 damage shared  |  1 Faith per 15 damage shared, max 5  |  +6% damage and -5% damage taken per stack  |  Fades after 4s"),
+                    "1 energy per 2 damage shared  |  1 Faith per 8 damage shared, max 5  |  +6% damage and -5% damage taken per stack  |  Fades after 5s"),
                 abilities = new[]
                 {
                     A("LMB", "Sanctified Tether", "Click to cast a beam of light that latches onto the first character along your aim and stays on by itself while you move and cast. An enemy is burned every quarter second. An ally has part of every hit they take dealt to you instead. Two charges, so you can hold two characters at once, such as shielding an ally while burning an enemy; each beam has its own timer. Ends when its time runs out, if the target gets out of range, or if you press C (releases both). A click that hits nothing costs no charge.",
@@ -286,28 +286,32 @@ namespace Anathema.Net
             },
             new CharacterInfo
             {
-                name = "Sanguinary Priest", epithet = "The Blood Chalice", prefabPath = "Net/Player_SanguinaryPriest",
+                name = "Sanguinary Guard", epithet = "The Blood Chalice", prefabPath = "Net/Player_SanguinaryGuard",
                 role = Role.Support, accent = new Color(0.9f, 0.12f, 0.12f),
-                blurb = "Blood Angels battle-medic. Heals his brothers with every cut he lands, and when the chalice brims, spins through the enemy line in a storm of blood.",
+                blurb = "Blood Angels battle-medic. Bleeds himself to heal his brothers, then cuts the health back out of the enemy; when the chalice brims, he spins through their line in a storm of blood.",
                 footnote = "Hold Shift in game to use EX abilities",
-                passive = P("Vitae", "Healing you give (teammates or yourself) fills the Blood Chalice, and fills it half again as fast while an enemy is right beside you. Damage never fills it. Full, your next Power Sword swing is the Exsanguinating Arc: a full spin slash that cuts everything around you and heals every teammate near you for part of the damage. While the chalice is full your blade blazes and you take a little more damage. Stop healing for a few seconds and it drains.",
-                    "1 Vitae per point healed (x1.5 with an enemy within 3)  |  Full at 100  |  Arc: 28 damage all around, radius 3.3, 30% slow, allies within 6 healed 40% of each hit  |  +10% damage taken while full  |  Drains 6/s after 3s"),
+                passive = P("Vitae", "Healing you give your teammates fills the Blood Chalice, and fills it half again as fast while an enemy is right beside you. The health you pay for your abilities fills it too. Damage only does under Red Thirst. Full, your next Power Sword swing is the Exsanguinating Arc: a full spin slash that cuts everything around you, draws most of the damage back into you as health, heals every teammate near you for part of it, and refills your Chalice Offering faster. Land Crimson Rush first and the stunned enemy can't escape the spin. While the chalice is full your blade blazes and you take a little more damage. Stop healing for a few seconds and it drains.",
+                    "1 Vitae per point healed (x1.5 with an enemy within 3), 1 per point of health paid  |  Full at 100  |  Arc: 28 damage all around, radius 3.3, 30% slow, heals you 80% of each hit (22 per enemy), allies within 6 healed 40% of each hit  |  Landed Arc: next Chalice charge 50% sooner (25% per Arc during Wings)  |  +10% damage taken while full  |  Drains 6/s after 3s"),
                 abilities = new[]
                 {
-                    A("LMB", "Power Sword", "Click or hold to cut in alternating arcs in front of you with your crackling power sword. A swing that connects sends a stream of blood to the most injured teammate nearby (you included) and heals them.",
-                        "Damage 9  |  Every 0.7s  |  Range 2.6, 100 degrees  |  Heals 5 per connecting swing (within 10)"),
-                    A("RMB", "Sanguine Lunge", "Dash forward and stab. If it lands, every teammate near your target (you included) is healed.",
-                        "Damage 10  |  Dash 4  |  Ally heal 12 within 4 of the target  |  Cooldown 6s"),
-                    A("Q", "Jump Pack", "Leap to the cursor, over walls. Enemies where you land take damage and are knocked back; teammates there are healed, and they and you get a short barrier.",
-                        "Range 8  |  Damage 10 in 2.5 radius  |  Ally heal 12  |  Barrier 10 for 2s  |  Cooldown 10s"),
-                    A("E", "Chalice Offering", "Raise the chalice: every teammate around you, you included, is healed. The heal is stronger for each enemy close to you.",
-                        "Heal 16 (+50% per enemy within 4, up to +100%)  |  Radius 4  |  Cooldown 12s"),
+                    P("Red Thirst", "The curse in your blood. At 20% health or less the thirst takes you: your eyes burn red, you move and swing faster, and your Jump Pack slam hits much harder. Your Power Sword cuts and Crimson Rush also fill the chalice with the damage they deal, so you can fight your way to an Exsanguinating Arc. Your lifesteal is unchanged. It lifts as soon as you climb back above 20%. Your own health costs can push you into it, but never below 15%.",
+                        "At 20% health or less  |  +20% move speed  |  +30% attack speed  |  Jump Pack slam +50% damage (18)  |  1 Vitae per point of damage from Power Sword and Crimson Rush"),
+                    A("LMB", "Power Sword", "Click or hold to cut in alternating arcs in front of you with your crackling power sword. Plain cuts don't heal: your blood comes back on the Exsanguinating Arc.",
+                        "Damage 9  |  Every 0.7s  |  Range 2.6, 100 degrees"),
+                    A("RMB", "Blood Transfusion", "Open your own veins and hurl a bolt of your blood along your aim: the first teammate it touches is healed for more than you paid. Enemies in the way soak it up, and a miss is blood wasted, so lead your allies and throw around the melee. The health you spend fills the chalice and is won back by the Exsanguinating Arc's lifesteal. Can't be cast if it would leave you below 15% health.",
+                        "Costs 12 health (paid on throw)  |  Heals 22  |  Range 12  |  Cooldown 4s"),
+                    A("Q", "Jump Pack", "Plant your feet while the twin engines spool up, then launch high into the air toward the cursor on blue flame, over walls and cover, and slam down. Enemies around the impact take damage and are slowed, and the ground cracks. C during the spool-up cancels it.",
+                        "Spool-up 0.55s  |  Range 12  |  0.7s in the air  |  Damage 12 in 2.8 radius  |  40% slow for 1.5s  |  Cooldown 10s"),
+                    A("E", "Chalice Offering", "Fill the chalice from your own veins and raise it: every teammate around you is healed (not you). The heal is stronger for each enemy close to you. Can't be cast if it would leave you below 15% health.",
+                        "Costs 15 health  |  Heal 20 (+50% per enemy within 4, up to +100%)  |  Radius 4  |  2 charges, 12s recharge each"),
                     A("Space", "Sanguine Parry", "Your counter. The hit is negated; the attacker is cut if they are close, and the most injured teammate near you is healed.",
                         "Riposte 8  |  Heal 15 (within 8)"),
-                    A("R", "Wings of the Angel", "Costs a full energy bar. Golden wings unfold; then you leap to the cursor and crash down. Teammates in the ring are healed, enemies take damage and are pushed back. For 5 seconds every Power Sword swing is an Exsanguinating Arc. C during the gather cancels and refunds.",
+                    A("R", "Crimson Rush", "After a short wind-up with a lane marked on the ground, the jump pack hurls you forward. The first enemy you reach stops you: a slash that stuns them. Only that one enemy is hit. With a full chalice, the stun is your window to land the Exsanguinating Arc on them. C during the wind-up cancels it.",
+                        "Damage 14  |  Stun 1.2s  |  Dash 6  |  Cooldown 13s"),
+                    A("F", "Wings of the Angel","Costs a full energy bar. Your wings spread and blaze gold; then you leap to the cursor and crash down. Teammates in the ring are healed, enemies take damage and are pushed back. For 5 seconds every Power Sword swing is an Exsanguinating Arc. C during the gather cancels and refunds.",
                         "Heal 30 / Damage 20 in 6 radius  |  Range 9  |  Arcs for 5s, every 0.9s  |  Costs 100 energy", true),
-                    EX("Shift+E", "Red Thirst", "Pour the chalice for one: the teammate nearest the cursor (you, if nobody is near it) gets a large heal.",
-                        "Heal 30  |  Range 10  |  Costs 35 energy")
+                    EX("Shift+E", "Chalice of Wrath", "Drink from the chalice instead of pouring it: every enemy around you is drained, and each one you hit heals you for most of the damage. Costs no health. Needs an enemy within reach.",
+                        "Damage 18 to enemies within 4  |  Heals you 80% of each hit  |  Uses a charge  |  Costs 35 energy")
                 }
             }
         };

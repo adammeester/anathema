@@ -12,13 +12,13 @@ namespace Anathema.Abilities.Hospitaller
     // that resolves damage (the server online).
     public class Faith : MonoBehaviour, IPassiveStacks
     {
-        public const float DamagePerStack = 15f;
+        public const float DamagePerStack = 8f;
         public const int MaxStacksCount = 5;
         public const float BonusPerStack = 0.06f;
         public const float ReductionPerStack = 0.05f;
         // The most reduction any Hospitaller can claim (Steadfast Faith's cap); the server clamps to this.
         public const float ReductionCeiling = ReductionPerStack * HospitallerUpgrade.SteadfastMaxStacks;
-        const float DecayDelay = 4f;
+        const float DecayDelay = 5f; // outlasts the tether's 4s recharge, so stacks bridge the gap between casts
         const float DecayInterval = 1f;
         const float RefreshInterval = 0.25f;
         const float HoldSeconds = 0.6f; // the reduction lapses this long after her machine stops refreshing it

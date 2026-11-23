@@ -149,7 +149,7 @@ const powerSword = (t) => `<g transform="${t}">
 <g stroke="#e3b862" stroke-width="1"><line x1="-12" y1="-2.6" x2="-12" y2="2.6"/><line x1="-8" y1="-2.6" x2="-8" y2="2.6"/></g>
 <circle cx="-17.5" cy="0" r="3.4" fill="url(#gold)" stroke="#3a2a10" stroke-width="0.8"/><circle cx="-17.5" cy="0" r="1.4" fill="#c4161c"/>
 </g>`;
-const R = "#e61f1f"; // Sanguinary Priest
+const R = "#e61f1f"; // Sanguinary Guard
 const chalice = (x, y, s = 1, rot = 0) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})">
 <path d="M-26,-16 L26,-16 Q24,12 0,18 Q-24,12 -26,-16 Z" fill="url(#gold)" stroke="#2a1a08" stroke-width="2"/>
 <path d="M-20,-12 Q-18,6 -4,12" fill="none" stroke="#f2d48a" stroke-width="1.2" opacity="0.6"/>
@@ -157,7 +157,7 @@ const chalice = (x, y, s = 1, rot = 0) => `<g transform="translate(${x} ${y}) ro
 <circle cy="2" r="4.5" fill="#6a0808" stroke="#e3b862" stroke-width="1.5"/>
 <rect x="-4" y="18" width="8" height="16" fill="url(#gold)" stroke="#2a1a08" stroke-width="1.5"/>
 <path d="M-18,44 L18,44 L11,34 L-11,34 Z" fill="url(#gold)" stroke="#2a1a08" stroke-width="1.5"/></g>`;
-write("SanguinaryPriest", R, {
+write("SanguinaryGuard", R, {
   // Power Sword (class Chainsword): alternating cuts, each sending a stream of blood to the wounded.
   Chainsword: `${glow(0, 0, 44)}
 ${glowPath("M-40,-24 Q0,-44 40,-20", R, "#ffb0a0", 2.4)}

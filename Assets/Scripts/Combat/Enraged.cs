@@ -2,6 +2,13 @@ using UnityEngine;
 
 namespace Anathema.Combat
 {
+    // A component that speeds up its character's basic attacks (abilities with ScalesWithAttackSpeed), read through
+    // Enraged.AttackSpeedMultiplier. Must give the same answer on every machine (derive it from replicated state).
+    public interface IAttackSpeedModifier
+    {
+        float AttackSpeedMultiplier { get; }
+    }
+
     // Status effect: the owner is consumed by rage. While present they are immune to crowd control (stun, silence,
     // root, panic, maim and knockback all refuse to apply, in each status's Apply), attack 20% faster
     // (Ability.Update shortens the cooldown of abilities that opt in via ScalesWithAttackSpeed) and move 10% faster
@@ -50,10 +57,17 @@ namespace Anathema.Combat
             return target.TryGetComponent(out Enraged _);
         }
 
-        // 1.2 while enraged, times whatever the Rage passive has built up (see Rage); otherwise 1.
+        static readonly System.Collections.Generic.List<IAttackSpeedModifier> attackModifiers = new();
+
+        // 1.2 while enraged, times whatever the Rage passive has built up (see Rage), times any IAttackSpeedModifier on
+        // the character (e.g. the Sanguinary Guard's Red Thirst); otherwise 1.
         public static float AttackSpeedMultiplier(GameObject target)
         {
-            return (IsEnraged(target) ? 1f + AttackSpeedBonus : 1f) * Rage.AttackSpeedMultiplier(target);
+            float multiplier = (IsEnraged(target) ? 1f + AttackSpeedBonus : 1f) * Rage.AttackSpeedMultiplier(target);
+            target.GetComponents(attackModifiers);
+            foreach (IAttackSpeedModifier m in attackModifiers) multiplier *= m.AttackSpeedMultiplier;
+            attackModifiers.Clear();
+            return multiplier;
         }
 
         // 1.1 while enraged, times Rage's movement bonus (Relentless Pursuit); otherwise 1.

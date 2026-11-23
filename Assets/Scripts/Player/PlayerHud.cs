@@ -178,13 +178,21 @@ namespace Anathema.Player
             }
         }
 
+        // Which character a player is ("Bullgryn", ...). Judged from its abilities, not its UpgradeState: a character
+        // with no upgrade tree (the Sanguinary Guard, for now) has no UpgradeState at all.
+        static string CharacterKey(GameObject player)
+        {
+            if (player == null) return null;
+            UpgradeState up = player.GetComponent<UpgradeState>();
+            return up != null && !string.IsNullOrEmpty(up.Character) ? up.Character : CharacterStats.Identify(player);
+        }
+
         Net.CharacterSelectView.AbilityInfo FindAbilityInfo(string name, string key, bool ex)
         {
             if (!rosterLooked)
             {
                 rosterLooked = true;
-                if (upgrades == null) upgrades = GetComponent<UpgradeState>();
-                string character = upgrades != null ? upgrades.Character : null;
+                string character = CharacterKey(gameObject);
                 if (!string.IsNullOrEmpty(character))
                     foreach (var c in Net.CharacterSelectView.Roster)
                         if (c.prefabPath.EndsWith("Player_" + character, System.StringComparison.Ordinal)) { rosterEntry = c; break; }
@@ -263,8 +271,8 @@ namespace Anathema.Player
                 if (all != null) foreach (UpgradeDef d in all) if (up.Has(d.Bit)) owned.Add(d);
 
                 string name = Net.NetGame.Online ? Net.NetGame.NameOf(p.OwnerClientId)
-                    : up != null && !string.IsNullOrEmpty(up.Character) ? up.Character : p.name;
-                string key = up != null ? up.Character : null;
+                    : CharacterKey(p.gameObject) ?? p.name;
+                string key = CharacterKey(p.gameObject);
                 bool dead = p.Health.IsDead || p.Health.Current <= 0f;
                 if (ally)
                     DrawAllyFrame(ref y, name, key, p.Health.Current, p.Health.Max, p.EnergyCurrent, p.EnergyMax, owned, dead, false);

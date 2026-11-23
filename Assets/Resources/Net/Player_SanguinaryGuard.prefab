@@ -30,7 +30,7 @@ GameObject:
   - component: {fileID: 2247633140994955032}
   - component: {fileID: 6097047338730820928}
   m_Layer: 0
-  m_Name: Player_SanguinaryPriest
+  m_Name: Player_SanguinaryGuard
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -187,7 +187,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: add34516906961640b1448bb42b7a66e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryPriest.Chainsword
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryGuard.Chainsword
   cooldown: 0.7
   damage: 9
   range: 2.6
@@ -224,7 +224,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: fe97218ab1cb2f34ab28205ff659525f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryPriest.SanguineLunge
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryGuard.SanguineLunge
   cooldown: 6
   dashDistance: 4
   dashDuration: 0.16
@@ -245,7 +245,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a54d489ee1485914c8beb0c001ba4794, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryPriest.JumpPackDescent
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryGuard.JumpPackDescent
   cooldown: 10
   range: 8
   flightDuration: 0.45
@@ -269,7 +269,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 887da16876edf734e986f35adc806238, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryPriest.ChaliceOffering
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryGuard.ChaliceOffering
   cooldown: 12
   radius: 4
   heal: 16
@@ -290,7 +290,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a2f62a82c1080bc42babb386c68a9cbb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryPriest.SanguineParry
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryGuard.SanguineParry
   cooldown: 4
   duration: 1.2
   guardRadius: 1.6
@@ -315,7 +315,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e37498bea1fcece49b45302beb839b0e, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryPriest.WingsOfTheAngel
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryGuard.WingsOfTheAngel
   cooldown: 0.5
   energyCost: 100
   windup: 0.6
@@ -339,7 +339,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cf5e0c6364e44734a91304bb6d53779f, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryPriest.Vitae
+  m_EditorClassIdentifier: Anathema.Runtime::Anathema.Abilities.SanguinaryGuard.Vitae
   maxVitae: 100
   frontlineRadius: 3
   frontlineBonus: 1.5

@@ -9,8 +9,6 @@
       "range": 2.6,
       "arcDegrees": 100,
       "windupDuration": 0.12,
-      "healPerSwing": 5,
-      "healRange": 10,
       "energyPerHit": 6,
       "arcWindup": 0.25,
       "arcSpinDuration": 0.3,
@@ -18,42 +16,47 @@
       "arcDamage": 28,
       "arcSlow": 0.3,
       "arcSlowDuration": 1,
+      "arcLifesteal": 0.8,
       "arcHealShare": 0.4,
       "arcHealRadius": 6,
       "arcEnergyPerHit": 10,
-      "ascendedCooldown": 0.9
+      "ascendedCooldown": 0.9,
+      "arcChaliceRefund": 0.5,
+      "ascendedChaliceRefund": 0.25
     },
-    "SanguineLunge": {
-      "cooldown": 6,
-      "dashDistance": 4,
-      "damage": 10,
-      "range": 2.4,
-      "arcDegrees": 60,
-      "allyHeal": 12,
-      "allyHealRadius": 4,
-      "energyPerHit": 8
+    "BloodTransfusion": {
+      "cooldown": 4,
+      "cost": 12,
+      "heal": 22,
+      "range": 12,
+      "projectileSpeed": 20,
+      "projectileRadius": 0.45
     },
     "JumpPackDescent": {
       "cooldown": 10,
-      "range": 8,
-      "flightDuration": 0.45,
-      "landingRadius": 2.5,
-      "damage": 10,
-      "knockbackDistance": 2,
-      "allyHeal": 12,
-      "barrier": 10,
-      "barrierSeconds": 2,
+      "range": 12,
+      "spoolDuration": 0.55,
+      "flightDuration": 0.7,
+      "apexHeight": 4,
+      "landingRadius": 2.8,
+      "damage": 12,
+      "slow": 0.4,
+      "slowDuration": 1.5,
+      "crackSeconds": 3,
       "energyPerHit": 8
     },
     "ChaliceOffering": {
-      "cooldown": 12,
+      "cooldown": 1,
+      "rechargeTime": 12,
       "radius": 4,
-      "heal": 16,
+      "cost": 15,
+      "heal": 20,
       "bonusPerEnemy": 0.5,
       "maxBonusEnemies": 2,
       "exEnergyCost": 35,
-      "exHeal": 30,
-      "exRange": 10
+      "exRadius": 4,
+      "exDamage": 18,
+      "exLifesteal": 0.8
     },
     "SanguineParry": {
       "cooldown": 4,
@@ -61,6 +64,15 @@
       "heal": 15,
       "healRange": 8,
       "energyGain": 10
+    },
+    "CrimsonRush": {
+      "cooldown": 13,
+      "windup": 0.2,
+      "distance": 6,
+      "duration": 0.22,
+      "damage": 14,
+      "stun": 1.2,
+      "energyPerHit": 10
     },
     "WingsOfTheAngel": {
       "energyCost": 100,

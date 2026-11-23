@@ -34,14 +34,14 @@ namespace Anathema.EditorTools
         const string MandrakePrefab = PrefabDir + "/Player_Mandrake.prefab";
         const string BullgrynPrefab = PrefabDir + "/Player_Bullgryn.prefab";
         const string SorcererPrefab = PrefabDir + "/Player_Sorcerer.prefab";
-        const string SanguinaryPriestPrefab = PrefabDir + "/Player_SanguinaryPriest.prefab";
+        const string SanguinaryGuardPrefab = PrefabDir + "/Player_SanguinaryGuard.prefab";
 
         static NetSceneBuilder()
         {
             EditorApplication.delayCall += () =>
             {
                 if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
-                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(ShrinePath) || !File.Exists(CruciblePath) || !File.Exists(HoarfrostPath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab) || !File.Exists(HospitallerPrefab) || !File.Exists(MandrakePrefab) || !File.Exists(BullgrynPrefab) || !File.Exists(SorcererPrefab) || !File.Exists(SanguinaryPriestPrefab);
+                bool missing = !File.Exists(MenuPath) || !File.Exists(VersusPath) || !File.Exists(ShrinePath) || !File.Exists(CruciblePath) || !File.Exists(HoarfrostPath) || !File.Exists(GreyKnightPrefab) || !File.Exists(BerserkerPrefab) || !File.Exists(PlagueSurgeonPrefab) || !File.Exists(PsykerPrefab) || !File.Exists(SkitariiRangerPrefab) || !File.Exists(HospitallerPrefab) || !File.Exists(MandrakePrefab) || !File.Exists(BullgrynPrefab) || !File.Exists(SorcererPrefab) || !File.Exists(SanguinaryGuardPrefab);
                 if (missing && File.Exists("Assets/Models/GreyKnight.fbx")) BuildAll();
             };
         }
@@ -64,7 +64,7 @@ namespace Anathema.EditorTools
             BuildPlayerPrefab(ArenaSceneBuilder.Character.Mandrake, MandrakePrefab);
             BuildPlayerPrefab(ArenaSceneBuilder.Character.Bullgryn, BullgrynPrefab);
             BuildPlayerPrefab(ArenaSceneBuilder.Character.Sorcerer, SorcererPrefab);
-            BuildPlayerPrefab(ArenaSceneBuilder.Character.SanguinaryPriest, SanguinaryPriestPrefab);
+            BuildPlayerPrefab(ArenaSceneBuilder.Character.SanguinaryGuard, SanguinaryGuardPrefab);
             BuildVersusScene(VersusPath, ArenaSceneBuilder.MapColosseum);
             BuildVersusScene(ShrinePath, ArenaSceneBuilder.MapShrine);
             BuildVersusScene(CruciblePath, ArenaSceneBuilder.MapCrucible);

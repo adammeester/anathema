@@ -84,8 +84,8 @@ namespace Anathema.Net
             public string name; // the player's chosen display name (sanitized by the server)
         }
 
-        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon", "Psyker", "Skitarii Ranger", "Hospitaller", "Mandrake", "Bullgryn", "Thousand Sons Sorcerer", "Sanguinary Priest" };
-        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon", "Net/Player_Psyker", "Net/Player_SkitariiRanger", "Net/Player_Hospitaller", "Net/Player_Mandrake", "Net/Player_Bullgryn", "Net/Player_Sorcerer", "Net/Player_SanguinaryPriest" };
+        static readonly string[] CharacterNames = { "Grey Knight Interceptor", "Khorne Berserker", "Plague Surgeon", "Psyker", "Skitarii Ranger", "Hospitaller", "Mandrake", "Bullgryn", "Thousand Sons Sorcerer", "Sanguinary Guard" };
+        static readonly string[] CharacterPrefabs = { "Net/Player_GreyKnight", "Net/Player_KhorneBerserker", "Net/Player_PlagueSurgeon", "Net/Player_Psyker", "Net/Player_SkitariiRanger", "Net/Player_Hospitaller", "Net/Player_Mandrake", "Net/Player_Bullgryn", "Net/Player_Sorcerer", "Net/Player_SanguinaryGuard" };
 
         public static NetGame Instance { get; private set; }
         public static bool Online => Instance != null && Instance.manager != null && Instance.manager.IsListening;

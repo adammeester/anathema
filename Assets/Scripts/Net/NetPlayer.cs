@@ -779,6 +779,20 @@ namespace Anathema.Net
             else health.Heal(amount, healer);
         }
 
+        // Owner: this character pays `amount` of its own health for an ability (Health.Sacrifice). Only the owner may
+        // spend their own health, and never past 1 health (the server's copy enforces that).
+        public void SendSacrifice(float amount)
+        {
+            if (IsSpawned && IsOwner) SacrificeServerRpc(amount);
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Everyone)]
+        void SacrificeServerRpc(float amount, RpcParams rpcParams = default)
+        {
+            if (OwnerClientId != rpcParams.Receive.SenderClientId || amount <= 0f || amount > MaxHeal || health.IsDead || NetGame.Frozen) return;
+            health.Sacrifice(amount);
+        }
+
         // --- Counters and shields resolved by the server ------------------------------------------------------------
 
         // Server: this character's counter caught a hit. Everyone drops the guard and sees the burst; the owner's
