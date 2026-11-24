@@ -87,16 +87,12 @@ namespace Anathema.Abilities.SanguinaryGuard
             finally { vitae.Suppressed--; }
         }
 
-        // He never pays health he doesn't have: an ability that costs `cost` can only be cast while it leaves him at or
-        // above this share of his max health.
-        public const float SacrificeFloor = 0.15f;
-
-        // Deep Veins lowers the floor.
-        public static float FloorOf(Health guard) =>
-            guard != null && GuardUpgrade.Has(guard.gameObject, GuardUpgrade.DeepVeins) ? GuardUpgrade.DeepVeinsFloor : SacrificeFloor;
-
+        // His health-cost abilities (Blood Transfusion, Sanguine Font, Chalice Offering) work at any health except while
+        // Red Thirst has him: a cast at 21% may well carry him into the thirst, and then they lock until he climbs back
+        // out (unless he has Deep Veins). Paying never kills him (Pay stops at 1 health). `cost` is kept for callers; it no longer gates the cast.
         public static bool CanPay(Health guard, float cost) =>
-            guard != null && !guard.IsDead && guard.Current - cost >= guard.Max * FloorOf(guard);
+            guard != null && !guard.IsDead && guard.Current > 1f
+            && !(guard.TryGetComponent(out RedThirst thirst) && thirst.Active && !GuardUpgrade.Has(guard.gameObject, GuardUpgrade.DeepVeins));
 
         // Owner: spend `cost` of his own health (Health.Sacrifice; the server's copy applies it online). What he pays
         // fills Vitae.

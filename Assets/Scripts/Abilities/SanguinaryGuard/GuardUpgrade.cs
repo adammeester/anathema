@@ -76,7 +76,6 @@ namespace Anathema.Abilities.SanguinaryGuard
 
         // Endurance
         public const float DeepVeinsHealth = 25f;
-        public const float DeepVeinsFloor = 0.1f;        // health-cost floor (base 15%)
         public const float IronHaloThreshold = 0.2f;
         public const float IronHaloShield = 40f;
         public const float IronHaloSeconds = 3f;
@@ -148,7 +147,7 @@ namespace Anathema.Abilities.SanguinaryGuard
             new UpgradeDef(SanctifiedBlood, UpgradeCategory.Endurance, "Sanctified Blood",
                 "Vitae no longer drains."),
             new UpgradeDef(DeepVeins, UpgradeCategory.Endurance, "Deep Veins",
-                "+25 maximum health, and your health costs can take you down to 10% health instead of 15%.")
+                "+25 maximum health, and Red Thirst no longer locks Blood Transfusion and Chalice Offering: you can keep bleeding for your team even in the thirst.")
                 .Health(DeepVeinsHealth),
             new UpgradeDef(IronHalo, UpgradeCategory.Endurance, "Iron Halo",
                 "Once per round, the first time you drop to 20% health you gain a 40 shield for 3s."),

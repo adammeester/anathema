@@ -8,7 +8,7 @@ namespace Anathema.Abilities.SanguinaryGuard
     // It is a skillshot: an enemy in the way soaks it up (no damage, the blood is simply lost) and a miss is wasted
     // blood, so lead moving allies and throw past the melee, not through it.
     // What he pays stays healable, so the Exsanguinating Arc's lifesteal can win it back, and it fills Vitae
-    // (SanguinaryKit.Pay). He can't cast it if paying would leave him below SanguinaryKit.SacrificeFloor of max health.
+    // (SanguinaryKit.Pay). Like every health cost it is locked only while Red Thirst has him (SanguinaryKit.CanPay).
     // With the Encarmine Axe it becomes Sanguine Font: he pours the blood on the ground up to `FontRange` away, and allies
     // standing in the pool heal over time (SanguineFont). With the Glaive Encarmine the bolt heals less but bounces on to
     // the nearest other ally.

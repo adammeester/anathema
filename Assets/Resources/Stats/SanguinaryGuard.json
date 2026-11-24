@@ -55,6 +55,7 @@
       "heal": 20,
       "bonusPerEnemy": 0.5,
       "maxBonusEnemies": 2,
+      "bonusRadius": 5,
       "exEnergyCost": 35,
       "exRadius": 4,
       "exDamage": 18,
