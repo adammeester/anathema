@@ -5,7 +5,7 @@ namespace Anathema.Abilities.SanguinaryGuard
 {
     // Space: Sanguine Parry, the guard's counter. The hit is negated; he cuts the attacker if they are close, and the
     // blood he draws heals the most injured teammate near him (himself included), which fills Vitae like any heal, and
-    // his next Chalice Offering charge comes back `chaliceRefund` of its recharge sooner.
+    // his next Chalice Offering charge comes back `chaliceRefund` of its recharge sooner, and the chalice fills by `vitaeGain`.
     [DefaultExecutionOrder(100)] // keep in step with Counter
     public class SanguineParry : Counter
     {
@@ -15,6 +15,7 @@ namespace Anathema.Abilities.SanguinaryGuard
         [SerializeField] float healRange = 8f;
         [SerializeField] float energyGain = 10f;
         [SerializeField] float chaliceRefund = 0.5f;   // a successful parry brings the next Chalice charge forward by this much of its recharge
+        [SerializeField] float vitaeGain = 20f;        // a successful parry also fills the chalice by this much
 
         protected override Color GuardColor => new Color(0.85f, 0.1f, 0.1f, 0.45f);
         protected override Color GlowColor => new Color(1f, 0.2f, 0.15f, 0.4f);
@@ -26,6 +27,8 @@ namespace Anathema.Abilities.SanguinaryGuard
             Energy energy = GetComponent<Energy>();
             if (energy != null) energy.Gain(energyGain);
             if (TryGetComponent(out ChaliceOffering chalice)) chalice.RefundCharge(chaliceRefund);
+            // The blow turned aside feeds the chalice directly (owner only: Vitae lives on his machine).
+            if (!Health.IsReplica && TryGetComponent(out Vitae vitae)) vitae.Add(vitaeGain);
             SanguinaryKit.Mist(transform.position, 1.4f, 0.4f);
 
             // The riposte is a sword cut: none while Blade Hurl has the sword out of his hand.

@@ -135,9 +135,21 @@ namespace Anathema.Player
 
         bool CanMove => !health.IsDead;
 
+        Anathema.Abilities.Ability[] ownAbilities;
+
+        // A leap (Jump Pack, Winged Escape...) is moving the character over walls: no walking step, or the controller
+        // would shove them back out of the wall they are crossing.
+        bool CarriedByAbility()
+        {
+            if (ownAbilities == null) ownAbilities = GetComponents<Anathema.Abilities.Ability>();
+            foreach (var ability in ownAbilities)
+                if (ability != null && ability.CarriesCharacter) return true;
+            return false;
+        }
+
         void Simulate(Vector2 direction)
         {
-            if (!CanMove) return;
+            if (!CanMove || CarriedByAbility()) return;
             MoveContext ctx = MovementSim.Gather(gameObject, moveSpeed, gravity);
             MovementSim.Step(controller, ref verticalVelocity, direction, ctx);
         }

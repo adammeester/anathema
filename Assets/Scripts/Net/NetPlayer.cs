@@ -52,7 +52,8 @@ namespace Anathema.Net
             PetrifyBreak,   // server -> owner: the dust-glass shell broke
             Timeslip,       // a teammate pulled out of time by Weaver of Fates (a = seconds, b = range, direction = Timeslipped.Arrival)
             Purge,          // Absolution: strip every crowd control and debuff; held by the server, which tells the owner too
-            CasketCarry     // pinned to a sliding Hoarfrost casket (a = distance, b = seconds, direction); server -> owner only
+            CasketCarry,    // pinned to a sliding Hoarfrost casket (a = distance, b = seconds, direction); server -> owner only
+            VitaeGain       // server -> owner: the Sanguinary Guard's Spilled Blood (a = Vitae), decided where his damage is resolved
         }
 
         public static readonly List<NetPlayer> All = new List<NetPlayer>();
@@ -968,7 +969,7 @@ namespace Anathema.Net
             if (sender != NetworkManager.ServerClientId)
             {
                 if (status == StatusKind.PanicBreak || status == StatusKind.Enrage || status == StatusKind.Heal
-                    || status == StatusKind.CasketCarry) return;
+                    || status == StatusKind.CasketCarry || status == StatusKind.VitaeGain) return;
                 NetPlayer from = PlayerOf(sender);
                 if (from == null || from.health.IsDead || NetGame.Frozen) return;
                 bool sameTeam = from.health.Team == health.Team;
@@ -1056,6 +1057,9 @@ namespace Anathema.Net
                 case StatusKind.Petrify: Petrified.Apply(gameObject, a, b, direction.x, attacker); break;
                 case StatusKind.PetrifyBreak: Petrified.Break(gameObject); break;
                 case StatusKind.CasketCarry: CasketCarried.ApplyHere(gameObject, direction, a, b); break;
+                case StatusKind.VitaeGain:
+                    if (!health.IsReplica && TryGetComponent(out Anathema.Abilities.SanguinaryGuard.Vitae vitae)) vitae.Add(a);
+                    break;
                 case StatusKind.Timeslip:
                     // The server holds the untouchable copy and tells the owner, who hides and picks where to come back.
                     Timeslipped.ApplyHere(gameObject, a, b, Timeslipped.Arrival.Unpack(direction), IsServer, IsOwner);

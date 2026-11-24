@@ -6,8 +6,8 @@ namespace Anathema.Abilities.SanguinaryGuard
     // Passive: Vitae, the Blood Chalice. Healing the guard gives (to teammates or himself) fills it, one Vitae per point
     // of health actually restored (overhealing counts for nothing). Healing given while an enemy stands within
     // `frontlineRadius` of him counts `frontlineBonus` times over. Health he pays for his abilities (Blood Transfusion,
-    // Chalice Offering) fills it too, `perHealthPaid` per point. Damage dealt or taken never fills it, except under Red
-    // Thirst, where his hits feed it (RedThirst.OnDamageDealt).
+    // Chalice Offering) fills it too, `perHealthPaid` per point. Damage he deals only fills it under Red Thirst (RedThirst.
+    // OnDamageDealt); damage he takes only from enemies right beside him (Spilled Blood, half rate: OnDamageTaken).
     // After `drainDelay` seconds without healing anyone it drains, unless it is full. Full, his next Chainsword swing is
     // the Exsanguinating Arc, which empties it; while it is full he takes `fullExposure` more damage.
     //
@@ -19,10 +19,12 @@ namespace Anathema.Abilities.SanguinaryGuard
         [SerializeField] float maxVitae = 100f;
         [SerializeField] float frontlineRadius = 3f;
         [SerializeField] float frontlineBonus = 1.5f;
-        [SerializeField] float drainDelay = 3f;
-        [SerializeField] float drainPerSecond = 6f;
+        [SerializeField] float drainDelay = 5f;
+        [SerializeField] float drainPerSecond = 4f;
         [SerializeField] float fullExposure = 0.1f;
         [SerializeField] float perHealthPaid = 1f;   // Vitae per point of health he sacrifices
+        [SerializeField] float spilledPerDamage = 0.5f;   // Spilled Blood: Vitae per point of health lost to an enemy close to him
+        [SerializeField] float spilledRadius = 4f;
 
         const int Pips = 5;
 
@@ -65,8 +67,32 @@ namespace Anathema.Abilities.SanguinaryGuard
             wings = GetComponent<WingsOfTheAngel>();
         }
 
-        void OnEnable() => Healing.Applying += OnHealing;
-        void OnDisable() => Healing.Applying -= OnHealing;
+        void OnEnable()
+        {
+            Healing.Applying += OnHealing;
+            if (health != null) health.DamageTaken += OnDamageTaken;
+        }
+
+        void OnDisable()
+        {
+            Healing.Applying -= OnHealing;
+            if (health != null) health.DamageTaken -= OnDamageTaken;
+        }
+
+        // Spilled Blood. Runs where damage is resolved (the server online): health he loses to an enemy standing within
+        // `spilledRadius` of him fills the chalice, `spilledPerDamage` per point. Hits soaked by shields never reach here,
+        // and damage from far away counts for nothing, so only the enemies diving him feed it. The server hands the gain
+        // to his own machine, where the chalice lives.
+        void OnDamageTaken(float dealt, GameObject source)
+        {
+            if (health == null || !health.IsAuthority || health.IsDead || dealt <= 0f || source == null) return;
+            if (!source.TryGetComponent(out Health attacker) || attacker.Team == health.Team) return;
+            if (SanguinaryKit.Flat(source.transform.position - transform.position).sqrMagnitude > spilledRadius * spilledRadius) return;
+            float gain = dealt * spilledPerDamage;
+            if (!health.IsReplica) Add(gain);
+            else if (health.Net != null)
+                health.Net.ForwardStatusToOwner(Anathema.Net.NetPlayer.StatusKind.VitaeGain, gain, 0f, Vector3.zero, null);
+        }
 
         // Raised just before a heal is applied or sent, while the target's healable health is still the value before it.
         void OnHealing(Health target, float amount, GameObject healer)
@@ -94,6 +120,18 @@ namespace Anathema.Abilities.SanguinaryGuard
         {
             if (health == null || health.IsReplica || health.IsDead) return;
             Add(paid * perHealthPaid);
+            PaidSinceArc += paid;
+        }
+
+        // Blood Returns: the health he has paid since his last landed Arc (owner only). The Arc takes it (TakePaidSinceArc)
+        // and heals him for a share of it.
+        public float PaidSinceArc { get; private set; }
+
+        public float TakePaidSinceArc()
+        {
+            float paid = PaidSinceArc;
+            PaidSinceArc = 0f;
+            return paid;
         }
 
         // The Arc spends the whole chalice.
@@ -110,6 +148,7 @@ namespace Anathema.Abilities.SanguinaryGuard
             if (health.IsDead)
             {
                 Current = 0f;
+                PaidSinceArc = 0f;
                 return;
             }
 

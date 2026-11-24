@@ -17,6 +17,7 @@
       "arcSlow": 0.3,
       "arcSlowDuration": 1,
       "arcLifesteal": 0.8,
+      "arcBloodReturn": 0.5,
       "arcHealShare": 0.4,
       "arcHealRadius": 6,
       "arcEnergyPerHit": 10,
@@ -42,14 +43,16 @@
       "slow": 0.4,
       "slowDuration": 1.5,
       "crackSeconds": 3,
-      "energyPerHit": 8
+      "energyPerHit": 8,
+      "landingArmor": 0.3,
+      "landingArmorSeconds": 1.5
     },
     "ChaliceOffering": {
       "cooldown": 1,
       "rechargeTime": 12,
       "radius": 4,
       "cost": 15,
-      "heal": 25,
+      "heal": 20,
       "bonusPerEnemy": 0.5,
       "maxBonusEnemies": 2,
       "exEnergyCost": 35,
@@ -64,7 +67,8 @@
       "heal": 15,
       "healRange": 8,
       "energyGain": 10,
-      "chaliceRefund": 0.5
+      "chaliceRefund": 0.5,
+      "vitaeGain": 20
     },
     "CrimsonRush": {
       "cooldown": 13,

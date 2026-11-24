@@ -69,6 +69,11 @@ namespace Anathema.Abilities
         // True while this ability holds the character in place (PlayerMovement stops walking; gravity still applies).
         public virtual bool RootsMovement => false;
 
+        // True while this ability is carrying the character itself (a leap moving the transform straight over walls):
+        // PlayerMovement skips its own step entirely, so the character controller doesn't push them back out of a wall
+        // they are passing over.
+        public virtual bool CarriesCharacter => false;
+
         // Upgrades shorten (or lengthen) this ability's cooldown by setting this; 1 = as authored.
         public float CooldownScale { get; set; } = 1f;
         float EffectiveCooldown => cooldown * CooldownScale;

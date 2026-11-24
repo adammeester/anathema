@@ -73,6 +73,7 @@ namespace Anathema.Abilities.SanguinaryGuard
         public override string DisplayName => "Wings of the Angel";
         public override string KeyLabel => "F";
         public override float MovementRange => range;
+        public override bool CarriesCharacter => flying;   // the flight carries the character over walls itself
         public override bool EscapesCasket => false; // an ultimate, not a dedicated movement ability
         public override bool RootsMovement => gathering;
         public override bool Available => energy != null && energy.Current >= energyCost && !Silenced.IsSilenced(gameObject) && !Panicked.IsPanicked(gameObject);

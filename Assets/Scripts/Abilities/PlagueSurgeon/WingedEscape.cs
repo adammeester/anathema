@@ -34,6 +34,7 @@ namespace Anathema.Abilities.PlagueSurgeon
 
         public override string DisplayName => "Winged Escape";
         public override float MovementRange => range;
+        public override bool CarriesCharacter => flying;   // the flight carries the character over walls itself
         public override string KeyLabel => "Space";
 
         // Applied only when added in the editor.

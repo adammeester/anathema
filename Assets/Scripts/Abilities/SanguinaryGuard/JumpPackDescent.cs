@@ -11,6 +11,7 @@ namespace Anathema.Abilities.SanguinaryGuard
     //   - enemies within `landingRadius` take damage and are slowed (pure offence: nothing for allies); under Red Thirst
     //     the damage is RedThirst.SlamDamageMultiplier times as much;
     //   - the ground cracks around the impact site; the cracks fade away after a few seconds.
+    //   - he lands braced: `landingArmor` damage reduction for `landingArmorSeconds`, so diving out of a focus is an escape;
     // It is his only movement ability, so spending it to dive in leaves him no way out.
     public class JumpPackDescent : Ability
     {
@@ -24,6 +25,8 @@ namespace Anathema.Abilities.SanguinaryGuard
         [SerializeField] float slowDuration = 1.5f;
         [SerializeField] float crackSeconds = 3f;
         [SerializeField] float energyPerHit = 8f;
+        [SerializeField] float landingArmor = 0.3f;     // damage reduction he lands with, so diving out of a focus is a real escape
+        [SerializeField] float landingArmorSeconds = 1.5f;
 
         Transform model;
         float liftApplied; // height this leap has added to the model; changed by difference so other offsets on it survive
@@ -46,6 +49,7 @@ namespace Anathema.Abilities.SanguinaryGuard
         public override string KeyLabel => "Q";
         public override float MovementRange => range;
         public override bool RootsMovement => IsWindingUp; // planted while the engines spool up
+        public override bool CarriesCharacter => flying;   // the leap carries him over walls itself
 
         // The engines spool up: flames grow to half, smoke starts pouring. Owner and replicas alike.
         protected override void OnWindupStart()
@@ -158,7 +162,14 @@ namespace Anathema.Abilities.SanguinaryGuard
             ImpactCracks.Spawn(here, landingRadius, crackSeconds);
             Sfx.Play(Sfx.SlamExplosion, 0.45f, 0.95f, 1.05f, 0.7f);
             Sfx.Play(Sfx.HammerSmash, 0.35f, 0.7f, 0.8f, 0.5f);
+            // He lands braced: a gold shimmer and a short damage reduction.
+            Hospitaller.HospitallerFx.Burst(here, 1.4f, SanguinaryKit.Gold, 0.4f, landingArmorSeconds);
             if (IsReplica) return;
+
+            // The armour must sit where damage is resolved (the server online).
+            if (Health.IsAuthority) Health.GrantTemporaryArmor(landingArmor, landingArmorSeconds);
+            else if (Health.Net != null)
+                Health.Net.SendStatus(Anathema.Net.NetPlayer.StatusKind.Armor, landingArmor, landingArmorSeconds, Vector3.zero, gameObject);
 
             CameraRig.TopDownCamera.Shake(0.15f, 0.2f);
             bool marked = false;

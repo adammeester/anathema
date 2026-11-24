@@ -17,7 +17,7 @@ namespace Anathema.Abilities.SanguinaryGuard
     {
         [SerializeField] float radius = 4f;
         [SerializeField] float cost = 15f;
-        [SerializeField] float heal = 25f;
+        [SerializeField] float heal = 20f;
         [SerializeField] float bonusPerEnemy = 0.5f;
         [SerializeField] int maxBonusEnemies = 2;
 
@@ -31,9 +31,8 @@ namespace Anathema.Abilities.SanguinaryGuard
         [Header("Charges")]
         [SerializeField] float rechargeTime = 12f;   // each spent charge comes back on its own after this long
 
-        // Sanguinary Rite adds a third charge (the array always has room for it).
-        int MaxCharges => GuardUpgrade.Has(gameObject, GuardUpgrade.SanguinaryRite) ? GuardUpgrade.RiteCharges : 2;
-        readonly float[] chargeReady = new float[GuardUpgrade.RiteCharges];
+        const int MaxCharges = 3;
+        readonly float[] chargeReady = new float[MaxCharges];
 
         Energy energy;
         Vitae vitae;
@@ -49,12 +48,13 @@ namespace Anathema.Abilities.SanguinaryGuard
         public override string ExDescription => "Drink from the chalice: every enemy around you is drained, and their blood heals you.";
         public override bool Available => SanguinaryKit.CanPay(Health, cost);
 
-        // Two charges, each recharging on its own (like Sanctus Pulse): `cooldown` is only the short gap between two
+        // Three charges, each recharging on its own (like Sanctus Pulse): `cooldown` is only the short gap between two
         // casts. Chalice of Wrath spends a charge too. A cast that finds nobody to heal when it lands spends nothing.
         public override int ChargeCapacity => MaxCharges;
         public override int ChargesReady => ReadyCharges;
 
-        float Recharge => rechargeTime * CooldownScale;
+        // Sanguinary Rite shortens each charge's recharge.
+        float Recharge => (GuardUpgrade.Has(gameObject, GuardUpgrade.SanguinaryRite) ? GuardUpgrade.RiteRecharge : rechargeTime) * CooldownScale;
 
         int ReadyCharges
         {

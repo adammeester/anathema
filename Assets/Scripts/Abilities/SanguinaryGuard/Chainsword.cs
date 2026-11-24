@@ -38,6 +38,7 @@ namespace Anathema.Abilities.SanguinaryGuard
         [SerializeField] float arcSlow = 0.3f;
         [SerializeField] float arcSlowDuration = 1f;
         [SerializeField] float arcLifesteal = 0.8f;         // share of each landed Arc hit that heals him
+        [SerializeField] float arcBloodReturn = 0.5f;       // Blood Returns: share of the health paid since the last landed Arc that it heals back
         [SerializeField] float arcHealShare = 0.4f;         // share of each landed Arc hit that heals each other teammate
         [SerializeField] float arcHealRadius = 6f;
         [SerializeField] float arcEnergyPerHit = 10f;
@@ -328,6 +329,12 @@ namespace Anathema.Abilities.SanguinaryGuard
                         HitMarkerSound.Play();
                         // Once per Arc that lands during Wings of the Angel: the chalice refills faster.
                         if (first && Ascended && chalice != null) chalice.RefundCharge(ascendedChaliceRefund);
+                        // Blood Returns: the first blow of a landed Arc pays back part of the health he has bled since the last.
+                        if (first && vitae != null)
+                        {
+                            float back = vitae.TakePaidSinceArc() * arcBloodReturn;
+                            if (back > 0f) SanguinaryKit.Heal(gameObject, Health, back, feedsVitae: false);
+                        }
                         MeleeSound.Impact(hits);
                     }
                     BloodImpact.Play(enemy.transform.position + Vector3.up, SanguinaryKit.Flat(enemy.transform.position - transform.position), 1.2f);

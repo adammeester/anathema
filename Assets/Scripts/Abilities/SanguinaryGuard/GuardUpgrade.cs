@@ -91,7 +91,7 @@ namespace Anathema.Abilities.SanguinaryGuard
         public const float WrathReturnTime = 0.3f;
         public const float DeathFromAboveStun = 0.5f;
         public const float MomentumCooldownScale = 0.7f;
-        public const int RiteCharges = 3;
+        public const float RiteRecharge = 9f;       // Chalice Offering charge recharge (base 12s)
         public const float DeathMaskPanic = 0.8f;
         public const float SeraphicSeconds = 7f;
         public const int RicochetBounces = 2;
@@ -168,7 +168,7 @@ namespace Anathema.Abilities.SanguinaryGuard
             new UpgradeDef(CrimsonMomentum, UpgradeCategory.Ferocity, "Crimson Momentum",
                 "Crimson Rush (and Blade Hurl) recharge 30% faster: 9s instead of 13s."),
             new UpgradeDef(SanguinaryRite, UpgradeCategory.Ferocity, "Sanguinary Rite",
-                "Chalice Offering holds 3 charges instead of 2."),
+                "Chalice Offering charges recharge in 9s instead of 12s."),
             new UpgradeDef(DeathMask, UpgradeCategory.Ferocity, "Death Mask",
                 "Enemies hit by Chalice of Wrath also panic for 0.8s."),
             new UpgradeDef(SeraphicAscension, UpgradeCategory.Ferocity, "Seraphic Ascension",

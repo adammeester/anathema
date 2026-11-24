@@ -22,7 +22,7 @@ namespace Anathema.Abilities.SanguinaryGuard
         [SerializeField] float moveSpeedBonus = 0.2f;
         [SerializeField] float attackSpeedBonus = 0.3f;
         [SerializeField] float slamDamageBonus = 0.5f;
-        [SerializeField] float vitaePerDamage = 1f;   // while thirsting, Vitae per point of damage his hits deal
+        [SerializeField] float vitaePerDamage = 2f;   // while thirsting, Vitae per point of damage his hits deal
         [SerializeField] float vapourPerSecond = 10f;
 
         static readonly Color EyeColor = new Color(1f, 0.08f, 0.04f, 1f);

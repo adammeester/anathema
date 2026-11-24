@@ -13,8 +13,10 @@ namespace Anathema.Combat
         // (Heal) can restore it. If it isn't healed for a while it decays into permanent loss (an empty, see-through
         // part of the bar), which only healing orbs (HealPermanent) can restore. At most MaxRecoverableFraction of max
         // health can be recoverable at once; damage beyond that is permanent immediately.
-        [SerializeField] float recoverableDecayDelay = 4f;   // seconds after the last hit before white starts decaying
-        [SerializeField] float recoverableDecayRate = 6f;    // white health lost to permanent loss per second
+        // The same for everyone, so constants rather than per-prefab fields (older prefabs still carry the old serialized
+        // values, which are now ignored).
+        const float recoverableDecayDelay = 5f;   // seconds after the last hit before white starts decaying (was 4)
+        const float recoverableDecayRate = 4f;    // white health lost to permanent loss per second (was 6)
 
         // Health bars are split into chunks of this much health (display only).
         public const float ChunkSize = 10f;
