@@ -135,6 +135,9 @@ namespace Anathema.Abilities
 
         public bool IsWindingUp => windingUp;
 
+        // Seconds left in the wind-up in progress (0 when not winding up), for poses that follow it.
+        protected float WindupRemaining => windingUp ? Mathf.Max(0f, windupEnd - Time.time) : 0f;
+
         bool windingUp;
         float windupEnd;
         WindupFx windupFx;

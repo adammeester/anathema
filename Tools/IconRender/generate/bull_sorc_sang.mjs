@@ -181,6 +181,16 @@ ${use("wing", "translate(-8 -10) scale(0.7)", 'fill="#e8d8b0" stroke="#5a4a30"')
 <ellipse cx="0" cy="30" rx="26" ry="6.5" fill="none" stroke="#ffb070" stroke-width="1.5"/>
 <g stroke="#ffcf7a" stroke-width="2" stroke-linecap="round"><line x1="-30" y1="20" x2="-40" y2="12"/><line x1="30" y1="20" x2="40" y2="12"/></g>`,
 
+  // Blood Transfusion: one great drop of his blood, glowing, with a healing cross at its heart.
+  BloodTransfusion: `${glow(0, 4, 46)}
+<path d="M0,-44 Q30,-6 30,14 Q30,40 0,40 Q-30,40 -30,14 Q-30,-6 0,-44 Z" fill="#5a0606" opacity="0.6" transform="translate(3 4)"/>
+<path d="M0,-44 Q30,-6 30,14 Q30,40 0,40 Q-30,40 -30,14 Q-30,-6 0,-44 Z" fill="#b01212" stroke="#2a0404" stroke-width="2.5"/>
+<path d="M0,-30 Q20,-2 21,14 Q21,32 0,33 Q-14,33 -19,22 Q-8,26 4,20 Q14,12 8,-8 Z" fill="#7a0808" opacity="0.8"/>
+<path d="M-8,-18 Q-18,-2 -19,10" fill="none" stroke="#ffb0a8" stroke-width="3.5" stroke-linecap="round" opacity="0.75"/>
+<circle cx="-14" cy="18" r="2.6" fill="#ffd0c8" opacity="0.8"/>
+<path d="M-4,4 h8 v-8 h7 v8 h8 v7 h-8 v8 h-7 v-8 h-8 Z" fill="url(#gold)" stroke="#2a1a08" stroke-width="1.2" transform="translate(-6 6)"/>
+${drops([[-36, -22, 1], [38, -16, 0.9], [-40, 30, 0.8], [40, 34, 1]], "#c4161c")}`,
+
   // Chalice Offering: the chalice raised to heal everyone around.
   ChaliceOffering: `${glow(0, -6, 44)}
 <g stroke="#d9a441" stroke-width="2" opacity="0.25"><line x1="0" y1="-10" x2="-40" y2="-40"/><line x1="0" y1="-10" x2="40" y2="-40"/><line x1="0" y1="-10" x2="-48" y2="-12"/><line x1="0" y1="-10" x2="48" y2="-12"/></g>

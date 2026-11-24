@@ -5,13 +5,15 @@ namespace Anathema.Abilities.SanguinaryGuard
 {
     // RMB: Blood Transfusion. He opens his own veins and hurls a bolt of his blood along the aim direction: he pays
     // `cost` of his own health as he throws it, and the first teammate it touches (never himself) is healed for `heal`.
-    // It is a skillshot: an enemy in the way soaks it up (no damage, the blood is simply lost) and a miss is wasted
+    // It is a skillshot: an enemy in the way soaks it up (a token hit their counter can catch, then a short bleed; the
+    // heal is lost) and a miss is wasted
     // blood, so lead moving allies and throw past the melee, not through it.
     // What he pays stays healable, so the Exsanguinating Arc's lifesteal can win it back, and it fills Vitae
     // (SanguinaryKit.Pay). Like every health cost it is locked only while Red Thirst has him (SanguinaryKit.CanPay).
     // With the Encarmine Axe it becomes Sanguine Font: he pours the blood on the ground up to `FontRange` away, and allies
     // standing in the pool heal over time (SanguineFont). With the Glaive Encarmine the bolt heals less but bounces on to
     // the nearest other ally.
+    [DefaultExecutionOrder(55)] // after ProceduralWalk and the sword's pose
     public class BloodTransfusion : Ability
     {
         [SerializeField] float cost = 12f;
@@ -22,10 +24,23 @@ namespace Anathema.Abilities.SanguinaryGuard
         [SerializeField] float muzzleHeight = 1.4f;
         [SerializeField] float muzzleForward = 0.6f;
 
+        [SerializeField] float windup = 0.3f;   // cancellable, telegraphed and readable: enemies can see it coming and step in
+        [SerializeField] float enemyHitDamage = 1f;    // an enemy who blocks it takes a token hit (so counters can catch it)...
+        [SerializeField] float bleedPerSecond = 3f;    // ...and bleeds
+        [SerializeField] float bleedSeconds = 3f;
+
         Material boltMaterial;
         Material haloMaterial;
+        static readonly string[] PoseBones = { "Spine", "UpperArm_L", "Forearm_L" };
+        LimbPose pose;
+        Transform hand;          // where the blood gathers (his free left hand)
+        GameObject gather;       // the growing orb of blood during the wind-up
+        GameObject marker;       // the aim lane (or the Font's landing circle) during the wind-up
+        float throwPoseEnd = -1f;
+        Vector3 lockedAim;
+        bool posed;
 
-        protected override float WindupDuration => 0.12f;
+        protected override float WindupDuration => windup;
         protected override Color WindupColor => SanguinaryKit.Blood;
 
         GuardWeapon Weapon => GuardUpgrade.WeaponOf(gameObject);
@@ -37,6 +52,59 @@ namespace Anathema.Abilities.SanguinaryGuard
         void Reset()
         {
             cooldown = 4f;
+        }
+
+        protected override void Awake()
+        {
+            base.Awake();
+            Transform model = transform.Find("Model");
+            pose = new LimbPose(model, PoseBones);
+            if (model != null)
+                foreach (Transform t in model.GetComponentsInChildren<Transform>(true))
+                {
+                    if (t.name == "Hand_L") { hand = t; break; }
+                    if (hand == null && t.name == "Forearm_L") hand = t;
+                }
+        }
+
+        // The wind-up, on every machine: he draws his free arm back and blood wells up in his palm, while the ground shows
+        // where it will go (the bolt's lane, or the Font's pool). Enemies can read it and step into the lane to block it.
+        protected override void OnWindupStart()
+        {
+            Vector3 aim = IsReplica && Health.Net != null ? Health.Net.ReplicaAimPoint : Aim.AimPoint;
+            // The aim is locked here, so the lane on the ground is exactly where the blood will go.
+            lockedAim = aim;
+            Vector3 to = SanguinaryKit.Flat(aim - transform.position);
+            Vector3 dir = to.sqrMagnitude > 0.25f ? to.normalized : transform.forward;
+            if (marker != null) Destroy(marker);
+            if (Weapon == GuardWeapon.EncarmineAxe)
+            {
+                if (to.magnitude > GuardUpgrade.FontRange) to = to.normalized * GuardUpgrade.FontRange;
+                marker = Bullgryn.BullgrynKit.GroundCircle(transform.position + to, GuardUpgrade.FontRadius, windup, SanguinaryKit.Blood);
+            }
+            else
+            {
+                marker = Bullgryn.BullgrynKit.GroundLane(transform.position, dir, range, projectileRadius * 2f, windup, SanguinaryKit.Blood);
+                marker.transform.SetParent(transform, true);
+            }
+
+            if (gather != null) Destroy(gather);
+            if (boltMaterial == null) boltMaterial = VisualUtil.UnlitMaterial(SanguinaryKit.BrightBlood);
+            gather = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            gather.name = "Gathering Blood";
+            Destroy(gather.GetComponent<Collider>());
+            var r = gather.GetComponent<Renderer>();
+            r.sharedMaterial = boltMaterial;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            gather.transform.localScale = Vector3.zero;
+            SanguinaryKit.Mist(transform.position + Vector3.up, 0.5f, windup);
+            Sfx.Play(Sfx.MagicAttack1, 0.2f, 0.55f, 0.65f, windup);
+        }
+
+        protected override void OnWindupCancel()
+        {
+            if (marker != null) Destroy(marker);
+            if (gather != null) Destroy(gather);
         }
 
         protected override bool IsTriggered()
@@ -54,7 +122,10 @@ namespace Anathema.Abilities.SanguinaryGuard
 
         protected override void Activate()
         {
-            Vector3 aim = IsReplica && Health.Net != null ? Health.Net.ReplicaAimPoint : Aim.AimPoint;
+            if (marker != null) Destroy(marker);
+            if (gather != null) Destroy(gather);
+            throwPoseEnd = Time.time + 0.2f;
+            Vector3 aim = lockedAim;
             if (Weapon == GuardWeapon.EncarmineAxe)
             {
                 PourFont(aim);
@@ -101,9 +172,11 @@ namespace Anathema.Abilities.SanguinaryGuard
             trail.sharedMaterial = haloMaterial;
             trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
 
-            // Zero damage: an enemy in the way stops the bolt and takes nothing. Teammates stop it and are healed.
+            // An enemy in the way stops the bolt: a token hit (so their counter can catch it, like any attack) that leaves
+            // them bleeding. Teammates stop it and are healed.
             go.AddComponent<Projectile>()
-              .Init(gameObject, Health.Team, 0f, projectileSpeed, range, projectileRadius, dir)
+              .Init(gameObject, Health.Team, enemyHitDamage, projectileSpeed, range, projectileRadius, dir)
+              .WithRiders(Hit.Direct(0f).WithBleed(bleedPerSecond, bleedSeconds))
               .WithAllyHit(OnAllyHit);
         }
 
@@ -151,8 +224,47 @@ namespace Anathema.Abilities.SanguinaryGuard
 
         void OnDestroy()
         {
+            if (marker != null) Destroy(marker);
+            if (gather != null) Destroy(gather);
             if (boltMaterial != null) Destroy(boltMaterial);
             if (haloMaterial != null) Destroy(haloMaterial);
+        }
+
+        // Arm drawn back over the shoulder through the wind-up (the orb swelling in his palm), then flung forward.
+        void LateUpdate()
+        {
+            float now = Time.time;
+            bool winding = IsWindingUp;
+            bool flinging = now < throwPoseEnd;
+            if (!winding && !flinging)
+            {
+                if (posed) pose.Reset();
+                posed = false;
+                return;
+            }
+
+            float arm, twist;
+            if (winding)
+            {
+                float t = Mathf.SmoothStep(0f, 1f, 1f - Mathf.Clamp01(WindupRemaining / Mathf.Max(0.01f, windup)));
+                arm = Mathf.Lerp(0f, -110f, t);
+                twist = Mathf.Lerp(0f, -25f, t);
+                if (gather != null && hand != null)
+                {
+                    gather.transform.position = hand.position;
+                    gather.transform.localScale = Vector3.one * (projectileRadius * 1.2f * t);
+                }
+            }
+            else
+            {
+                float t = 1f - (throwPoseEnd - now) / 0.2f;
+                arm = Mathf.Lerp(-110f, 15f, t);
+                twist = Mathf.Lerp(-25f, 20f, t);
+            }
+            posed = true;
+            pose.Reset();
+            pose.Rotate("Spine", Vector3.up, twist);
+            pose.Rotate("UpperArm_L", transform.right, arm);
         }
 
         // Once the bolt leaves there is nothing to cancel (a wind-up in progress is cancelled by the base class).

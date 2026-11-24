@@ -13,7 +13,7 @@ namespace Anathema.Abilities.SanguinaryGuard
     // (a skillshot, `exRange` at `exSpeed`) and the first enemy it meets takes `exDamage` and a `exStun` stun; walls
     // stop it too. Then it flies back to his hand over `exReturnTime`. Blade of Sanguinius makes it ricochet; Wrath of
     // Baal brings it back faster. The flying copy is whichever weapon he holds (GuardWeaponVisual hides the one in hand). Until it is back he is disarmed: no Power Sword,
-    // no Exsanguinating Arc, no Parry riposte. Everything else (heals, Jump Pack, Chalice, the counter itself) still works.
+    // no Exsanguinating Arc. Everything else (heals, Jump Pack, Chalice, the counter itself) still works.
     // Every machine flies its own copy of the sword, so the disarm and the hidden blade show everywhere; only the
     // owner's copy deals the hit.
     [DefaultExecutionOrder(50)]
@@ -65,7 +65,7 @@ namespace Anathema.Abilities.SanguinaryGuard
         bool throwing;            // the EX wind-up or release pose
         float throwPoseEnd;
 
-        // While the sword is out of his hand he can't swing it (Chainsword, SanguineParry's riposte read this).
+        // While the sword is out of his hand he can't swing it (Chainsword, the Arc read this).
         public bool Disarmed => disarmed;
 
         protected override float WindupDuration =>

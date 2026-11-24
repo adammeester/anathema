@@ -593,9 +593,7 @@ namespace Anathema.Player
                 DrawArtPart(art.SlotMask.Tex, disc, new Rect(r.x, r.y + rh - 2f * scale, r.width, 2f * scale), new Color(Gold.r, Gold.g, Gold.b, 0.45f));
             }
 
-            // Without an icon, the ability's name, wrapped inside the slot (inset a little, as the slot is round).
-            if (icon == null) DrawText(new Rect(r.x + r.width * 0.08f, r.y + r.height * 0.2f, r.width * 0.84f, r.height * 0.6f), exShow ? ability.ExName : ability.DisplayName,
-                Mathf.RoundToInt(19f * scale), FontStyle.Bold, ready && !exLocked ? Color.white : new Color(1f, 1f, 1f, 0.55f));
+            // No name in the slot, icon or not: ability names only show in the tooltip when the slot is hovered.
 
             if (!ready && cd <= 0f && !ability.IsCasting)
             {
@@ -706,7 +704,8 @@ namespace Anathema.Player
 
         // Ability icons, loaded from Resources/AbilityIcons/<Character>/<AbilityClass>.png (rendered from the SVGs in
         // Art/AbilityIcons by Tools/IconRender). An EX version kept in the same component is <AbilityClass>_EX and falls
-        // back to the base icon. Abilities without an icon return null and keep their name in the slot.
+        // back to the base icon. Abilities without an icon return null and show an empty slot (names only appear in the
+        // hover tooltip).
         readonly Dictionary<string, Texture2D> icons = new Dictionary<string, Texture2D>();
 
         Texture2D IconFor(Ability ability, bool ex)

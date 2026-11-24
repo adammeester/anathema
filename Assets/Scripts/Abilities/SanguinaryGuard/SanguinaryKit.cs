@@ -112,7 +112,7 @@ namespace Anathema.Abilities.SanguinaryGuard
         }
 
         // Owner, from a landed hit's callback: under Red Thirst the damage he deals fills Vitae (see RedThirst). Only
-        // Power Sword cuts and Crimson Rush call this (not the Arc, the slam, the riposte or Chalice of Wrath).
+        // Power Sword cuts and Crimson Rush call this (not the Arc, the slam or Chalice of Wrath).
         public static void FeedThirst(GameObject guard, float damage)
         {
             if (guard != null && guard.TryGetComponent(out RedThirst thirst)) thirst.OnDamageDealt(damage);

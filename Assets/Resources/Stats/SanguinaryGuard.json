@@ -30,7 +30,11 @@
       "heal": 22,
       "range": 12,
       "projectileSpeed": 20,
-      "projectileRadius": 0.45
+      "projectileRadius": 0.45,
+      "windup": 0.3,
+      "enemyHitDamage": 1,
+      "bleedPerSecond": 3,
+      "bleedSeconds": 3
     },
     "JumpPackDescent": {
       "cooldown": 10,
@@ -64,12 +68,8 @@
     },
     "SanguineParry": {
       "cooldown": 4,
-      "riposteDamage": 8,
-      "heal": 15,
-      "healRange": 8,
       "energyGain": 10,
-      "chaliceRefund": 0.5,
-      "vitaeGain": 20
+      "chaliceRefund": 0.5
     },
     "CrimsonRush": {
       "cooldown": 13,
